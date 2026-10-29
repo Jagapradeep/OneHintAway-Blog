@@ -1,0 +1,3 @@
+/* Temporary base styles; step 3 adds the black theme and fonts. */
+body { margin: 0 auto; max-width: 760px; padding: 16px; font-family: system-ui, sans-serif; }
+pre { overflow-x: auto; }

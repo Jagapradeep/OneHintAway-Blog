@@ -1,0 +1,11 @@
+# Secrets: never commit these (API keys, DB passwords, kubeconfigs)
+.env
+.env.*
+!.env.example
+*.kubeconfig
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

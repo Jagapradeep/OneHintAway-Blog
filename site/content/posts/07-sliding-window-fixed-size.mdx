@@ -1,0 +1,142 @@
+---
+number: 7
+title: "Sliding window, fixed size"
+slug: sliding-window-fixed-size
+pattern: Sliding window
+section: Arrays and hashing
+summary: "Numbers next to each other and a fixed length k: one number in, one out, reuse the previous sum."
+worked: { name: "Max Sum Subarray of size K (GeeksforGeeks)", url: "https://www.geeksforgeeks.org/problems/max-sum-subarray-of-size-k5313/1" }
+practice:
+  - { name: "LeetCode 643 Maximum Average Subarray I", url: "https://leetcode.com/problems/maximum-average-subarray-i/", level: easy, note: "This exact post. Find the best sum, then divide it by k (as a decimal in Java and C++: (double) best / k)." }
+  - { name: "LeetCode 1456 Maximum Number of Vowels in a Substring of Given Length", url: "https://leetcode.com/problems/maximum-number-of-vowels-in-a-substring-of-given-length/", level: medium, note: "One letter in, one letter out, keep a vowel count." }
+slides: 8
+video: 2
+tags: [sliding-window, arrays]
+published: 2026-10-16
+---
+
+# 07 · Sliding window, fixed size
+
+One Hint Away (@onehintaway). Clues: **numbers next to each other** (a subarray or substring) and **a fixed length k**.
+
+Worked example: **the biggest sum of k numbers in a row**, the GeeksforGeeks problem "Max Sum Subarray of size K".
+
+## The slide
+
+`nums = [2, 1, 5, 1, 3, 2]`, `k = 3` returns `9`.
+
+| window | in | out | sum |
+|---|---|---|---|
+| [2, 1, 5] | first window | | 8 |
+| [1, 5, 1] | 1 | 2 | 7 |
+| [5, 1, 3] | 3 | 1 | **9** |
+| [1, 3, 2] | 2 | 5 | 6 |
+
+**Who leaves?** When `nums[i]` joins, `nums[i - k]` leaves. At `i = 3`, index `3 - 3 = 0` drops out, so the window stays exactly `k` long.
+
+## Pseudocode
+
+```
+function maxSum(nums, k):
+    total = 0
+    for i from 0 to k - 1:
+        total = total + nums[i]
+    best = total
+    for i from k to length(nums) - 1:
+        total = total + nums[i] - nums[i - k]
+        best = max(best, total)
+    return best
+```
+
+**The trap:** taking away the wrong number. Subtract `nums[i - k + 1]` by mistake and at `i = 3` you remove the 1 that is still inside the window. The sums come out 8, 8, 6, 7 and you return 8 instead of 9. The number that leaves is always `nums[i - k]`.
+
+## Java
+
+```java
+class Solution {
+    // O(n) time, O(1) space
+    public int maxSum(int[] nums, int k) {
+        int total = 0;
+        for (int i = 0; i < k; i++) {
+            total = total + nums[i];
+        }
+        int best = total;
+        for (int i = k; i < nums.length; i++) {
+            total = total + nums[i] - nums[i - k];
+            best = Math.max(best, total);
+        }
+        return best;
+    }
+}
+```
+
+## Python
+
+```python
+class Solution:
+    # O(n) time, O(1) space
+    def maxSum(self, nums: list[int], k: int) -> int:
+        total = 0
+        for i in range(k):
+            total = total + nums[i]
+        best = total
+        for i in range(k, len(nums)):
+            total = total + nums[i] - nums[i - k]
+            best = max(best, total)
+        return best
+```
+
+## C++
+
+```cpp
+class Solution {
+public:
+    // O(n) time, O(1) space
+    int maxSum(vector<int>& nums, int k) {
+        int total = 0;
+        for (int i = 0; i < k; i++) {
+            total = total + nums[i];
+        }
+        int best = total;
+        for (int i = k; i < (int)nums.size(); i++) {
+            total = total + nums[i] - nums[i - k];
+            best = max(best, total);
+        }
+        return best;
+    }
+};
+```
+
+## JavaScript
+
+```javascript
+// O(n) time, O(1) space
+function maxSum(nums, k) {
+    let total = 0;
+    for (let i = 0; i < k; i++) {
+        total = total + nums[i];
+    }
+    let best = total;
+    for (let i = k; i < nums.length; i++) {
+        total = total + nums[i] - nums[i - k];
+        best = Math.max(best, total);
+    }
+    return best;
+}
+```
+
+If a platform allows very large numbers or very long arrays, the sum can pass the 32-bit limit (about 2.1 × 10^9). Use `long` in Java and `long long` in C++ there.
+
+## Complexity
+
+| Version | Time | Extra space |
+|---|---|---|
+| Re-add every window | O(n·k) | O(1) |
+| Sliding window | O(n) | O(1) |
+
+## Practice
+
+- LeetCode 643, Maximum Average Subarray I (Easy): this exact post. Find the best sum, then divide it by k. (In Java and C++, divide as a decimal: `(double) best / k`.)
+- LeetCode 1456, Maximum Number of Vowels in a Substring of Given Length (Medium): one letter in, one letter out, keep a vowel count.
+
+Verified: all four languages return 9 on the example, the wrong-index version returns 8, and the code matches a re-add-every-window version on 3,000 random inputs, including negative numbers.

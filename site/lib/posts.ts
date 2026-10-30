@@ -2,7 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 
-export type PracticeLink = { name: string; url: string; level?: "easy" | "medium" | "hard" };
+export type PracticeLink = {
+  name: string;
+  url: string;
+  level?: "easy" | "medium" | "hard";
+  note?: string; // one-line hint shown under the link
+};
 
 export type PostMeta = {
   number: number;
@@ -38,4 +43,11 @@ export function getAllPosts(): PostMeta[] {
 
 export function getPost(slug: string): PostMeta | undefined {
   return getAllPosts().find((p) => p.slug === slug);
+}
+
+// Previous and next post in roadmap (number) order.
+export function getNeighbours(slug: string): { prev?: PostMeta; next?: PostMeta } {
+  const posts = getAllPosts();
+  const i = posts.findIndex((p) => p.slug === slug);
+  return { prev: posts[i - 1], next: posts[i + 1] };
 }

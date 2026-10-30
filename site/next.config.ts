@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 import createMDX from "@next/mdx";
 
 const nextConfig: NextConfig = {
@@ -15,7 +16,13 @@ const withMDX = createMDX({
   options: {
     // Plugin names as strings so they work with Turbopack.
     // remark-frontmatter strips the YAML header so it isn't rendered as text.
-    remarkPlugins: ["remark-frontmatter", "remark-gfm"],
+    // Our own plugin is passed as an absolute path: @next/mdx resolves names
+    // relative to each .mdx file, so a "./lib/..." path would break.
+    remarkPlugins: [
+      "remark-frontmatter",
+      "remark-gfm",
+      path.join(process.cwd(), "lib", "remark-code-tabs.mjs"),
+    ],
   },
 });
 

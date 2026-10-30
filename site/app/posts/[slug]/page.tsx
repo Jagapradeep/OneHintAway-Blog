@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Label } from "@/components/PostList";
 import { SlideGallery } from "@/components/SlideGallery";
 import { getAllPosts, getNeighbours, getPost } from "@/lib/posts";
 
@@ -32,9 +33,10 @@ export default async function PostPage({ params }: Props) {
       {/* 1. Title, pattern, how to recognise it */}
       <header>
         <p className="post-kicker">
-          #{pad(post.number)} · {post.pattern}
+          <span className="post-kicker-num">{pad(post.number)}</span>
+          <Label>{post.pattern}</Label>
         </p>
-        <h1>{post.title}</h1>
+        <h1 className="chrome">{post.title}</h1>
         <p className="post-summary">{post.summary}</p>
       </header>
 

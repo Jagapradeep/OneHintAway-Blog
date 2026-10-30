@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { sectionIndex } from "./sections";
 
 export type PracticeLink = {
   name: string;
@@ -43,6 +44,33 @@ export function getAllPosts(): PostMeta[] {
 
 export function getPost(slug: string): PostMeta | undefined {
   return getAllPosts().find((p) => p.slug === slug);
+}
+
+// Posts grouped by roadmap section, sections in roadmap order, posts by number.
+export function getPostsBySection(): { section: string; posts: PostMeta[] }[] {
+  const groups = new Map<string, PostMeta[]>();
+  for (const p of getAllPosts()) {
+    const list = groups.get(p.section) ?? [];
+    list.push(p);
+    groups.set(p.section, list);
+  }
+  return [...groups.entries()]
+    .sort(([a], [b]) => sectionIndex(a) - sectionIndex(b) || a.localeCompare(b))
+    .map(([section, posts]) => ({ section, posts }));
+}
+
+// Posts grouped by pattern, patterns A to Z. The "Roadmap" post (00) is left out.
+export function getPostsByPattern(): { pattern: string; posts: PostMeta[] }[] {
+  const groups = new Map<string, PostMeta[]>();
+  for (const p of getAllPosts()) {
+    if (p.pattern === "Roadmap") continue;
+    const list = groups.get(p.pattern) ?? [];
+    list.push(p);
+    groups.set(p.pattern, list);
+  }
+  return [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([pattern, posts]) => ({ pattern, posts }));
 }
 
 // Previous and next post in roadmap (number) order.

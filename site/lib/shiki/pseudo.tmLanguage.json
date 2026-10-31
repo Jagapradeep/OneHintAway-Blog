@@ -1,0 +1,50 @@
+{
+  "name": "pseudo",
+  "displayName": "Pseudocode",
+  "scopeName": "source.pseudo",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#function-def" },
+    { "include": "#keyword" },
+    { "include": "#constant" },
+    { "include": "#number" },
+    { "include": "#builtin" },
+    { "include": "#call" },
+    { "include": "#operator" }
+  ],
+  "repository": {
+    "comment": { "match": "//.*$", "name": "comment.line.pseudo" },
+    "string": {
+      "patterns": [
+        { "match": "\"[^\"]*\"", "name": "string.quoted.double.pseudo" },
+        { "match": "'[^']*'", "name": "string.quoted.single.pseudo" }
+      ]
+    },
+    "function-def": {
+      "match": "\\b(function)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+      "captures": {
+        "1": { "name": "storage.type.function.pseudo" },
+        "2": { "name": "entity.name.function.pseudo" }
+      }
+    },
+    "keyword": {
+      "match": "\\b(if|else|while|for|each|in|from|to|down|by|step|return|break|continue|and|or|not|do|repeat|until|then|mod)\\b",
+      "name": "keyword.control.pseudo"
+    },
+    "constant": {
+      "match": "\\b(none|null|true|false|empty|infinity)\\b",
+      "name": "constant.language.pseudo"
+    },
+    "number": { "match": "\\b\\d+(\\.\\d+)?\\b", "name": "constant.numeric.pseudo" },
+    "builtin": {
+      "match": "\\b(length|max|min|abs|floor|sqrt|sort|swap|reverse|print)(?=\\s*\\()",
+      "name": "support.function.builtin.pseudo"
+    },
+    "call": {
+      "match": "\\b([A-Za-z_][A-Za-z0-9_]*)(?=\\()",
+      "captures": { "1": { "name": "entity.name.function.call.pseudo" } }
+    },
+    "operator": { "match": "==|!=|<=|>=|->|[=<>+\\-*/%]", "name": "keyword.operator.pseudo" }
+  }
+}

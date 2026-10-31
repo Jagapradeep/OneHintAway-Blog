@@ -1,11 +1,17 @@
 /* Graphite & Chrome v3.1: the same look as the Instagram slides.
-   Gold = the one thing to look at. Steel = labels and secondary roles. Nothing else is bright. */
+   Gold = the one thing to look at. Steel = labels and secondary roles. Nothing else is bright.
+   Every colour is a token here; [data-theme="light"] below swaps them all. The theme is set on
+   <html> by the small script in app/layout.tsx before the page paints. */
 :root {
   --ground: #08090b;
+  --glow-1: #1b1e24;
+  --glow-2: #1b1d22;
   --card-top: #1c1f25;
   --card-bottom: #15171c;
+  --card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
   --border: #2b2f37;
   --border-strong: #3a3f49;
+  --accent-border: #ddb25a;
   --text: #f5f6f8;
   --text-2: #d3d7de;
   --muted: #a2a8b3;
@@ -15,12 +21,81 @@
   --gold-gradient: linear-gradient(180deg, #fff0c2, #ebc566 55%, #c99a3f);
   --steel: #a3cdf2;
   --steel-light: #cbe6fb;
+  --chrome: linear-gradient(180deg, #ffffff, #e8ebef 55%, #bcc2cb);
+  --selection: rgba(244, 207, 110, 0.3);
+  --button-bg: linear-gradient(180deg, #4a3b1c, #261e0e);
+  --button-text: var(--gold-light);
+  --button-hover-text: #fff0c2;
+  --num-text: #e6e8ec;
+  --num-border: #3d424c;
+  --num-bg: linear-gradient(180deg, #1a1c21, #111317);
+  --code-bg: linear-gradient(180deg, #121418, #0d0e11);
+  --inline-code-bg: #1a1c21;
+  --th-bg: #121418;
+  --tab-active-bg: linear-gradient(180deg, #223a52, #132333);
+  --tab-active-border: #7fb0da;
+  --copy-border: #5a4a26;
+  --easy-border: #3e5a74;
+  --medium-border: #6b5728;
+  --hard-bg: #2a2110;
+  --line-number: #4d535e;
+  --row-alt: rgba(255, 255, 255, 0.025);
+  --quote-bg: linear-gradient(180deg, #1a1c21, #141519);
+  --code-label: #8a909b;
   --radius: 16px;
+  --page-max: 860px;
+  --gutter: 16px;
   --title: var(--font-title), system-ui, sans-serif;
   --body: var(--font-body), system-ui, sans-serif;
   --mono: var(--font-mono), ui-monospace, monospace;
   color-scheme: dark;
 }
+
+/* Light: paper white and ink, with gold and steel darkened enough to read on white (WCAG AA). */
+:root[data-theme="light"] {
+  --ground: #f5f6f8;
+  --glow-1: #ffffff;
+  --glow-2: #eceef2;
+  --card-top: #ffffff;
+  --card-bottom: #f8f9fb;
+  --card-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --border: #dde1e7;
+  --border-strong: #c5cbd4;
+  --accent-border: #c99a3f;
+  --text: #111318;
+  --text-2: #2f343c;
+  --muted: #5a616d;
+  --faint: #868c97;
+  --gold: #8f5f00;
+  --gold-light: #7a5000;
+  --steel: #1f5f99;
+  --steel-light: #17558c;
+  --chrome: linear-gradient(180deg, #0d0f13, #262a31 55%, #474d58);
+  --selection: rgba(201, 154, 63, 0.28);
+  --button-bg: linear-gradient(180deg, #fff6dc, #f5e1a8);
+  --button-text: #5c3d00;
+  --button-hover-text: #3f2a00;
+  --num-text: #1d2027;
+  --num-border: #c3c9d2;
+  --num-bg: linear-gradient(180deg, #ffffff, #f1f3f6);
+  --code-bg: #ffffff;
+  --inline-code-bg: #eef0f4;
+  --th-bg: #f0f2f5;
+  --tab-active-bg: linear-gradient(180deg, #e9f3fc, #d9e9f8);
+  --tab-active-border: #8fb5d8;
+  --copy-border: #dcc48f;
+  --easy-border: #a9c5df;
+  --medium-border: #d9bf84;
+  --hard-bg: #fff1cc;
+  --line-number: #a3a9b3;
+  --row-alt: #f8f9fb;
+  --quote-bg: #fffaeb;
+  --code-label: #6b717c;
+  color-scheme: light;
+}
+
+/* Wider page on large screens, so code blocks get room. */
+@media (min-width: 1280px) { :root { --page-max: 960px; } }
 
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -31,14 +106,14 @@ body {
   display: flex;
   flex-direction: column;
   background:
-    radial-gradient(900px 620px at 12% -8%, #1b1e24 0%, transparent 70%),
-    radial-gradient(700px 500px at 100% 105%, #1b1d22 0%, transparent 70%),
+    radial-gradient(900px 620px at 12% -8%, var(--glow-1) 0%, transparent 70%),
+    radial-gradient(700px 500px at 100% 105%, var(--glow-2) 0%, transparent 70%),
     var(--ground);
   background-attachment: fixed;
   color: var(--text);
   font-family: var(--body);
   font-weight: 500;
-  font-size: 1.0625rem;
+  font-size: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
 }
@@ -46,17 +121,17 @@ body {
 /* ---------- Type ---------- */
 h1, h2, h3 { font-family: var(--title); line-height: 1.15; letter-spacing: -0.01em; }
 h1 { font-size: clamp(2rem, 6vw, 3.25rem); font-weight: 800; margin: 0 0 12px; }
-h2 { font-size: 1.5rem; font-weight: 700; margin: 40px 0 12px; }
+h2 { font-size: clamp(1.3rem, 1.15rem + 0.6vw, 1.5rem); font-weight: 700; margin: 40px 0 12px; }
 h3 { font-size: 1.2rem; font-weight: 700; margin: 28px 0 8px; }
 strong { color: var(--text); font-weight: 700; }
 a { color: var(--steel-light); text-underline-offset: 3px; }
 a:hover { color: var(--gold); }
 :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 4px; }
-::selection { background: rgba(244, 207, 110, 0.3); }
+::selection { background: var(--selection); }
 
 /* Chrome titles: light at the bottom so letters never fade into the ground. */
 .chrome {
-  background: linear-gradient(180deg, #ffffff, #e8ebef 55%, #bcc2cb);
+  background: var(--chrome);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -64,23 +139,30 @@ a:hover { color: var(--gold); }
 .lead { font-size: 1.2rem; color: var(--text-2); max-width: 60ch; }
 
 /* ---------- Layout ---------- */
-.site-header, .site-main, .site-footer { width: 100%; max-width: 820px; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
+.site-header, .site-main, .site-footer {
+  width: 100%; max-width: var(--page-max); margin: 0 auto;
+  padding-left: max(var(--gutter), env(safe-area-inset-left)); padding-right: max(var(--gutter), env(safe-area-inset-right));
+}
 .site-main { flex: 1; padding-top: 24px; padding-bottom: 48px; }
 
 .site-header {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  display: grid; grid-template-columns: 1fr auto auto; grid-template-areas: "brand nav theme";
+  align-items: center; gap: 8px 12px;
   padding-top: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
 }
+.brand { grid-area: brand; justify-self: start; }
+.site-nav { grid-area: nav; }
+.theme-toggle { grid-area: theme; }
 .brand {
   display: inline-flex; align-items: center; gap: 10px;
   font-family: var(--mono); font-weight: 600; font-size: 0.85rem; letter-spacing: 0.18em;
   color: var(--text); text-decoration: none;
 }
 .brand-mark { width: 18px; height: 18px; border-radius: 5px; background: var(--gold-gradient); box-shadow: 0 0 12px rgba(244, 207, 110, 0.35); }
-.site-nav { display: flex; gap: 4px; }
+.site-nav { display: flex; gap: 4px; min-width: 0; }
 .site-nav a {
   padding: 6px 12px; border-radius: 999px; text-decoration: none;
-  color: var(--text-2); font-weight: 600; font-size: 0.95rem;
+  color: var(--text-2); font-weight: 600; font-size: 0.95rem; white-space: nowrap;
 }
 .site-nav a:hover { color: var(--text); background: var(--card-top); }
 
@@ -91,12 +173,24 @@ a:hover { color: var(--gold); }
 }
 .site-footer a { font-family: var(--mono); color: var(--text-2); text-decoration: none; }
 
+/* Light / dark switch: shows the sun in dark mode (switch to light) and the moon in light mode. */
+.theme-toggle {
+  display: grid; place-items: center; width: 40px; height: 40px; padding: 0;
+  border: 1.5px solid var(--border-strong); border-radius: 50%; background: var(--card-top);
+  color: var(--text-2); cursor: pointer;
+}
+.theme-toggle:hover { color: var(--gold); border-color: var(--accent-border); }
+.theme-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.theme-toggle .icon-moon { display: none; }
+:root[data-theme="light"] .theme-toggle .icon-sun { display: none; }
+:root[data-theme="light"] .theme-toggle .icon-moon { display: block; }
+
 /* ---------- Pieces ---------- */
 .card {
   background: linear-gradient(180deg, var(--card-top), var(--card-bottom));
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--card-shadow);
 }
 
 /* Section label pill with a glowing dot (steel; gold variant for traps and checks). */
@@ -112,11 +206,11 @@ a:hover { color: var(--gold); }
 
 .button {
   display: inline-block; padding: 10px 22px; border-radius: 999px;
-  border: 1.5px solid #ddb25a; background: linear-gradient(180deg, #4a3b1c, #261e0e);
+  border: 1.5px solid var(--accent-border); background: var(--button-bg);
   box-shadow: 0 0 0 4px rgba(244, 207, 110, 0.1);
-  color: var(--gold-light); font-weight: 700; text-decoration: none;
+  color: var(--button-text); font-weight: 700; text-decoration: none;
 }
-.button:hover { color: #fff0c2; border-color: var(--gold); }
+.button:hover { color: var(--button-hover-text); border-color: var(--gold); }
 
 /* ---------- Home and patterns ---------- */
 .hero { padding: 24px 0 8px; }
@@ -129,17 +223,17 @@ a:hover { color: var(--gold); }
   display: flex; gap: 16px; align-items: flex-start; padding: 16px 18px;
   background: linear-gradient(180deg, var(--card-top), var(--card-bottom));
   border: 1.5px solid var(--border); border-radius: var(--radius);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  box-shadow: var(--card-shadow);
   color: var(--text); text-decoration: none;
   transition: border-color 0.15s, transform 0.15s;
 }
-.post-card:hover { color: var(--text); border-color: #ddb25a; transform: translateY(-1px); }
+.post-card:hover { color: var(--text); border-color: var(--accent-border); transform: translateY(-1px); }
 .post-card-num {
   flex: 0 0 auto; min-width: 2.6em; text-align: center; padding: 4px 0;
-  font-family: var(--mono); font-weight: 600; font-size: 1rem; color: #e6e8ec;
-  border: 2px solid #3d424c; border-radius: 10px; background: linear-gradient(180deg, #1a1c21, #111317);
+  font-family: var(--mono); font-weight: 600; font-size: 1rem; color: var(--num-text);
+  border: 2px solid var(--num-border); border-radius: 10px; background: var(--num-bg);
 }
-.post-card:hover .post-card-num { color: var(--gold-light); border-color: #ddb25a; }
+.post-card:hover .post-card-num { color: var(--gold-light); border-color: var(--accent-border); }
 .post-card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .post-card-title { font-family: var(--title); font-weight: 700; font-size: 1.1rem; line-height: 1.3; }
 .post-card-pattern { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--steel); }
@@ -150,7 +244,7 @@ a:hover { color: var(--gold); }
   padding: 4px 12px; border: 1.5px solid var(--border-strong); border-radius: 999px;
   color: var(--text-2); text-decoration: none; font-size: 0.9rem; font-weight: 600;
 }
-.pattern-jump a:hover { color: var(--gold); border-color: #ddb25a; }
+.pattern-jump a:hover { color: var(--gold); border-color: var(--accent-border); }
 
 .prose ul { padding-left: 1.2em; }
 .prose li { margin: 6px 0; color: var(--text-2); }
@@ -158,7 +252,7 @@ a:hover { color: var(--gold); }
 /* ---------- Post page ---------- */
 .post-kicker { display: flex; align-items: center; gap: 12px; margin: 8px 0 12px; }
 .post-kicker-num { font-family: var(--mono); font-weight: 600; color: var(--gold); letter-spacing: 0.1em; }
-.post-summary { font-size: 1.2rem; color: var(--text-2); }
+.post-summary { font-size: clamp(1.05rem, 1rem + 0.4vw, 1.2rem); color: var(--text-2); }
 .post-body { color: var(--text-2); }
 .post-body h2, .post-body h3 { color: var(--text); }
 
@@ -170,28 +264,45 @@ code, pre, kbd {
 }
 :not(pre) > code {
   padding: 1px 6px; border-radius: 6px; font-size: 0.9em;
-  background: #1a1c21; border: 1px solid var(--border); color: var(--steel-light);
+  background: var(--inline-code-bg); border: 1px solid var(--border); color: var(--steel-light);
 }
+/* Long inline code in running text may wrap; in tables it never does (the table scrolls instead). */
+p > code, li > code { overflow-wrap: anywhere; }
 pre {
   overflow-x: auto; margin: 16px 0; padding: 16px 18px;
-  background: linear-gradient(180deg, #121418, #0d0e11);
+  background: var(--code-bg);
   border: 1.5px solid var(--border); border-radius: 12px;
-  font-size: 0.9rem; line-height: 1.6; color: var(--text);
+  font-size: 0.92rem; line-height: 1.7; font-weight: 500; color: var(--text);
+  tab-size: 4;
 }
 
-/* Tables */
-.post-body table, .prose table { border-collapse: collapse; margin: 16px 0; display: block; overflow-x: auto; max-width: 100%; }
-th, td { border: 1px solid var(--border); padding: 6px 12px; text-align: left; }
-th { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--steel); background: #121418; }
-td { font-family: var(--mono); font-size: 0.9rem; color: var(--text); }
+/* Tables: a card that scrolls sideways on small screens rather than squeezing cells. */
+.post-body table, .prose table {
+  display: block; width: max-content; max-width: 100%; overflow-x: auto; margin: 16px 0;
+  border-collapse: separate; border-spacing: 0;
+  border: 1.5px solid var(--border); border-radius: 12px; background: var(--card-top);
+  box-shadow: var(--card-shadow);
+}
+th, td { padding: 8px 14px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); }
+th + th, td + td { border-left: 1px solid var(--border); }
+tr:last-child td { border-bottom: 0; }
+th { font-family: var(--mono); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--steel); background: var(--th-bg); }
+td { font-size: 0.95rem; color: var(--text); font-variant-numeric: tabular-nums; }
+tbody tr:nth-child(even) td { background: var(--row-alt); }
+td code { white-space: nowrap; }
 
-blockquote { margin: 16px 0; padding: 4px 16px; border-left: 3px solid var(--gold); color: var(--text-2); }
+/* Quotes (e.g. the AI prompt on Start here), styled like the slides' "copy this prompt" box. */
+blockquote {
+  margin: 16px 0; padding: 12px 18px; border: 1.5px dashed var(--accent-border); border-radius: 12px;
+  background: var(--quote-bg); color: var(--text);
+}
+blockquote p { margin: 0; }
 hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
 
 /* Code tabs */
 .code-tabs {
   margin: 20px 0; overflow: hidden; border: 1.5px solid var(--border); border-radius: 14px;
-  background: linear-gradient(180deg, #121418, #0d0e11);
+  background: var(--code-bg);
 }
 .code-tabs-bar {
   display: flex; flex-wrap: wrap; gap: 4px; padding: 8px;
@@ -202,13 +313,45 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
   cursor: pointer; font-family: var(--mono); font-weight: 600; font-size: 0.85rem; color: var(--muted);
 }
 .code-tabs-bar button:hover { color: var(--text); }
-.code-tabs-bar button.active { color: var(--steel-light); border-color: #7fb0da; background: linear-gradient(180deg, #223a52, #132333); }
-.code-tabs-bar .code-copy { margin-left: auto; color: var(--gold-light); border-color: #5a4a26; }
-.code-tabs-bar .code-copy:hover { border-color: #ddb25a; }
+.code-tabs-bar button.active { color: var(--steel-light); border-color: var(--tab-active-border); background: var(--tab-active-bg); }
+.code-tabs-bar .code-copy { margin-left: auto; color: var(--gold-light); border-color: var(--copy-border); }
+.code-tabs-bar .code-copy:hover { border-color: var(--accent-border); }
 .code-tabs [role="tabpanel"] pre { margin: 0; border: 0; border-radius: 0; background: none; }
+/* Shiki colours each token inline: VS Code Dark+, with Light+ in --shiki-light for the light
+   theme. Keep the site's own code background in both. */
+pre.shiki { background: var(--code-bg) !important; }
+.code-tabs pre.shiki { background: none !important; }
+:root[data-theme="light"] .shiki,
+:root[data-theme="light"] .shiki span {
+  color: var(--shiki-light) !important;
+  font-style: var(--shiki-light-font-style) !important;
+}
 
-/* Slide gallery: one slide per view, swipe or arrow keys */
-.gallery { margin: 24px 0 32px; }
+/* Line numbers, like the slides. Drawn by CSS, so copying the code never includes them. */
+.shiki code { counter-reset: line; }
+.shiki .line::before {
+  counter-increment: line; content: counter(line);
+  display: inline-block; min-width: 2ch; margin-right: 1.5em; text-align: right;
+  color: var(--line-number); font-style: normal; user-select: none;
+}
+
+/* Pseudocode blocks get the slides' "PSEUDOCODE · any language" header. */
+pre.shiki:has(> code.language-pseudo)::before {
+  content: "Pseudocode  ·  any language";
+  display: block; margin: -16px -18px 14px; padding: 9px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--code-label);
+}
+
+/* Slide gallery: one slide per view, swipe or arrow keys.
+   Width follows the screen height so a whole 4:5 slide plus the controls fit on one screen:
+   slide height = width × 1.25, and ~92px is left for the controls and breathing room. */
+.gallery {
+  width: min(100%, 560px, calc((100vh - 92px) * 0.8));
+  width: min(100%, 560px, calc((100svh - 92px) * 0.8));
+  min-width: min(100%, 240px);
+  margin: 24px auto 32px;
+}
 .gallery-track {
   display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
   border-radius: var(--radius); border: 1.5px solid var(--border); background: #000;
@@ -216,13 +359,38 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
 .gallery-track::-webkit-scrollbar { display: none; }
 .gallery-slide { flex: 0 0 100%; scroll-snap-align: start; aspect-ratio: 4 / 5; }
 .gallery-slide img, .gallery-slide video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
-.gallery-controls { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 12px; font-family: var(--mono); color: var(--muted); }
+.gallery-controls {
+  display: grid; grid-template-columns: 1fr auto auto auto 1fr; align-items: center; gap: 16px;
+  margin-top: 12px; font-family: var(--mono); color: var(--muted);
+}
+.gallery-count { min-width: 4.5ch; text-align: center; }
 .gallery-controls button {
   font-size: 1.5rem; line-height: 1; width: 44px; height: 44px; border-radius: 50%;
   border: 1.5px solid var(--border-strong); background: var(--card-top); color: var(--text); cursor: pointer;
 }
-.gallery-controls button:hover:not(:disabled) { border-color: #ddb25a; color: var(--gold); }
+.gallery-controls button:hover:not(:disabled) { border-color: var(--accent-border); color: var(--gold); }
 .gallery-controls button:disabled { opacity: 0.3; cursor: default; }
+.gallery-controls .gallery-full { justify-self: end; border-radius: 12px; display: grid; place-items: center; }
+.gallery-full svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Full screen: the browser's own (:fullscreen) or the fixed overlay fallback (.is-overlay). */
+.gallery.is-full {
+  width: 100%; height: 100%; min-width: 0; margin: 0; padding: 12px 16px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #000;
+}
+.gallery.is-overlay { position: fixed; inset: 0; z-index: 100; height: 100vh; height: 100dvh; }
+.gallery.is-full .gallery-track { width: min(100%, calc((100vh - 92px) * 0.8)); border: 0; border-radius: 0; }
+.gallery.is-full .gallery-controls { width: min(100%, 560px); }
+.gallery:fullscreen { background: #000; }
+
+/* Back button (top of every page except home) */
+.back-button {
+  display: inline-flex; align-items: center; gap: 8px; margin: 0 0 8px; padding: 6px 14px 6px 10px;
+  border: 1.5px solid var(--border-strong); border-radius: 999px; background: var(--card-top);
+  font-family: var(--body); font-weight: 600; font-size: 0.95rem; color: var(--text-2); cursor: pointer;
+}
+.back-button:hover { color: var(--gold); border-color: var(--accent-border); }
 
 /* Practice */
 .practice ul { list-style: none; padding: 0; display: grid; gap: 10px; }
@@ -236,9 +404,9 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
   font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
   white-space: nowrap;
 }
-.practice .level-easy { color: var(--steel); border-color: #3e5a74; }
-.practice .level-medium { color: var(--gold); border-color: #6b5728; }
-.practice .level-hard { color: var(--gold-light); border-color: #ddb25a; background: #2a2110; }
+.practice .level-easy { color: var(--steel); border-color: var(--easy-border); }
+.practice .level-medium { color: var(--gold); border-color: var(--medium-border); }
+.practice .level-hard { color: var(--gold-light); border-color: var(--accent-border); background: var(--hard-bg); }
 .practice-note { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
 
 /* Previous / next */
@@ -248,15 +416,36 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
   color: var(--text); font-weight: 600; background: linear-gradient(180deg, var(--card-top), var(--card-bottom));
 }
 .post-nav a:last-child:not(:first-child) { text-align: right; }
-.post-nav a:hover { border-color: #ddb25a; color: var(--gold-light); }
+.post-nav a:hover { border-color: var(--accent-border); color: var(--gold-light); }
 
+/* Tablets and phones */
+@media (max-width: 640px) {
+  .site-header { grid-template-columns: 1fr auto; grid-template-areas: "brand theme" "nav nav"; padding-top: 14px; padding-bottom: 10px; }
+  .site-nav { margin-left: -10px; overflow-x: auto; scrollbar-width: none; }
+  .site-nav a { padding: 6px 10px; }
+  .site-main { padding-top: 16px; }
+  pre { font-size: 0.84rem; padding: 14px; }
+  pre.shiki:has(> code.language-pseudo)::before { margin: -14px -14px 12px; padding: 8px 14px; }
+  .shiki .line::before { margin-right: 1.1em; }
+  td { font-size: 0.88rem; }
+  th, td { padding: 7px 10px; }
+  .code-tabs-bar button { padding: 5px 9px; font-size: 0.8rem; }
+}
 @media (max-width: 520px) {
   .post-nav { grid-template-columns: 1fr; }
   .post-nav a:last-child:not(:first-child) { text-align: left; }
-  .site-nav a { padding: 6px 8px; }
+}
+@media (max-width: 360px) {
+  :root { --gutter: 12px; }
+  .brand { letter-spacing: 0.12em; }
+  .gallery-controls { gap: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .post-card { transition: none; }
   .post-card:hover { transform: none; }
 }
+
+/* 404 page: it has its own "All posts" button. */
+.site-main:has(.not-found) .back-button { display: none; }
+.not-found { padding-top: 48px; }

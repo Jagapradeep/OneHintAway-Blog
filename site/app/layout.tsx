@@ -1,7 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Geist_Mono, Manrope, Sora } from "next/font/google";
+import { BackButton } from "@/components/BackButton";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { INSTAGRAM_URL } from "@/lib/site";
+import { themeScript } from "@/lib/theme";
 import "./globals.css";
 
 // Same fonts as the Instagram slides (Graphite & Chrome v3.1).
@@ -16,9 +19,23 @@ export const metadata: Metadata = {
   description: "DSA patterns, one hint at a time. Code in Java, Python, C++ and JavaScript.",
 };
 
+// Phone browser bar colour follows the device theme.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#08090b" },
+    { media: "(prefers-color-scheme: light)", color: "#f5f6f8" },
+  ],
+};
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${sora.variable} ${manrope.variable} ${geistMono.variable}`}>
+    // suppressHydrationWarning: the theme script and browser extensions (e.g. QuillBot's
+    // data-qb-installed) add attributes to <html> before React loads. This only ignores
+    // attribute differences on <html> itself, not anywhere inside the page.
+    <html lang="en" className={`${sora.variable} ${manrope.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         <header className="site-header">
           <Link href="/" className="brand" aria-label="One Hint Away, home">
@@ -30,8 +47,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <Link href="/patterns/">Patterns</Link>
             <Link href="/about/">About</Link>
           </nav>
+          <ThemeToggle />
         </header>
-        <main className="site-main">{children}</main>
+        <main className="site-main">
+          <BackButton />
+          {children}
+        </main>
         <footer className="site-footer">
           <a href={INSTAGRAM_URL} target="_blank" rel="noopener">
             @onehintaway

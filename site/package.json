@@ -4,20 +4,25 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-posts.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check-posts": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-posts.mjs",
+    "add-post": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/add-post.mjs"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",
     "@mdx-js/react": "^3.1.1",
     "@next/mdx": "^16.4.3",
+    "@shikijs/rehype": "^4.5.0",
     "gray-matter": "^4.0.3",
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "remark-frontmatter": "^5.0.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "shiki": "^4.5.0"
   },
   "devDependencies": {
     "@types/mdx": "^2.0.14",

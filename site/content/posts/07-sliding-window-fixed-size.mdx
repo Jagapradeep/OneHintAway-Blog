@@ -132,9 +132,6 @@ If a platform allows very large numbers or very long arrays, the sum can pass th
 | Re-add every window | O(n·k) | O(1) |
 | Sliding window | O(n) | O(1) |
 
-## Practice
-
-- LeetCode 643, Maximum Average Subarray I (Easy): this exact post. Find the best sum, then divide it by k. (In Java and C++, divide as a decimal: `(double) best / k`.)
-- LeetCode 1456, Maximum Number of Vowels in a Substring of Given Length (Medium): one letter in, one letter out, keep a vowel count.
+## How it was tested
 
 Verified: all four languages return 9 on the example, the wrong-index version returns 8, and the code matches a re-add-every-window version on 3,000 random inputs, including negative numbers.

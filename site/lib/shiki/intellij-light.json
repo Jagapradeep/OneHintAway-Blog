@@ -1,0 +1,98 @@
+{
+  "name": "intellij-light",
+  "displayName": "IntelliJ Light (approximation)",
+  "type": "light",
+  "colors": {
+    "editor.background": "#FFFFFF",
+    "editor.foreground": "#080808"
+  },
+  "tokenColors": [
+    { "settings": { "foreground": "#080808" } },
+    {
+      "scope": ["comment", "punctuation.definition.comment"],
+      "settings": { "foreground": "#707070", "fontStyle": "italic" }
+    },
+    {
+      "scope": ["string", "punctuation.definition.string", "string.quoted", "constant.character"],
+      "settings": { "foreground": "#067D17" }
+    },
+    {
+      "scope": ["constant.character.escape"],
+      "settings": { "foreground": "#0037A6" }
+    },
+    {
+      "scope": ["constant.numeric"],
+      "settings": { "foreground": "#1750EB" }
+    },
+    {
+      "scope": [
+        "keyword",
+        "keyword.control",
+        "keyword.other",
+        "storage",
+        "storage.type",
+        "storage.modifier",
+        "storage.type.primitive",
+        "storage.type.built-in",
+        "constant.language",
+        "variable.language",
+        "support.type.primitive",
+        "keyword.operator.new",
+        "keyword.operator.expression",
+        "keyword.operator.logical.python",
+        "keyword.operator.wordlike"
+      ],
+      "settings": { "foreground": "#0033B3" }
+    },
+    {
+      "scope": ["keyword.operator", "punctuation", "meta.brace", "storage.type.java", "storage.type.generic.java", "entity.name.type", "entity.name.class", "support.class", "support.type", "entity.other.inherited-class"],
+      "settings": { "foreground": "#080808" }
+    },
+    {
+      "scope": ["storage.type.primitive.java", "storage.type.primitive.array.java", "storage.type.built-in.primitive", "storage.type.function", "storage.type.class", "storage.type.struct", "storage.type.template", "storage.type.namespace"],
+      "settings": { "foreground": "#0033B3" }
+    },
+    {
+      "scope": ["keyword.operator.new", "keyword.operator.expression.typeof", "keyword.operator.expression.instanceof", "keyword.operator.logical.python"],
+      "settings": { "foreground": "#0033B3" }
+    },
+    {
+      "scope": ["entity.name.function", "meta.definition.function entity.name.function", "meta.method.identifier entity.name.function"],
+      "settings": { "foreground": "#00627A" }
+    },
+    {
+      "scope": [
+        "meta.function-call entity.name.function",
+        "meta.function-call.generic",
+        "meta.method-call entity.name.function",
+        "entity.name.function.call",
+        "entity.name.function.member"
+      ],
+      "settings": { "foreground": "#080808" }
+    },
+    {
+      "scope": ["support.function.builtin", "support.function"],
+      "settings": { "foreground": "#000080" }
+    },
+    {
+      "scope": ["variable.other.object.property", "variable.other.property", "variable.other.member", "meta.property.object", "support.variable.property"],
+      "settings": { "foreground": "#871094" }
+    },
+    {
+      "scope": ["variable.parameter.function.language.special.self.python", "variable.language.special.self"],
+      "settings": { "foreground": "#94558D" }
+    },
+    {
+      "scope": ["storage.type.annotation", "punctuation.definition.annotation", "entity.name.function.decorator", "meta.preprocessor", "keyword.control.directive", "punctuation.definition.directive"],
+      "settings": { "foreground": "#786808" }
+    },
+    {
+      "scope": ["entity.name.namespace", "storage.modifier.import", "storage.modifier.package", "entity.name.type.namespace"],
+      "settings": { "foreground": "#080808" }
+    },
+    {
+      "scope": ["keyword.control.pseudo", "storage.type.function.pseudo", "constant.language.pseudo"],
+      "settings": { "foreground": "#0033B3" }
+    }
+  ]
+}

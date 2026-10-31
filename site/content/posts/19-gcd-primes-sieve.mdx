@@ -7,23 +7,39 @@ section: "Maths"
 summary: "Count primes below n by crossing out multiples; get a GCD by taking remainders until one is zero."
 worked: { name: "LeetCode 204 Count Primes", url: "https://leetcode.com/problems/count-primes/" }
 practice:
-  - { name: "LeetCode 1979 Find Greatest Common Divisor of Array", url: "https://leetcode.com/problems/find-greatest-common-divisor-of-array/", level: easy, note: "GCD of the smallest and the largest number." }
-  - { name: "LeetCode 2523 Closest Prime Numbers in Range", url: "https://leetcode.com/problems/closest-prime-numbers-in-range/", level: medium, note: "Sieve up to right, then scan neighbouring primes." }
+  - { name: "LeetCode 1979 Find Greatest Common Divisor of Array", url: "https://leetcode.com/problems/find-greatest-common-divisor-of-array/", level: easy, note: "Take the smallest and largest. Run slide 8's loop." }
+  - { name: "LeetCode 2523 Closest Prime Numbers in Range", url: "https://leetcode.com/problems/closest-prime-numbers-in-range/", level: medium, note: "Sieve up to right, then compare neighbouring primes." }
 slides: 9
 video: 2
 tags: [maths, primes, gcd, sieve]
 published: 2026-10-31
 ---
 
-Problems:
+Clues: **count the primes below n**, or **find the GCD of two numbers**. Worked example: **LeetCode 204, Count Primes** (Medium): count the primes strictly less than n. Free references: GeeksforGeeks, "Sieve of Eratosthenes" and "Euclidean algorithms (Basic and Extended)".
 
-- LeetCode 204, Count Primes: count the primes strictly less than n (worked example on the slides).
-- LeetCode 1979, Find Greatest Common Divisor of Array (practice, Easy): GCD of the smallest and largest number.
-- LeetCode 2523, Closest Prime Numbers in Range (practice, Medium): sieve up to `right`, then scan neighbouring primes.
+## The idea
 
-Free reference: GeeksforGeeks, "Sieve of Eratosthenes" and "Euclidean algorithms (Basic and Extended)".
+**The sieve is a roll call.** Students 2 to 19 stand up. The first one standing is prime: that's 2, because no smaller number sat it down. It sits down all its multiples: 4, 6, 8 and so on up to 18. Repeat with the next one standing. Whoever never sits down is prime, and you never divide.
 
-## Pseudocode (as on the slides)
+Start crossing out at p × p. After 2's turn it's 3's turn, and 6 = 3 × 2 already sat down for 2, so 3 starts at 3 × 3 = 9. Stop once p × p ≥ n: for n = 20, p = 5 gives 25, so stop.
+
+**GCD by Euclid.** The GCD is the biggest number that divides both. The rule: `gcd(a, b) = gcd(b, a mod b)`, where `a mod b` is what's left after fitting in as many b's as you can. It's safe because 18 = 12 + 6, so anything that divides 18 and 12 also divides 6.
+
+## The walk
+
+Primes below 20: 2, 3, 5, 7, 11, 13, 17, 19, so **8**. Quick check from the post: there are **10** primes below 30 (2, 3, 5, 7, 11, 13, 17, 19, 23, 29).
+
+`gcd(18, 12)`, one row per turn of the loop:
+
+| a | b | a mod b |
+|---|---|---|
+| 18 | 12 | 6 |
+| 12 | 6 | 0 |
+| 6 | 0 | stop: return a |
+
+The GCD is 6. `gcd(12, 18)` works too: the first turn just swaps them.
+
+## Pseudocode
 
 ```
 function countPrimes(n):
@@ -48,6 +64,8 @@ function gcd(a, b):
         b = remainder
     return a
 ```
+
+**The trap:** mark 0 and 1. They start as true; forget the line that sets them to false and they get counted. `countPrimes(10)` then returns 6 instead of 4 (only 2, 3, 5 and 7 are prime).
 
 ## Java
 
@@ -183,8 +201,15 @@ function gcd(a, b) {
 }
 ```
 
-## Cost
+## Complexity
 
-- Count Primes: time O(n log log n), extra space O(n). Each prime p crosses out about n / p numbers, and the sum of n / p over primes up to n grows like n log log n.
-- GCD: time O(log(min(a, b))), space O(1). Every two steps at least halve the larger number.
-- The checks on the slides, run on this code: primes below 20 = 8 (2, 3, 5, 7, 11, 13, 17, 19); primes below 30 = 10; countPrimes(10) = 4, and 6 if 0 and 1 are left marked true; gcd(18, 12) = 6 via 18 mod 12 = 6, then 12 mod 6 = 0.
+| Function | Time | Extra space |
+|---|---|---|
+| `countPrimes` | O(n log log n) | O(n) |
+| `gcd` | O(log(min(a, b))) | O(1) |
+
+Each prime p crosses out about n / p numbers, and the sum of n / p over primes up to n grows like n log log n: for n = 1,000,000 that's about 2.1 million crossings in all. In `gcd`, the numbers at least halve every two turns.
+
+## How it was tested
+
+The slide checks run on this code: primes below 20 = 8, primes below 30 = 10, `countPrimes(10)` = 4 (and 6 if 0 and 1 are left marked true), `gcd(18, 12)` = 6. On 31 October 2026 both functions in all four languages were run on 3,008 inputs (3,000 random n from 0 to 2,000 with random pairs up to 1,000, the slide examples, the edge cases n = 0, 1, 2 and 3 and `gcd(6, 0)`, and n = 5,000,000 with a pair near 10⁹) and matched trial division and a reference GCD on every one.

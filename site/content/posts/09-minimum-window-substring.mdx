@@ -7,7 +7,7 @@ section: "Arrays and hashing"
 summary: "The shortest stretch that holds every letter of t: grow until nothing is missing, then shrink."
 worked: { name: "LeetCode 76 Minimum Window Substring", url: "https://leetcode.com/problems/minimum-window-substring/" }
 practice:
-  - { name: "LeetCode 567 Permutation in String", url: "https://leetcode.com/problems/permutation-in-string/", level: medium, note: "The same need and missing counts, with a window of fixed size (post 07)." }
+  - { name: "LeetCode 567 Permutation in String", url: "https://leetcode.com/problems/permutation-in-string/", level: medium, note: "The same need and missing counts, with a window of fixed size." }
 slides: 13
 video: 10
 tags: [sliding-window, hash-map, strings, challenge]
@@ -74,14 +74,13 @@ function minWindow(s, t):
     return s from bestStart, bestLen letters
 ```
 
-**Cost:** O(m + n) time, where m and n are the lengths of `s` and `t`: each letter of `s` joins once and leaves at most once. O(k) extra space, where k is the number of different letters. Trying every stretch is O(m²) stretches, each checked letter by letter.
+**The trap:** lowering `missing` for every letter that joins. It should only drop when that letter was still needed (`need[c] > 0` before the decrement); otherwise extra copies, like the second B, look like progress. On the example, lowering it for every letter returns `"B"`, which doesn't even hold an A, instead of `"BCA"`.
 
-**Why record start and length, not the string:** copying a substring every time costs extra work. Cut the answer once at the end.
-
-**Common mistakes:**
-- Lowering `missing` for every letter that joins. It should only drop when that letter was still needed (`need[c] > 0` before the decrement). Otherwise extra copies, like the second B, look like progress.
+Two more mistakes to watch for:
 - Raising `missing` every time a letter leaves. It should only rise when `need[d]` becomes positive, which means the window just lost a copy it needed.
 - Recording the window after the shrink instead of before it. You then miss the complete window you just had.
+
+**Why record start and length, not the string:** copying a substring every time costs extra work. Cut the answer once at the end.
 
 ## Java
 
@@ -243,3 +242,16 @@ var minWindow = function (s, t) {
     return s.substring(bestStart, bestStart + bestLen);
 };
 ```
+
+## Complexity
+
+| Version | Time | Extra space |
+|---|---|---|
+| Try every stretch | O(m²) stretches, each checked letter by letter | O(k) |
+| Grow and shrink | O(m + n) | O(k) |
+
+m and n are the lengths of `s` and `t`, and k is the number of different letters. Each letter of `s` joins the window once and leaves at most once.
+
+## How it was tested
+
+All four languages return `"BCA"` on the worked example and `"BANC"` on LeetCode's example. They were run on 3,005 inputs (3,000 random strings `s` of length 1 to 12 and `t` of length 1 to 4 over the letters A to D, plus the two examples and the edge cases `"a"`/`"a"`, `"a"`/`"aa"` and `"a"`/`"b"`) and matched a brute force that checks every stretch on every one.

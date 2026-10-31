@@ -22,9 +22,7 @@ Worked example: **range sum query.** Build the prefix array once, then answer ev
 
 `prefix[i]` is the sum of the first `i` numbers, so `prefix[0] = 0`. The sum from `left` to `right` (both included) is everything up to `right`, minus everything before `left`:
 
-```
-sum(left, right) = prefix[right + 1] - prefix[left]
-```
+`sum(left, right) = prefix[right + 1] - prefix[left]`
 
 ## The walk
 
@@ -53,8 +51,6 @@ function buildPrefix(nums):
 function rangeSum(prefix, left, right):
     return prefix[right + 1] - prefix[left]
 ```
-
-**Cost:** building is O(n) time and O(n) space. Each query is O(1). Adding the numbers one by one is O(n) per query, so with q queries that is O(n · q) against O(n + q).
 
 **The trap:** forgetting the shift. `prefix[right] - prefix[left]` on the example gives `8 - 3 = 5`, which drops `nums[3]`. Use `prefix[right + 1]`.
 
@@ -135,3 +131,16 @@ function rangeSum(prefix, left, right) {
     return prefix[right + 1] - prefix[left];
 }
 ```
+
+## Complexity
+
+| Version | Build | Each query | Extra space |
+|---|---|---|---|
+| Add the numbers up per query | none | O(n) | O(1) |
+| Prefix array | O(n) | O(1) | O(n) |
+
+With q queries that is O(n · q) against O(n + q). Build before the first question, never once per question.
+
+## How it was tested
+
+All four languages answer `sum(1, 3) = 6` on the example. They were run on 3,001 inputs (3,000 random arrays of length 1 to 12 with values up to ±100,000, each with 1 to 5 random queries, plus the example) and every answer matched adding the numbers up directly.

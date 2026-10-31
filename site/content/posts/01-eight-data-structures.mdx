@@ -19,7 +19,20 @@ tags: [foundations, data-structures]
 published: 2026-10-09
 ---
 
-Companion code for the One Hint Away post on the eight structures you need before any pattern. Each snippet below was run in Java, Python and C++, and all three printed the same values. JavaScript was added for the blog and prints the same values too.
+The eight structures every pattern is built on, one slide each. Learn what each one is for and what its operations cost, and every later post reads faster.
+
+## The idea
+
+| Structure | What it is | Patterns it powers |
+|---|---|---|
+| Array | A row of boxes, side by side. Every box has a number called its index. | two pointers, sliding window, prefix sum |
+| String | A row of characters. You read each one by its index. | sliding window, two pointers, palindromes |
+| Hash map | Stores key → value pairs. Give it the key, get the value back instantly. | frequency count, two sum, grouping |
+| Hash set | A bag of unique values. It answers one question fast: have I seen this? | finding duplicates, visited tracking, cycles |
+| Stack | Last in, first out. Like a pile of plates: you only touch the top one. | valid parentheses, monotonic stack, DFS |
+| Queue | First in, first out. Like a ticket line: join at the back, leave from the front. | BFS, level-order traversal, shortest path |
+| Linked list | Nodes chained by pointers. Each node knows only the next one. | fast and slow pointers, reversal, merging |
+| Binary tree | Each node has up to two children. The top node is the root; a node with no children is a leaf. | DFS, BFS, recursion |
 
 ## Pseudocode
 
@@ -71,6 +84,8 @@ root.value              // 8
 root.left.value         // 3
 root.right.value        // 10
 ```
+
+**The trap:** indexes start at 0, not 1. In `a = [7, 2, 9, 4, 1]`, `a[2]` is the third box, 9, not the second box, 2. The last box is `a[length(a) - 1]`, and `a[length(a)]` is past the end.
 
 ## Java
 
@@ -362,7 +377,7 @@ console.log(root.left.value);   // 3
 console.log(root.right.value);  // 10
 ```
 
-## Costs to remember
+## Complexity
 
 | Structure | Operation | Cost |
 |---|---|---|
@@ -379,3 +394,7 @@ console.log(root.right.value);  // 10
 | Binary tree | visit every node | O(n) |
 | Binary tree | height when balanced | O(log n) |
 | Binary tree | height when skewed | O(n) |
+
+## How it was tested
+
+All four programs were compiled and run, and each printed the values in the pseudocode comments: 9, 5, 'c', 4, "ode", and so on down to the tree's 8, 3 and 10. The C++ version prints the stack and queue values once each, because `pop()` there removes without giving the value back (see post 03).

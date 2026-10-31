@@ -7,19 +7,25 @@ section: "Arrays and hashing"
 summary: "Numbers from 0 to n in an array of about n seats: put each number in its own seat."
 worked: { name: "LeetCode 268 Missing Number", url: "https://leetcode.com/problems/missing-number/" }
 practice:
-  - { name: "LeetCode 448 Find All Numbers Disappeared in an Array", url: "https://leetcode.com/problems/find-all-numbers-disappeared-in-an-array/", level: easy, note: "Seat everything, then list the seats that hold the wrong number." }
-  - { name: "LeetCode 442 Find All Duplicates in an Array", url: "https://leetcode.com/problems/find-all-duplicates-in-an-array/", level: medium, note: "A number whose seat is already taken by its twin is a duplicate." }
+  - { name: "LeetCode 448 Find All Numbers Disappeared in an Array", url: "https://leetcode.com/problems/find-all-numbers-disappeared-in-an-array/", level: easy, note: "Values 1 to n now: the seat for x is x - 1." }
+  - { name: "LeetCode 442 Find All Duplicates in an Array", url: "https://leetcode.com/problems/find-all-duplicates-in-an-array/", level: medium, note: "After the swaps, a wrong number is a repeat." }
 slides: 7
 video: 2
 tags: [cyclic-sort, arrays]
 published: 2026-10-26
 ---
 
-**Problem:** [LeetCode 268. Missing Number](https://leetcode.com/problems/missing-number/) (Easy). `nums` holds n distinct numbers from the range 0 to n; return the one number from that range that is missing.
+Clue: **numbers from 0 to n** (or 1 to n) in an array of about n seats. Worked example: **LeetCode 268, Missing Number** (Easy). `nums` holds n distinct numbers from the range 0 to n; return the one number from that range that is missing.
 
-**Idea:** value `v` belongs in seat (index) `v`. Swap each number into its own seat; a number with no seat (`v == n`) is skipped. Then scan: the first seat `i` that does not hold `i` is the missing number. If every seat matches, the missing number is `n`.
+## The idea
 
-**Worked example:** `[3, 0, 4, 1, 5]` becomes `[0, 1, 5, 3, 4]` after 3 swaps; seat 2 holds 5, so the answer is **2**. Quick check: `[1, 2, 0]` becomes `[0, 1, 2]`, every seat matches, so the answer is **3**.
+Cinema seats: tickets 0 to 5, but only seats 0 to 4. Value `v` belongs in seat (index) `v`. Wrong seat? Swap into yours; whoever was there gets your old seat. Ticket 5? There is no seat 5, so stay where you are and move to the next person. Only after all the swaps, check every seat: the first seat `i` that does not hold `i` is the missing number. If every seat matches, the missing number is `n`.
+
+## The walk
+
+`[3, 0, 4, 1, 5]` becomes `[0, 1, 5, 3, 4]` after 3 swaps and 1 skip. Every number with a seat ends up in it. Seat 2 holds 5, not 2, so the answer is **2**.
+
+Quick check from the post: `[1, 2, 0]` becomes `[0, 1, 2]`. Seats 0, 1 and 2 all match, so no seat is wrong and the missing number is n = **3**.
 
 ## Pseudocode
 
@@ -38,6 +44,8 @@ function missingNumber(nums):
             return i
     return n
 ```
+
+**The trap:** the number 5 has no seat. Check `seat < n` first. Without that check, on `[3, 0, 4, 1, 5]` the code looks up `nums[5]`, a seat that doesn't exist, and crashes. With it, 5 is skipped and the scan finds seat 2.
 
 ## Java
 
@@ -182,11 +190,13 @@ for (let k = 1; k <= t; k++) {
 console.log(out.join("\n"));
 ```
 
+Each program reads test cases from standard input: the first line is the number of cases, then one line per case with `n` followed by the `n` numbers.
+
 ## Complexity
 
 - **Time:** O(n). Every swap puts one number in its own seat for good, so there are at most n swaps, plus one scan.
 - **Extra space:** O(1). The swaps happen inside `nums` (note: this reorders the input array).
 
-Each program reads test cases from standard input: the first line is the number of cases, then one line per case with `n` followed by the `n` numbers.
+## How it was tested
 
-**Tested:** all four agree with a brute-force check on 2,014 cases (2,000 random arrays with n from 1 to 12, plus edge cases: single element, missing 0, missing n, reversed, and three arrays at the maximum size n = 10,000).
+All four agree with a brute-force check on 2,014 cases (2,000 random arrays with n from 1 to 12, plus edge cases: single element, missing 0, missing n, reversed, and three arrays at the maximum size n = 10,000). Re-run on 31 October 2026 on 3,004 more cases (3,000 random arrays with n from 1 to 12, the example, the quick check, `[0]` and `[1]`): all four matched on every one.

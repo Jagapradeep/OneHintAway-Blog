@@ -7,7 +7,7 @@ section: "Arrays and hashing"
 summary: "The next bigger order of an array: find the pivot, swap it with its partner, reverse the tail."
 worked: { name: "LeetCode 31 Next Permutation", url: "https://leetcode.com/problems/next-permutation/" }
 practice:
-  - { name: "LeetCode 556 Next Greater Element III", url: "https://leetcode.com/problems/next-greater-element-iii/", level: medium, note: "The same idea on the digits of a number, plus a 32-bit limit check." }
+  - { name: "LeetCode 556 Next Greater Element III", url: "https://leetcode.com/problems/next-greater-element-iii/", level: medium, note: "The same idea on the digits of a number." }
 slides: 12
 video: 10
 tags: [permutations, arrays, challenge]
@@ -42,6 +42,8 @@ function nextPermutation(nums):
         swap nums[i], nums[j]
     reverse nums from i + 1 to n - 1
 ```
+
+**The trap:** stopping after the swap. The tail still falls, so it is in its biggest order. On `[1, 3, 5, 4, 2]` the swap gives `[1, 4, 5, 3, 2]`, which is bigger but not the next one; reversing the tail gives the right answer, `[1, 4, 2, 3, 5]`.
 
 ## Java
 
@@ -222,4 +224,4 @@ Each program reads test cases from standard input: the number of cases, then for
 
 ## How it was tested
 
-All four versions were compared against a brute force (list every distinct order with `itertools.permutations`, sort, take the next one, wrapping at the end) on 1,515 cases: edge cases (single element, two elements, all equal, sorted, reversed, duplicates) plus 1,500 random arrays of length 1 to 7. All four agreed with the brute force on every case, and with each other on 50 random arrays of length 100 (LeetCode's maximum).
+All four versions were compared against a brute force (list every distinct order with `itertools.permutations`, sort, take the next one, wrapping at the end) on 1,515 cases: edge cases (single element, two elements, all equal, sorted, reversed, duplicates) plus 1,500 random arrays of length 1 to 7. All four agreed with the brute force on every case, and with each other on 50 random arrays of length 100 (LeetCode's maximum). Re-run on 31 October 2026 on 3,006 more cases (3,000 random arrays of length 1 to 7 with repeats, plus the example, `[3, 2, 1]`, `[1, 2, 3]`, `[1, 1, 5]`, `[1]` and `[1, 5, 1]`): all four matched the brute force on every one.

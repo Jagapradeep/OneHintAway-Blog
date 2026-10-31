@@ -1,5 +1,5 @@
 // Checks every post against the blog content contract shared by the dsa-post and
-// onehintaway-blog skills (contract v1). Runs before every build (npm "prebuild"),
+// onehintaway-blog skills (contract v1.1). Runs before every build (npm "prebuild"),
 // so a post that drifts from the contract fails loudly instead of rendering wrong.
 //
 //   node scripts/check-posts.mjs            check all posts
@@ -78,6 +78,7 @@ for (const file of files) {
     fm.practice.forEach((p, i) => {
       checkLink(p, `practice[${i}]`);
       if (p && p.level !== undefined && !LEVELS.includes(p.level)) err(`practice[${i}] level must be easy, medium or hard`);
+      if (p && fm.worked && p.url === fm.worked.url) err(`practice[${i}] is the worked example; leave it out of practice (the page shows it first)`);
     });
 
   // ---- tags and date

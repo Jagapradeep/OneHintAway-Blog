@@ -7,13 +7,15 @@ section: "Arrays and hashing"
 summary: "Only three kinds of values to group in place: three pointers, one pass."
 worked: { name: "LeetCode 75 Sort Colors", url: "https://leetcode.com/problems/sort-colors/" }
 practice:
-  - { name: "LeetCode 905 Sort Array By Parity", url: "https://leetcode.com/problems/sort-array-by-parity/", level: easy, note: "Two zones: evens, then odds." }
-  - { name: "LeetCode 2161 Partition Array According to Given Pivot", url: "https://leetcode.com/problems/partition-array-according-to-given-pivot/", level: medium, note: "Same three groups, but their order must be kept, so in-place swaps alone are not enough." }
+  - { name: "LeetCode 905 Sort Array By Parity", url: "https://leetcode.com/problems/sort-array-by-parity/", level: easy, note: "Two zones this time: evens, then odds." }
+  - { name: "LeetCode 2161 Partition Array According to Given Pivot", url: "https://leetcode.com/problems/partition-array-according-to-given-pivot/", level: medium, note: "Same three groups, but keep their order." }
 slides: 7
 video: 2
 tags: [three-way-partition, two-pointers, arrays]
 published: 2026-10-23
 ---
+
+Clue: **only three kinds of values** to group, in place. Worked example: **LeetCode 75, Sort Colors** (Medium): 0s first, then 1s, then 2s, in one pass.
 
 Example used on every slide: `nums = [1, 0, 2, 2, 1, 0]` → `[0, 0, 1, 1, 2, 2]` in 6 steps.
 
@@ -27,9 +29,6 @@ Three pointers split the array into four zones:
 - `nums[high+1 .. end]` are all 2
 
 `mid` reads one number at a time. A 0 is swapped to `low`, a 2 is swapped to `high`, a 1 stays. The loop ends when `mid` passes `high`, because then nothing is left to check.
-
-**The trap:** after swapping with `high`, do not move `mid`. The number that came back from `high` has not been checked yet. On `[1, 2, 0]`, moving `mid` there too returns `[1, 0, 2]`.
-
 ## Pseudocode
 
 ```
@@ -47,6 +46,8 @@ while mid <= high:
         swap nums[mid], nums[high]
         high = high - 1   // mid stays
 ```
+
+**The trap:** after swapping with `high`, do not move `mid`. The number that came back from `high` has not been checked yet. On `[1, 2, 0]`, moving `mid` there too returns `[1, 0, 2]`. Keep `mid` where it is, and it checks that 0 next: `[0, 1, 2]`.
 
 ## Java
 
@@ -191,4 +192,4 @@ Each program reads `t` test cases from standard input (`n` followed by `n` numbe
 
 ## How it was tested
 
-All four versions were compiled and run against a brute-force answer (the built-in sort) on 1,200 inputs: 1,186 random arrays of length 0 to 12, one random array of length 300 (the LeetCode maximum), and the edge cases empty, single element, all equal, already sorted, reversed, `[2, 0, 1]`, `[1, 2, 0]` and `[2, 1, 0]`. All four matched on every input.
+All four versions were compiled and run against a brute-force answer (the built-in sort) on 1,200 inputs: 1,186 random arrays of length 0 to 12, one random array of length 300 (the LeetCode maximum), and the edge cases empty, single element, all equal, already sorted, reversed, `[2, 0, 1]`, `[1, 2, 0]` and `[2, 1, 0]`. All four matched on every input. Re-run on 31 October 2026 on 3,004 more inputs (3,000 random arrays of length 0 to 12, the example, `[2, 1, 0]`, `[1, 2, 0]` and the empty array): all four matched the built-in sort on every one.

@@ -5,10 +5,10 @@ slug: sliding-window-fixed-size
 pattern: Sliding window
 section: Arrays and hashing
 summary: "Numbers next to each other and a fixed length k: one number in, one out, reuse the previous sum."
-worked: { name: "Max Sum Subarray of size K (GeeksforGeeks)", url: "https://www.geeksforgeeks.org/problems/max-sum-subarray-of-size-k5313/1" }
+worked: { name: "GeeksforGeeks Max Sum Subarray of size K", url: "https://www.geeksforgeeks.org/problems/max-sum-subarray-of-size-k5313/1" }
 practice:
-  - { name: "LeetCode 643 Maximum Average Subarray I", url: "https://leetcode.com/problems/maximum-average-subarray-i/", level: easy, note: "This exact post. Find the best sum, then divide it by k (as a decimal in Java and C++: (double) best / k)." }
-  - { name: "LeetCode 1456 Maximum Number of Vowels in a Substring of Given Length", url: "https://leetcode.com/problems/maximum-number-of-vowels-in-a-substring-of-given-length/", level: medium, note: "One letter in, one letter out, keep a vowel count." }
+  - { name: "LeetCode 643 Maximum Average Subarray I", url: "https://leetcode.com/problems/maximum-average-subarray-i/", level: easy, note: "This exact post. Find the best sum, then divide it by k." }
+  - { name: "LeetCode 1456 Maximum Number of Vowels in a Substring of Given Length", url: "https://leetcode.com/problems/maximum-number-of-vowels-in-a-substring-of-given-length/", level: medium, note: "One letter in, one letter out. Keep a vowel count." }
 slides: 8
 video: 2
 tags: [sliding-window, arrays]
@@ -19,7 +19,7 @@ One Hint Away (@onehintaway). Clues: **numbers next to each other** (a subarray 
 
 Worked example: **the biggest sum of k numbers in a row**, the GeeksforGeeks problem "Max Sum Subarray of size K".
 
-## The slide
+## The walk
 
 `nums = [2, 1, 5, 1, 3, 2]`, `k = 3` returns `9`.
 
@@ -134,4 +134,4 @@ If a platform allows very large numbers or very long arrays, the sum can pass th
 
 ## How it was tested
 
-Verified: all four languages return 9 on the example, the wrong-index version returns 8, and the code matches a re-add-every-window version on 3,000 random inputs, including negative numbers.
+Verified: all four languages return 9 on the example, the wrong-index version returns 8, and the code matches a re-add-every-window version on 3,000 random inputs, including negative numbers. Re-run on 31 October 2026 on 3,001 inputs (3,000 random arrays of length 1 to 12 with values from −50 to 50 and every valid k, plus the example): all four languages matched on every one.

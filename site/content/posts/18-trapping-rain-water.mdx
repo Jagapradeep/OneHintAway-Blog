@@ -7,7 +7,7 @@ section: "Arrays and hashing"
 summary: "Water above each bar is the lower of the tallest walls on its two sides, minus the bar."
 worked: { name: "LeetCode 42 Trapping Rain Water", url: "https://leetcode.com/problems/trapping-rain-water/" }
 practice:
-  - { name: "LeetCode 11 Container With Most Water", url: "https://leetcode.com/problems/container-with-most-water/", level: medium, note: "Two walkers again: always move the shorter wall." }
+  - { name: "LeetCode 11 Container With Most Water", url: "https://leetcode.com/problems/container-with-most-water/", level: medium, note: "Same walls, same two walkers, a new question." }
 slides: 13
 video: 10
 tags: [two-pointers, arrays, challenge]
@@ -17,7 +17,7 @@ published: 2026-10-30
 - Problem: [LeetCode 42 · Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/) (Hard, free)
 - Worked example on the slides: `height = [3, 0, 1, 4, 0, 2]` → `7`. Quick check: `[2, 0, 2]` → `2`.
 
-## Idea
+## The idea
 
 Water above bar `i` = `min(tallest wall on its left, tallest wall on its right) − height[i]`.
 Two walkers start at the ends. Each remembers the tallest wall it has passed (`leftMax`, `rightMax`).
@@ -46,6 +46,8 @@ function trap(height):
             right = right - 1
     return water
 ```
+
+**The trap:** moving the taller side. The rule only works when you settle the lower side: the bar on the other side is then at least as tall as every wall your walker has passed, so your own `leftMax` (or `rightMax`) decides the water. Swap the test and the example returns 5 instead of 7.
 
 ## Java
 
@@ -206,9 +208,9 @@ module.exports = { trap };
 - Space: O(1). Five numbers (`left`, `right`, `leftMax`, `rightMax`, `water`) plus `bar`; no extra arrays.
 - Overflow: with LeetCode's limits (n ≤ 2 × 10⁴, height ≤ 10⁵) the total is below 2 × 10⁹, so a 32-bit int is enough.
 
-## Testing
+## How it was tested
 
 All four versions were run from the code blocks in this file against a brute-force checker
 (for each bar, scan left and right for the tallest wall) on 2,016 inputs: 2,000 random arrays of length 0 to 12,
 plus 15 edge cases (empty, one bar, two bars, all equal, sorted, reversed, all zero, maximum heights) and one
-array of 20,000 bars with heights up to 100,000. All agreed.
+array of 20,000 bars with heights up to 100,000. All agreed. Re-run on 31 October 2026 on 3,005 more inputs (3,000 random arrays of length 0 to 12, plus the example, the quick check, the empty array, one bar and LeetCode's first example): all four matched the brute force on every one.

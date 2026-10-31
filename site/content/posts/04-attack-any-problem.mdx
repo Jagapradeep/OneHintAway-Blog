@@ -7,25 +7,34 @@ section: "Foundations"
 summary: "Read the constraints, write the brute force, then optimise and test the edges."
 worked: { name: "LeetCode 121 Best Time to Buy and Sell Stock", url: "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/" }
 practice:
-  - { name: "LeetCode 1 Two Sum", url: "https://leetcode.com/problems/two-sum/", level: easy, note: "Write the O(n²) version first, then try to beat it." }
-  - { name: "LeetCode 238 Product of Array Except Self", url: "https://leetcode.com/problems/product-of-array-except-self/", level: medium, note: "The problem requires O(n)." }
+  - { name: "LeetCode 1 Two Sum", url: "https://leetcode.com/problems/two-sum/", level: easy, note: "Write the O(n²) version first. The problem itself asks: can you beat O(n²)?" }
+  - { name: "LeetCode 238 Product of Array Except Self", url: "https://leetcode.com/problems/product-of-array-except-self/", level: medium, note: "The problem demands O(n). Write the slow version anyway, then hunt for repeated work." }
 slides: 7
 tags: [foundations, problem-solving]
 published: 2026-10-13
 ---
 
-One Hint Away (@onehintaway). Worked example: **LeetCode 121, Best Time to Buy and Sell Stock** (Easy).
+Blank screen? Run four steps before you write a single line: read the constraints, brute force first, then optimise, then test the edges. Worked example: **LeetCode 121, Best Time to Buy and Sell Stock** (Easy).
 
-Constraints from the problem page: `1 <= prices.length <= 10^5`, `0 <= prices[i] <= 10^4`.
+## The idea
 
-## The four steps
+Nobody visits a friend by first hunting for the perfect shortcut. You check how long you have, take any route that works, then look for a shortcut, and finally check it is the right house.
 
-1. **Read the constraints.** Up to 10^5 prices means O(n²) is about 10 billion steps, too slow. Aim for O(n).
-2. **Brute force first.** Try every buy day and every later sell day.
+1. **Read the constraints.** The problem page says `1 <= prices.length <= 10^5`. A computer does about 100 million steps in a second. O(n²) on 100,000 prices is 10 billion steps, too slow, so aim for O(n).
+
+   | Input size up to | Aim for | Why |
+   |---|---|---|
+   | 1,000 | O(n²) | 1,000² is 1,000,000 steps. Fine. |
+   | 100,000 | O(n) | 100,000² is 10 billion steps. Too slow. |
+   | 1,000,000,000 | O(log n) | Even one pass is too many steps. |
+
+2. **Brute force first.** Try every buy day and every later sell day. Slow, but correct.
 3. **Then optimise.** To sell on a given day you only need the cheapest price before it, so keep it in one variable.
-4. **Test the edges.** `[5]`, `[7, 6, 4, 3, 1]` and `[2, 2, 2]` all return 0. Keep the brute force to check the fast version on random inputs.
+4. **Test the edges.** `[5]`, `[7, 6, 4, 3, 1]` and `[2, 2, 2]` all return 0.
 
-Example: `prices = [7, 1, 5, 3, 6, 4]` returns `5` (buy at 1, sell at 6).
+## The walk
+
+`prices = [7, 1, 5, 3, 6, 4]` returns `5` (buy at 1, sell at 6).
 
 | price    | 7 | 1 | 5 | 3 | 6 | 4 |
 |----------|---|---|---|---|---|---|
@@ -34,7 +43,7 @@ Example: `prices = [7, 1, 5, 3, 6, 4]` returns `5` (buy at 1, sell at 6).
 
 ## Pseudocode
 
-Brute force, O(n²) time, O(1) extra space:
+The first function is the brute force from slide 4, the second is the one pass from slide 5.
 
 ```
 function maxProfit(prices):
@@ -45,11 +54,7 @@ function maxProfit(prices):
             profit = prices[sell] - prices[buy]
             best = max(best, profit)
     return best
-```
 
-One pass, O(n) time, O(1) extra space:
-
-```
 function maxProfit(prices):
     cheapest = prices[0]
     best = 0
@@ -58,6 +63,8 @@ function maxProfit(prices):
         best = max(best, price - cheapest)
     return best
 ```
+
+**The trap:** deleting the slow version once the fast one works. Keep it, and run both on many inputs. Different answers? The fast one has a bug.
 
 ## Java
 
@@ -181,4 +188,4 @@ function maxProfit(prices) {
 
 ## How it was tested
 
-Verified: all four languages return 5 on the example and 0 on each edge case, and match the brute force on 3,000+ random inputs.
+All four languages return 5 on the example and 0 on each edge case. Both versions in all four languages were then run on 3,005 inputs (3,000 random price lists of length 1 to 12, the examples, and one list of 3,000 prices) and matched an independent brute force on every one.

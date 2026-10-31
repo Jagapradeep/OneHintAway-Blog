@@ -6,20 +6,28 @@ pattern: "Foundations"
 section: "Foundations"
 summary: "Count how the steps grow with the input: O(1), O(log n), O(n), O(n²)."
 practice:
-  - { name: "LeetCode 217 Contains Duplicate", url: "https://leetcode.com/problems/contains-duplicate/", level: easy, note: "Compare the O(n²) and the O(n) version from this post." }
-  - { name: "LeetCode 11 Container With Most Water", url: "https://leetcode.com/problems/container-with-most-water/", level: medium, note: "Write the brute force only and work out its Big-O." }
+  - { name: "LeetCode 217 Contains Duplicate", url: "https://leetcode.com/problems/contains-duplicate/", level: easy, note: "Solve it with a loop inside a loop. Then in one pass with a hash set. Name the Big-O of each." }
+  - { name: "LeetCode 11 Container With Most Water", url: "https://leetcode.com/problems/container-with-most-water/", level: medium, note: "Write only the brute force. Work out its Big-O. Would it survive a huge input?" }
 slides: 7
 tags: [foundations, big-o, complexity]
 published: 2026-10-10
 ---
 
-Companion code for the One Hint Away post on Big-O. Every function below was run in Java, Python, C++ and JavaScript, and all four produced the same step counts. The two Contains Duplicate solutions were checked against each other in every language on more than 3,000 random and edge-case inputs with zero mismatches.
+Big-O tells you if your solution is fast enough before you run it. It ignores seconds and asks one question: when the input grows, how fast do the steps grow?
 
-## Step counts measured by running the code
+## The idea
+
+Your teacher has 1,000 answer sheets and wants yours. Flip through them one by one and, on a bad day, you look at all 1,000. If they are sorted by roll number, open the middle, drop the half that can't hold yours, and repeat: 9 cuts. Same job, very different work. Big-O is the name for that difference.
+
+Read it from the code: one loop over the input is O(n); a loop inside a loop is O(n²); halving the input every step is O(log n). Space counts the same way: a few variables are O(1), a new array of n items is O(n).
+
+## The walk
+
+Step counts as on the slides. The O(1) row is reading one item, such as `nums[0]`; the other rows were measured by running the functions below.
 
 | Shape | Function | 10 items | 100 items | 1,000 items |
 |---|---|---|---|---|
-| O(1) | `firstItem` | 1 | 1 | 1 |
+| O(1) | read one item | 1 | 1 | 1 |
 | O(log n) | `halvings` | 3 | 6 | 9 |
 | O(n) | `onePass` | 10 | 100 | 1,000 |
 | O(n) | `twoPasses` | 20 | 200 | 2,000 |
@@ -49,36 +57,9 @@ function halvings(n):
         n = floor(n / 2)
         steps = steps + 1
     return steps
-
-function twoPasses(nums):
-    steps = 0
-    for each x in nums:
-        steps = steps + 1
-    for each x in nums:
-        steps = steps + 1
-    return steps          // 2 * n, still O(n)
 ```
 
-Contains Duplicate, both ways:
-
-```
-// O(n * n) time, O(1) space
-function containsDuplicateBrute(nums):
-    for i from 0 to length(nums) - 1:
-        for j from i + 1 to length(nums) - 1:
-            if nums[i] == nums[j]:
-                return true
-    return false
-
-// O(n) time, O(n) space
-function containsDuplicate(nums):
-    seen = empty set
-    for each x in nums:
-        if x in seen:
-            return true
-        add x to seen
-    return false
-```
+**The trap:** loops in a row don't multiply. Two loops, one after the other, over 1,000 items take 2,000 steps: still O(n). Only a loop inside a loop gives 1,000,000 steps, O(n²). The code below also has `twoPasses`, which shows this, and both ways to solve Contains Duplicate from the last slide.
 
 ## Java
 
@@ -338,7 +319,7 @@ function containsDuplicate(nums) {
 
 `Math.floor` matters in `halvings`: in JavaScript, `/` always gives a decimal, so `7 / 2` is `3.5`, not `3`.
 
-## Complexity summary
+## Complexity
 
 | Function | Time | Extra space |
 |---|---|---|
@@ -347,3 +328,7 @@ function containsDuplicate(nums) {
 | `everyPair` | O(n²) | O(1) |
 | `containsDuplicateBrute` | O(n²) | O(1) |
 | `containsDuplicate` | O(n) on average | O(n) |
+
+## How it was tested
+
+All four languages produce the measured step counts in the table above. Every function was then run in all four languages on 3,007 inputs (3,000 random arrays of length 0 to 12, the 10-, 100- and 1,000-item arrays, an empty array and a 2,000-item array) and checked against the expected counts; the two Contains Duplicate versions were checked against each other and against a set-size test. All four languages agreed on every input.

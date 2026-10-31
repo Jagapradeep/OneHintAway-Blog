@@ -7,7 +7,7 @@ section: "Arrays and hashing"
 summary: "The longest stretch in a row that follows a rule, like sum ≤ 5: grow on the right, shrink on the left."
 practice:
   - { name: "LeetCode 3 Longest Substring Without Repeating Characters", url: "https://leetcode.com/problems/longest-substring-without-repeating-characters/", level: medium, note: "The rule: no letter twice. Shrink while the new letter is already inside." }
-  - { name: "LeetCode 209 Minimum Size Subarray Sum", url: "https://leetcode.com/problems/minimum-size-subarray-sum/", level: medium, note: "Flipped: shrink while the sum still reaches the target, and keep the shortest." }
+  - { name: "LeetCode 209 Minimum Size Subarray Sum", url: "https://leetcode.com/problems/minimum-size-subarray-sum/", level: medium, note: "Flipped: shrink while the sum still reaches the target. Keep the shortest." }
 slides: 8
 video: 2
 tags: [sliding-window, arrays]
@@ -153,4 +153,4 @@ If a number can be 0 or negative, dropping the oldest day might not lower the to
 
 ## How it was tested
 
-The Java, Python and JavaScript versions return 3 on the example and match a try-every-stretch brute force on 3,007 inputs (3,000 random arrays of length 0 to 12 with values 1 to 10, plus edge cases: empty, one number over or exactly at the budget, budget 0, every number over budget). The measure-too-early version returns 4 on the example. The C++ version is the same code line for line but was not compiled for this post.
+The Java, Python and JavaScript versions return 3 on the example and match a try-every-stretch brute force on 3,007 inputs (3,000 random arrays of length 0 to 12 with values 1 to 10, plus edge cases: empty, one number over or exactly at the budget, budget 0, every number over budget). The measure-too-early version returns 4 on the example. On 31 October 2026 all four versions, C++ included, were compiled and run on 3,001 more inputs (3,000 random arrays of length 0 to 12 with values 1 to 10 and budgets 0 to 30, plus the example) and matched the brute force on every one.

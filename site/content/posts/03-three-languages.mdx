@@ -6,16 +6,18 @@ pattern: "Foundations"
 section: "Foundations"
 summary: "One pseudocode, mapped line by line to Java, Python, C++ and JavaScript."
 practice:
-  - { name: "LeetCode 20 Valid Parentheses", url: "https://leetcode.com/problems/valid-parentheses/", level: easy, note: "Needs a stack." }
-  - { name: "LeetCode 49 Group Anagrams", url: "https://leetcode.com/problems/group-anagrams/", level: medium, note: "Needs a hash map whose values are arrays." }
+  - { name: "LeetCode 20 Valid Parentheses", url: "https://leetcode.com/problems/valid-parentheses/", level: easy, note: "Needs a stack. Slide 6 has every line you will type." }
+  - { name: "LeetCode 49 Group Anagrams", url: "https://leetcode.com/problems/group-anagrams/", level: medium, note: "Needs a hash map whose values are arrays. Combine slides 3 and 4." }
 slides: 8
 tags: [foundations, java, python, cpp, javascript]
 published: 2026-10-12
 ---
 
-Companion code for the One Hint Away post that maps our pseudocode to Java, Python and C++. The slides cover those three; JavaScript was added to the blog afterwards, so it appears here as a fourth column. The four programs at the bottom were run, and all four printed the same output.
+Every language can do the same things. Only the words you type are different. Learn the idea once in pseudocode, then look up the words in your language. The slides cover Java, Python and C++; JavaScript was added for the blog, so it appears here as a fourth column.
 
-## The dictionary
+## The idea
+
+One pseudocode line, `m = empty map`, becomes `HashMap` in Java, `dict` in Python and `unordered_map` in C++ (and `Map` in JavaScript). What it does, the steps you write and its cost in Big-O stay the same in every language. Only the name and the syntax change. The dictionary below has every line you will type for the five structures.
 
 ### Array
 
@@ -74,6 +76,8 @@ JavaScript has no built-in queue. `q.shift()` removes the front but moves every 
 
 ## Pseudocode
 
+The program below runs every line of the dictionary once, so you can see each one work.
+
 ```
 // array
 a = empty array
@@ -111,6 +115,8 @@ front of q              // 4
 remove front of q       // 4
 front of q              // 7
 ```
+
+**The trap:** in C++, `pop()` removes the top of a stack (or the front of a queue) but gives nothing back. Read `top()` (or `front()`) first. In Java, Python and JavaScript, `pop()` returns the value it removes.
 
 ## Java
 
@@ -306,6 +312,10 @@ console.log(q[head++]);            // 4
 console.log(q[head]);              // 7
 ```
 
-## Costs
+## Complexity
 
 Every operation in the tables above is O(1), on average for the hash map and hash set, and amortised for appending to an array. The JavaScript queue is O(1) per step only with the head index; `shift()` is O(n).
+
+## How it was tested
+
+All four programs were compiled and run, and each printed the same twelve values: 7, 2, 3, false, true, false, 5, 5, 3, 4, 4, 7, matching the comments in the pseudocode (Python writes `False` and `True` with capitals).

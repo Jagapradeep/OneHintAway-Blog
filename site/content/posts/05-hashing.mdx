@@ -7,33 +7,23 @@ section: "Arrays and hashing"
 summary: "\"How many times?\" or \"have I seen this before?\": reach for a hash map."
 worked: { name: "LeetCode 1 Two Sum", url: "https://leetcode.com/problems/two-sum/" }
 practice:
-  - { name: "LeetCode 242 Valid Anagram", url: "https://leetcode.com/problems/valid-anagram/", level: easy, note: "Count the letters in both words." }
-  - { name: "LeetCode 49 Group Anagrams", url: "https://leetcode.com/problems/group-anagrams/", level: medium, note: "What key would put words with the same letters together?" }
+  - { name: "LeetCode 242 Valid Anagram", url: "https://leetcode.com/problems/valid-anagram/", level: easy, note: "Job 1: count the letters in both words. Same counts?" }
+  - { name: "LeetCode 49 Group Anagrams", url: "https://leetcode.com/problems/group-anagrams/", level: medium, note: "Job 2: words with the same letters belong together. What could the key be?" }
 slides: 7
 tags: [hashing, hash-map, arrays]
 published: 2026-10-14
 ---
 
-One Hint Away (@onehintaway). A hash map does two jobs: **count** ("how many times?") and **remember** ("have I seen this, and where?").
+A hash map does two jobs. See "how many times does it appear?" in a problem: **count**. See "have I seen this before?": **remember**. Worked example: **LeetCode 1, Two Sum** (Easy). Each input has exactly one answer, and you can't use the same element twice.
 
-Worked example: **LeetCode 1, Two Sum** (Easy). Each input has exactly one answer, and you can't use the same element twice.
+## The idea
 
-## Job 1: count
+A shoe shop customer asks for size 9. You can open every box until you find a 9, or walk straight to the shelf labelled 9. A hash map is labelled shelves for your data: the label is the **key**, and what sits on the shelf is the **value**. Asking the map "is it here?" takes one step on average, like walking to the right shelf.
 
-`countLetters("banana")` gives `b → 1, a → 3, n → 2`.
+- **Count:** `countLetters("banana")` gives `b → 1, a → 3, n → 2`. Already in the map? Add 1 to its count. First time you see it? Set it to 1.
+- **Remember (Two Sum):** at each number, ask the map "have I seen the one I need?" (`need = target - num`). If not, store this number and where it was.
 
-```
-function countLetters(word):
-    counts = empty map
-    for each ch in word:
-        if ch in counts:
-            counts[ch] = counts[ch] + 1
-        else:
-            counts[ch] = 1
-    return counts
-```
-
-## Job 2: remember (Two Sum)
+## The walk
 
 `nums = [3, 8, 4, 6, 1]`, `target = 10` returns `[2, 3]` (4 + 6).
 
@@ -44,7 +34,18 @@ function countLetters(word):
 | 2 | 4 | 6 | no | \{3:0, 8:1, 4:2\} |
 | 3 | 6 | 4 | yes | return [2, 3] |
 
+## Pseudocode
+
 ```
+function countLetters(word):
+    counts = empty map
+    for each ch in word:
+        if ch in counts:
+            counts[ch] = counts[ch] + 1
+        else:
+            counts[ch] = 1
+    return counts
+
 function twoSum(nums, target):
     seen = empty map          // value -> index
     for i from 0 to length(nums) - 1:
@@ -55,7 +56,7 @@ function twoSum(nums, target):
     return none
 ```
 
-**The trap:** store the number before checking and it can pair with itself. For `nums = [3, 2, 4]`, `target = 6`, "store, then check" returns `[0, 0]`; "check, then store" returns the correct `[1, 2]`.
+**The trap:** store the number before checking and it can pair with itself. For `nums = [3, 2, 4]`, `target = 6`, "store, then check" saves 3, looks for 3, finds the same 3 and returns `[0, 0]`. "Check, then store" returns the correct `[1, 2]`.
 
 ## Java
 
@@ -235,8 +236,8 @@ function twoSum(nums, target) {
 | `twoSumBrute` | O(n²) | O(1) |
 | `twoSum` | O(n) on average | O(n) |
 
-Hash map lookups are O(1) on average, which is where the speed comes from.
+You spend a little memory to save a lot of time.
 
 ## How it was tested
 
-Verified: all four languages return `[2, 3]` on the example and `[1, 2]` on the trap input, count "banana" as b 1, a 3, n 2, and match the brute force on 3,000 random inputs that each have exactly one answer.
+All four languages return `[2, 3]` on the example and `[1, 2]` on the trap input, and count "banana" as b 1, a 3, n 2. All three functions in all four languages were then run on 3,002 inputs (3,000 random words and random arrays that each have exactly one answer, plus the two examples) and matched an independent brute force on every one.

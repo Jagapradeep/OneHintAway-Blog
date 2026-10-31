@@ -52,8 +52,6 @@ function trap(height):
 ## Java
 
 ```java
-import java.util.*;
-
 public class Solution {
     public static int trap(int[] height) {
         int left = 0;
@@ -76,27 +74,12 @@ public class Solution {
         }
         return water;
     }
-
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        int t = sc.nextInt();
-        StringBuilder out = new StringBuilder();
-        for (int c = 0; c < t; c++) {
-            int n = sc.nextInt();
-            int[] h = new int[n];
-            for (int i = 0; i < n; i++) h[i] = sc.nextInt();
-            out.append(trap(h)).append('\n');
-        }
-        System.out.print(out);
-    }
 }
 ```
 
 ## Python
 
 ```python
-import sys
-
 def trap(height):
     left = 0
     right = len(height) - 1
@@ -115,15 +98,6 @@ def trap(height):
             water = water + rightMax - bar
             right = right - 1
     return water
-
-if __name__ == "__main__":
-    data = sys.stdin.read().split()
-    t = int(data[0]); p = 1; out = []
-    for _ in range(t):
-        n = int(data[p]); p += 1
-        h = [int(x) for x in data[p:p + n]]; p += n
-        out.append(str(trap(h)))
-    print("\n".join(out))
 ```
 
 ## C++
@@ -153,16 +127,6 @@ int trap(const vector<int>& height) {
     }
     return water;
 }
-
-int main() {
-    int t; cin >> t;
-    while (t--) {
-        int n; cin >> n;
-        vector<int> h(n);
-        for (auto& x : h) cin >> x;
-        cout << trap(h) << "\n";
-    }
-}
 ```
 
 ## JavaScript
@@ -189,17 +153,6 @@ function trap(height) {
     }
     return water;
 }
-
-if (require.main === module) {
-    const data = require("fs").readFileSync(0, "utf8").trim().split(/\s+/).map(Number);
-    let t = data[0], p = 1; const out = [];
-    for (let c = 0; c < t; c++) {
-        const n = data[p++];
-        out.push(trap(data.slice(p, p + n))); p += n;
-    }
-    console.log(out.join("\n"));
-}
-module.exports = { trap };
 ```
 
 ## Complexity

@@ -52,9 +52,6 @@ function maxSubArray(nums):
 ## Java
 
 ```java
-import java.io.*;
-import java.util.*;
-
 public class Kadane {
     static int maxSubArray(int[] nums) {
         int current = 0;          // sum so far
@@ -68,27 +65,12 @@ public class Kadane {
         }
         return best;
     }
-
-    public static void main(String[] args) throws IOException {
-        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        StringBuilder out = new StringBuilder();
-        String line;
-        while ((line = in.readLine()) != null) {
-            line = line.trim();
-            if (line.isEmpty()) continue;
-            int[] nums = Arrays.stream(line.split(" ")).mapToInt(Integer::parseInt).toArray();
-            out.append(maxSubArray(nums)).append('\n');
-        }
-        System.out.print(out);
-    }
 }
 ```
 
 ## Python
 
 ```python
-import sys
-
 def max_sub_array(nums):
     current = 0          # sum so far
     best = nums[0]       # largest so far
@@ -98,20 +80,12 @@ def max_sub_array(nums):
         current = current + x
         best = max(best, current)
     return best
-
-if __name__ == "__main__":
-    for line in sys.stdin:
-        if line.strip():
-            print(max_sub_array(list(map(int, line.split()))))
 ```
 
 ## C++
 
 ```cpp
 #include <algorithm>
-#include <iostream>
-#include <sstream>
-#include <string>
 #include <vector>
 using namespace std;
 
@@ -126,17 +100,6 @@ int maxSubArray(const vector<int>& nums) {
         best = max(best, current);
     }
     return best;
-}
-
-int main() {
-    string line;
-    while (getline(cin, line)) {
-        istringstream ss(line);
-        vector<int> nums;
-        int v;
-        while (ss >> v) nums.push_back(v);
-        if (!nums.empty()) cout << maxSubArray(nums) << '\n';
-    }
 }
 ```
 
@@ -155,16 +118,7 @@ function maxSubArray(nums) {
     }
     return best;
 }
-
-const lines = require("fs").readFileSync(0, "utf8").split("\n");
-const out = [];
-for (const line of lines) {
-    if (line.trim()) out.push(maxSubArray(line.trim().split(/\s+/).map(Number)));
-}
-console.log(out.join("\n"));
 ```
-
-Each program reads one array per line from standard input (numbers separated by spaces) and prints the answer for each.
 
 ## Complexity
 

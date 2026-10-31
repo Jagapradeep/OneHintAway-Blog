@@ -57,9 +57,6 @@ function majorityElement(nums):
 ## Java
 
 ```java
-import java.io.*;
-import java.util.*;
-
 public class Main {
     // LeetCode 169: a majority is guaranteed to exist.
     static int majorityElement(int[] nums) {
@@ -88,29 +85,12 @@ public class Main {
         }
         return seen > nums.length / 2 ? candidate : null;
     }
-
-    public static void main(String[] args) throws IOException {
-        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        StringBuilder out = new StringBuilder();
-        String line;
-        while ((line = in.readLine()) != null) {
-            line = line.trim();
-            int[] nums = line.isEmpty() ? new int[0]
-                : Arrays.stream(line.split(" ")).mapToInt(Integer::parseInt).toArray();
-            String c = nums.length == 0 ? "none" : String.valueOf(majorityElement(nums));
-            Integer v = majorityOrNone(nums);
-            out.append(c).append(' ').append(v == null ? "none" : v).append('\n');
-        }
-        System.out.print(out);
-    }
 }
 ```
 
 ## Python
 
 ```python
-import sys
-
 def majority_element(nums):
     # LeetCode 169: a majority is guaranteed to exist.
     candidate = None
@@ -131,15 +111,6 @@ def majority_or_none(nums):
     candidate = majority_element(nums)
     seen = sum(1 for x in nums if x == candidate)
     return candidate if seen > len(nums) // 2 else None
-
-if __name__ == "__main__":
-    out = []
-    for line in sys.stdin.read().split("\n")[:-1]:
-        nums = [int(t) for t in line.split()]
-        c = majority_element(nums)
-        v = majority_or_none(nums)
-        out.append(f"{'none' if c is None else c} {'none' if v is None else v}")
-    print("\n".join(out))
 ```
 
 ## C++
@@ -174,19 +145,6 @@ optional<int> majorityOrNone(const vector<int>& nums) {
     if (seen > (long long)nums.size() / 2) return candidate;
     return nullopt;
 }
-
-int main() {
-    ios::sync_with_stdio(false);
-    string line;
-    while (getline(cin, line)) {
-        stringstream ss(line);
-        vector<int> nums; int t;
-        while (ss >> t) nums.push_back(t);
-        string c = nums.empty() ? "none" : to_string(majorityElement(nums));
-        auto v = majorityOrNone(nums);
-        cout << c << ' ' << (v ? to_string(*v) : string("none")) << '\n';
-    }
-}
 ```
 
 ## JavaScript
@@ -217,21 +175,7 @@ function majorityOrNone(nums) {
     for (const x of nums) if (x === candidate) seen = seen + 1;
     return seen > Math.floor(nums.length / 2) ? candidate : null;
 }
-
-if (require.main === module) {
-    const lines = require("fs").readFileSync(0, "utf8").split("\n").slice(0, -1);
-    const out = lines.map((line) => {
-        const nums = line.trim() === "" ? [] : line.trim().split(" ").map(Number);
-        const c = majorityElement(nums);
-        const v = majorityOrNone(nums);
-        return `${c === null ? "none" : c} ${v === null ? "none" : v}`;
-    });
-    console.log(out.join("\n"));
-}
-module.exports = { majorityElement, majorityOrNone };
 ```
-
-Each program reads one array per line from standard input and prints the candidate and the checked answer (`none` when there is no majority).
 
 ## Complexity
 

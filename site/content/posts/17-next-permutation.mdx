@@ -48,8 +48,6 @@ function nextPermutation(nums):
 ## Java
 
 ```java
-import java.util.*;
-
 public class NextPermutation {
     static void nextPermutation(int[] nums) {
         int n = nums.length;
@@ -78,29 +76,12 @@ public class NextPermutation {
     static void swap(int[] nums, int a, int b) {
         int t = nums[a]; nums[a] = nums[b]; nums[b] = t;
     }
-
-    public static void main(String[] args) {
-        Scanner in = new Scanner(System.in);
-        int t = in.nextInt();
-        StringBuilder out = new StringBuilder();
-        while (t-- > 0) {
-            int n = in.nextInt();
-            int[] a = new int[n];
-            for (int k = 0; k < n; k++) a[k] = in.nextInt();
-            nextPermutation(a);
-            for (int k = 0; k < n; k++) out.append(a[k]).append(k + 1 < n ? " " : "");
-            out.append("\n");
-        }
-        System.out.print(out);
-    }
 }
 ```
 
 ## Python
 
 ```python
-import sys
-
 def next_permutation(nums):
     n = len(nums)
     i = n - 2
@@ -118,16 +99,6 @@ def reverse(nums, left, right):
         nums[left], nums[right] = nums[right], nums[left]
         left = left + 1
         right = right - 1
-
-if __name__ == "__main__":
-    data = sys.stdin.read().split()
-    t = int(data[0]); p = 1; out = []
-    for _ in range(t):
-        n = int(data[p]); p += 1
-        a = [int(x) for x in data[p:p + n]]; p += n
-        next_permutation(a)
-        out.append(" ".join(map(str, a)))
-    print("\n".join(out))
 ```
 
 ## C++
@@ -159,18 +130,6 @@ void nextPermutation(vector<int>& nums) {
     }
     reverseRange(nums, i + 1, n - 1);
 }
-
-int main() {
-    int t; cin >> t;
-    while (t--) {
-        int n; cin >> n;
-        vector<int> a(n);
-        for (auto& x : a) cin >> x;
-        nextPermutation(a);
-        for (int k = 0; k < n; k++) cout << a[k] << (k + 1 < n ? " " : "");
-        cout << "\n";
-    }
-}
 ```
 
 ## JavaScript
@@ -199,23 +158,7 @@ function reverse(nums, left, right) {
         right = right - 1;
     }
 }
-
-module.exports = { nextPermutation };
-
-if (require.main === module) {
-    const data = require("fs").readFileSync(0, "utf8").trim().split(/\s+/).map(Number);
-    let p = 0; const t = data[p++]; const out = [];
-    for (let c = 0; c < t; c++) {
-        const n = data[p++];
-        const a = data.slice(p, p + n); p += n;
-        nextPermutation(a);
-        out.push(a.join(" "));
-    }
-    console.log(out.join("\n"));
-}
 ```
-
-Each program reads test cases from standard input: the number of cases, then for each case `n` followed by `n` numbers.
 
 ## Complexity
 

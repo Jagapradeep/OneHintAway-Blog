@@ -73,13 +73,6 @@ public class Solution {
         }
         return count;
     }
-
-    public static void main(String[] args) {
-        System.out.println(subarraySum(new int[]{1, -1, 3, 1, 2}, 3)); // 4
-        System.out.println(subarraySum(new int[]{1, -1, 3, 1, 2}, 4)); // 2
-        System.out.println(subarraySum(new int[]{1, 1, 1}, 2));        // 2
-        System.out.println(subarraySum(new int[]{1, 2, 3}, 3));        // 2
-    }
 }
 ```
 
@@ -95,12 +88,6 @@ def subarray_sum(nums, k):
         count = count + seen.get(sum - k, 0)
         seen[sum] = seen.get(sum, 0) + 1
     return count
-
-if __name__ == "__main__":
-    print(subarray_sum([1, -1, 3, 1, 2], 3))  # 4
-    print(subarray_sum([1, -1, 3, 1, 2], 4))  # 2
-    print(subarray_sum([1, 1, 1], 2))         # 2
-    print(subarray_sum([1, 2, 3], 3))         # 2
 ```
 
 ## C++
@@ -122,13 +109,6 @@ int subarraySum(const vector<int>& nums, int k) {
     }
     return count;
 }
-
-int main() {
-    cout << subarraySum({1, -1, 3, 1, 2}, 3) << "\n"; // 4
-    cout << subarraySum({1, -1, 3, 1, 2}, 4) << "\n"; // 2
-    cout << subarraySum({1, 1, 1}, 2) << "\n";        // 2
-    cout << subarraySum({1, 2, 3}, 3) << "\n";        // 2
-}
 ```
 
 ## JavaScript
@@ -145,15 +125,6 @@ function subarraySum(nums, k) {
         seen.set(sum, (seen.get(sum) ?? 0) + 1);
     }
     return count;
-}
-
-module.exports = { subarraySum };
-
-if (require.main === module) {
-    console.log(subarraySum([1, -1, 3, 1, 2], 3)); // 4
-    console.log(subarraySum([1, -1, 3, 1, 2], 4)); // 2
-    console.log(subarraySum([1, 1, 1], 2));        // 2
-    console.log(subarraySum([1, 2, 3], 3));        // 2
 }
 ```
 

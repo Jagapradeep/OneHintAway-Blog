@@ -77,28 +77,12 @@ public class Main {
         }
         return merged.toArray(new int[0][]);
     }
-
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        int t = sc.nextInt();
-        StringBuilder out = new StringBuilder();
-        while (t-- > 0) {
-            int n = sc.nextInt();
-            int[][] iv = new int[n][2];
-            for (int i = 0; i < n; i++) { iv[i][0] = sc.nextInt(); iv[i][1] = sc.nextInt(); }
-            for (int[] p : merge(iv)) out.append(p[0]).append(' ').append(p[1]).append(' ');
-            out.append('\n');
-        }
-        System.out.print(out);
-    }
 }
 ```
 
 ## Python
 
 ```python
-import sys
-
 def merge(intervals):
     intervals.sort(key=lambda pair: pair[0])
     merged = []
@@ -111,21 +95,6 @@ def merge(intervals):
         else:
             merged.append([start, end])
     return merged
-
-def main():
-    data = sys.stdin.read().split(); p = 0
-    t = int(data[p]); p += 1
-    out = []
-    for _ in range(t):
-        n = int(data[p]); p += 1
-        iv = []
-        for _ in range(n):
-            iv.append([int(data[p]), int(data[p + 1])]); p += 2
-        out.append(' '.join(f'{a} {b}' for a, b in merge(iv)) + ' ')
-    print('\n'.join(out))
-
-if __name__ == '__main__':
-    main()
 ```
 
 ## C++
@@ -150,17 +119,6 @@ vector<vector<int>> merge(vector<vector<int>>& intervals) {
     }
     return merged;
 }
-
-int main() {
-    int t; cin >> t;
-    while (t--) {
-        int n; cin >> n;
-        vector<vector<int>> iv(n, vector<int>(2));
-        for (auto& p : iv) cin >> p[0] >> p[1];
-        for (auto& p : merge(iv)) cout << p[0] << ' ' << p[1] << ' ';
-        cout << '\n';
-    }
-}
 ```
 
 ## JavaScript
@@ -181,18 +139,7 @@ function merge(intervals) {
     }
     return merged;
 }
-
-const data = require('fs').readFileSync(0, 'utf8').split(/\s+/).filter(Boolean).map(Number);
-let p = 0; const t = data[p++]; const out = [];
-for (let k = 0; k < t; k++) {
-    const n = data[p++]; const iv = [];
-    for (let i = 0; i < n; i++) { iv.push([data[p], data[p + 1]]); p += 2; }
-    out.push(merge(iv).map(([a, b]) => `${a} ${b}`).join(' ') + ' ');
-}
-console.log(out.join('\n'));
 ```
-
-Each program reads many test cases from standard input (the number of cases, then for each case `n` followed by `n` pairs) and prints the merged intervals.
 
 ## Complexity
 

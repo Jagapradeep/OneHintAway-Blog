@@ -24,6 +24,7 @@ export type PostMeta = {
   tags: string[];
   published: string;
   file: string; // file name without .mdx, e.g. "00-start-here"
+  hasCode: boolean; // the body has the four-language code tabs
 };
 
 const POSTS_DIR = path.join(process.cwd(), "content", "posts");
@@ -34,10 +35,10 @@ export function getAllPosts(): PostMeta[] {
     .readdirSync(POSTS_DIR)
     .filter((f) => f.endsWith(".mdx"))
     .map((f) => {
-      const { data } = matter(fs.readFileSync(path.join(POSTS_DIR, f), "utf8"));
+      const { data, content } = matter(fs.readFileSync(path.join(POSTS_DIR, f), "utf8"));
       const published =
         data.published instanceof Date ? data.published.toISOString().slice(0, 10) : String(data.published);
-      return { ...data, published, file: f.replace(/\.mdx$/, "") } as PostMeta;
+      return { ...data, published, file: f.replace(/\.mdx$/, ""), hasCode: /^## Java\s*$/m.test(content) } as PostMeta;
     })
     .sort((a, b) => a.number - b.number);
 }
@@ -78,4 +79,12 @@ export function getNeighbours(slug: string): { prev?: PostMeta; next?: PostMeta 
   const posts = getAllPosts();
   const i = posts.findIndex((p) => p.slug === slug);
   return { prev: posts[i - 1], next: posts[i + 1] };
+}
+
+// Numbers for the home page: lessons, patterns, practice problems.
+export function getSiteStats(): { posts: number; patterns: number; problems: number } {
+  const posts = getAllPosts();
+  const patterns = new Set(posts.map((p) => p.pattern).filter((p) => p !== "Roadmap" && p !== "Foundations"));
+  const problems = posts.reduce((n, p) => n + p.practice.length + (p.worked ? 1 : 0), 0);
+  return { posts: posts.length, patterns: patterns.size, problems };
 }

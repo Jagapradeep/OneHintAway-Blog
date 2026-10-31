@@ -29,3 +29,5 @@ export function sectionIndex(section: string): number {
 
 export const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+export const pad2 = (n: number) => String(n).padStart(2, "0");

@@ -1,0 +1,190 @@
+---
+number: 19
+title: "GCD, primes and the sieve"
+slug: gcd-primes-sieve
+pattern: "Number theory"
+section: "Maths"
+summary: "Count primes below n by crossing out multiples; get a GCD by taking remainders until one is zero."
+worked: { name: "LeetCode 204 Count Primes", url: "https://leetcode.com/problems/count-primes/" }
+practice:
+  - { name: "LeetCode 1979 Find Greatest Common Divisor of Array", url: "https://leetcode.com/problems/find-greatest-common-divisor-of-array/", level: easy, note: "GCD of the smallest and the largest number." }
+  - { name: "LeetCode 2523 Closest Prime Numbers in Range", url: "https://leetcode.com/problems/closest-prime-numbers-in-range/", level: medium, note: "Sieve up to right, then scan neighbouring primes." }
+slides: 9
+video: 2
+tags: [maths, primes, gcd, sieve]
+published: 2026-10-31
+---
+
+Problems:
+
+- LeetCode 204, Count Primes: count the primes strictly less than n (worked example on the slides).
+- LeetCode 1979, Find Greatest Common Divisor of Array (practice, Easy): GCD of the smallest and largest number.
+- LeetCode 2523, Closest Prime Numbers in Range (practice, Medium): sieve up to `right`, then scan neighbouring primes.
+
+Free reference: GeeksforGeeks, "Sieve of Eratosthenes" and "Euclidean algorithms (Basic and Extended)".
+
+## Pseudocode (as on the slides)
+
+```
+function countPrimes(n):
+    if n < 3:  // only 0 and 1 are below n
+        return 0
+    isPrime = array of n values, all true
+    set isPrime[0] and isPrime[1] to false
+    p = 2
+    while p * p < n:
+        if isPrime[p]:
+            m = p * p
+            while m < n:
+                isPrime[m] = false
+                m = m + p
+        p = p + 1
+    return number of true values in isPrime
+
+function gcd(a, b):
+    while b != 0:
+        remainder = a mod b
+        a = b
+        b = remainder
+    return a
+```
+
+## Java
+
+```java
+class Solution {
+    public int countPrimes(int n) {
+        if (n < 3) return 0;  // only 0 and 1 are below n
+        boolean[] isPrime = new boolean[n];
+        java.util.Arrays.fill(isPrime, true);
+        isPrime[0] = false;
+        isPrime[1] = false;
+        long p = 2;
+        while (p * p < n) {
+            if (isPrime[(int) p]) {
+                long m = p * p;
+                while (m < n) {
+                    isPrime[(int) m] = false;
+                    m = m + p;
+                }
+            }
+            p = p + 1;
+        }
+        int count = 0;
+        for (boolean b : isPrime) if (b) count++;
+        return count;
+    }
+
+    public static int gcd(int a, int b) {
+        while (b != 0) {
+            int remainder = a % b;
+            a = b;
+            b = remainder;
+        }
+        return a;
+    }
+}
+```
+
+## Python
+
+```python
+def count_primes(n: int) -> int:
+    if n < 3:  # only 0 and 1 are below n
+        return 0
+    is_prime = [True] * n
+    is_prime[0] = False
+    is_prime[1] = False
+    p = 2
+    while p * p < n:
+        if is_prime[p]:
+            m = p * p
+            while m < n:
+                is_prime[m] = False
+                m = m + p
+        p += 1
+    return sum(is_prime)
+
+def gcd(a: int, b: int) -> int:
+    while b != 0:
+        remainder = a % b
+        a = b
+        b = remainder
+    return a
+```
+
+## C++
+
+```cpp
+#include <vector>
+
+int countPrimes(int n) {
+    if (n < 3) return 0;  // only 0 and 1 are below n
+    std::vector<bool> isPrime(n, true);
+    isPrime[0] = false;
+    isPrime[1] = false;
+    long long p = 2;
+    while (p * p < n) {
+        if (isPrime[p]) {
+            long long m = p * p;
+            while (m < n) {
+                isPrime[m] = false;
+                m = m + p;
+            }
+        }
+        p = p + 1;
+    }
+    int count = 0;
+    for (bool b : isPrime) if (b) count++;
+    return count;
+}
+
+int gcd(int a, int b) {
+    while (b != 0) {
+        int remainder = a % b;
+        a = b;
+        b = remainder;
+    }
+    return a;
+}
+```
+
+## JavaScript
+
+```javascript
+function countPrimes(n) {
+  if (n < 3) return 0;  // only 0 and 1 are below n
+  const isPrime = new Uint8Array(n).fill(1);
+  isPrime[0] = 0;
+  isPrime[1] = 0;
+  let p = 2;
+  while (p * p < n) {
+    if (isPrime[p]) {
+      let m = p * p;
+      while (m < n) {
+        isPrime[m] = 0;
+        m = m + p;
+      }
+    }
+    p = p + 1;
+  }
+  let count = 0;
+  for (let i = 0; i < n; i++) count += isPrime[i];
+  return count;
+}
+
+function gcd(a, b) {
+  while (b !== 0) {
+    const remainder = a % b;
+    a = b;
+    b = remainder;
+  }
+  return a;
+}
+```
+
+## Cost
+
+- Count Primes: time O(n log log n), extra space O(n). Each prime p crosses out about n / p numbers, and the sum of n / p over primes up to n grows like n log log n.
+- GCD: time O(log(min(a, b))), space O(1). Every two steps at least halve the larger number.
+- The checks on the slides, run on this code: primes below 20 = 8 (2, 3, 5, 7, 11, 13, 17, 19); primes below 30 = 10; countPrimes(10) = 4, and 6 if 0 and 1 are left marked true; gcd(18, 12) = 6 via 18 mod 12 = 6, then 12 mod 6 = 0.

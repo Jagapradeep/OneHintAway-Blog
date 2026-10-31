@@ -1,0 +1,214 @@
+---
+number: 18
+title: "Trapping Rain Water"
+slug: trapping-rain-water
+pattern: "Two pointers"
+section: "Arrays and hashing"
+summary: "Water above each bar is the lower of the tallest walls on its two sides, minus the bar."
+worked: { name: "LeetCode 42 Trapping Rain Water", url: "https://leetcode.com/problems/trapping-rain-water/" }
+practice:
+  - { name: "LeetCode 11 Container With Most Water", url: "https://leetcode.com/problems/container-with-most-water/", level: medium, note: "Two walkers again: always move the shorter wall." }
+slides: 13
+video: 10
+tags: [two-pointers, arrays, challenge]
+published: 2026-10-30
+---
+
+- Problem: [LeetCode 42 · Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/) (Hard, free)
+- Worked example on the slides: `height = [3, 0, 1, 4, 0, 2]` → `7`. Quick check: `[2, 0, 2]` → `2`.
+
+## Idea
+
+Water above bar `i` = `min(tallest wall on its left, tallest wall on its right) − height[i]`.
+Two walkers start at the ends. Each remembers the tallest wall it has passed (`leftMax`, `rightMax`).
+Always settle the lower side: if `height[left] < height[right]`, the right bar is at least as tall as every wall the
+left walker has passed, so the left bar holds `leftMax − height[left]`. Otherwise settle the right bar the same way.
+
+## Pseudocode
+
+```
+function trap(height):
+    left = 0
+    right = length(height) - 1
+    leftMax = 0                // tallest wall seen
+    rightMax = 0
+    water = 0
+    while left < right:
+        if height[left] < height[right]:
+            bar = height[left]
+            leftMax = max(leftMax, bar)
+            water = water + leftMax - bar
+            left = left + 1
+        else:
+            bar = height[right]
+            rightMax = max(rightMax, bar)
+            water = water + rightMax - bar
+            right = right - 1
+    return water
+```
+
+## Java
+
+```java
+import java.util.*;
+
+public class Solution {
+    public static int trap(int[] height) {
+        int left = 0;
+        int right = height.length - 1;
+        int leftMax = 0;
+        int rightMax = 0;
+        int water = 0;
+        while (left < right) {
+            if (height[left] < height[right]) {
+                int bar = height[left];
+                leftMax = Math.max(leftMax, bar);
+                water = water + leftMax - bar;
+                left = left + 1;
+            } else {
+                int bar = height[right];
+                rightMax = Math.max(rightMax, bar);
+                water = water + rightMax - bar;
+                right = right - 1;
+            }
+        }
+        return water;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int t = sc.nextInt();
+        StringBuilder out = new StringBuilder();
+        for (int c = 0; c < t; c++) {
+            int n = sc.nextInt();
+            int[] h = new int[n];
+            for (int i = 0; i < n; i++) h[i] = sc.nextInt();
+            out.append(trap(h)).append('\n');
+        }
+        System.out.print(out);
+    }
+}
+```
+
+## Python
+
+```python
+import sys
+
+def trap(height):
+    left = 0
+    right = len(height) - 1
+    leftMax = 0
+    rightMax = 0
+    water = 0
+    while left < right:
+        if height[left] < height[right]:
+            bar = height[left]
+            leftMax = max(leftMax, bar)
+            water = water + leftMax - bar
+            left = left + 1
+        else:
+            bar = height[right]
+            rightMax = max(rightMax, bar)
+            water = water + rightMax - bar
+            right = right - 1
+    return water
+
+if __name__ == "__main__":
+    data = sys.stdin.read().split()
+    t = int(data[0]); p = 1; out = []
+    for _ in range(t):
+        n = int(data[p]); p += 1
+        h = [int(x) for x in data[p:p + n]]; p += n
+        out.append(str(trap(h)))
+    print("\n".join(out))
+```
+
+## C++
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int trap(const vector<int>& height) {
+    int left = 0;
+    int right = (int)height.size() - 1;
+    int leftMax = 0;
+    int rightMax = 0;
+    int water = 0;
+    while (left < right) {
+        if (height[left] < height[right]) {
+            int bar = height[left];
+            leftMax = max(leftMax, bar);
+            water = water + leftMax - bar;
+            left = left + 1;
+        } else {
+            int bar = height[right];
+            rightMax = max(rightMax, bar);
+            water = water + rightMax - bar;
+            right = right - 1;
+        }
+    }
+    return water;
+}
+
+int main() {
+    int t; cin >> t;
+    while (t--) {
+        int n; cin >> n;
+        vector<int> h(n);
+        for (auto& x : h) cin >> x;
+        cout << trap(h) << "\n";
+    }
+}
+```
+
+## JavaScript
+
+```javascript
+function trap(height) {
+    let left = 0;
+    let right = height.length - 1;
+    let leftMax = 0;
+    let rightMax = 0;
+    let water = 0;
+    while (left < right) {
+        if (height[left] < height[right]) {
+            const bar = height[left];
+            leftMax = Math.max(leftMax, bar);
+            water = water + leftMax - bar;
+            left = left + 1;
+        } else {
+            const bar = height[right];
+            rightMax = Math.max(rightMax, bar);
+            water = water + rightMax - bar;
+            right = right - 1;
+        }
+    }
+    return water;
+}
+
+if (require.main === module) {
+    const data = require("fs").readFileSync(0, "utf8").trim().split(/\s+/).map(Number);
+    let t = data[0], p = 1; const out = [];
+    for (let c = 0; c < t; c++) {
+        const n = data[p++];
+        out.push(trap(data.slice(p, p + n))); p += n;
+    }
+    console.log(out.join("\n"));
+}
+module.exports = { trap };
+```
+
+## Complexity
+
+- Time: O(n). Each loop step moves one walker one place inward, so the loop runs n − 1 times.
+- Space: O(1). Five numbers (`left`, `right`, `leftMax`, `rightMax`, `water`) plus `bar`; no extra arrays.
+- Overflow: with LeetCode's limits (n ≤ 2 × 10⁴, height ≤ 10⁵) the total is below 2 × 10⁹, so a 32-bit int is enough.
+
+## Testing
+
+All four versions were run from the code blocks in this file against a brute-force checker
+(for each bar, scan left and right for the tallest wall) on 2,016 inputs: 2,000 random arrays of length 0 to 12,
+plus 15 edge cases (empty, one bar, two bars, all equal, sorted, reversed, all zero, maximum heights) and one
+array of 20,000 bars with heights up to 100,000. All agreed.

@@ -1,0 +1,225 @@
+---
+number: 14
+title: "Moore's voting"
+slug: moores-voting
+pattern: "Moore's voting"
+section: "Arrays and hashing"
+summary: "Find the value that appears more than half the time, with one candidate and one count."
+worked: { name: "LeetCode 169 Majority Element", url: "https://leetcode.com/problems/majority-element/" }
+practice:
+  - { name: "LeetCode 229 Majority Element II", url: "https://leetcode.com/problems/majority-element-ii/", level: medium, note: "More than n / 3 times: keep two candidates and two counts." }
+  - { name: "GeeksforGeeks Majority Element", url: "https://www.geeksforgeeks.org/problems/majority-element-1587115620/1", level: easy, note: "No majority promised: return -1 when there is none (the trap)." }
+slides: 7
+video: 2
+tags: [moores-voting, arrays]
+published: 2026-10-24
+---
+
+**Pattern:** Moore's voting (the Boyer–Moore majority vote algorithm): keep one candidate and one count. Same value: count up. Different value: count down. When count is 0, the next value becomes the candidate.
+
+Example used on every slide: `nums = [2, 1, 1, 3, 1]`, answer `1`. Count after each step: 1, 0, 1, 0, 1.
+Quick check: `[5, 4, 4]` gives candidate `4`. Trap: `[1, 2, 3]` gives candidate `3`, but it appears once, so there is no majority.
+
+## Pseudocode
+
+```
+function majorityElement(nums):
+    candidate = none
+    count = 0
+    for each x in nums:
+        if count == 0:
+            candidate = x   // new candidate
+        if x == candidate:
+            count = count + 1
+        else:
+            count = count - 1
+    return candidate
+```
+
+When a majority is not promised, count the candidate once more and return it only if it appears more than `floor(length(nums) / 2)` times. Each file below has both versions: `majorityElement` (LeetCode 169) and `majorityOrNone` (with the check).
+
+## Java
+
+```java
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    // LeetCode 169: a majority is guaranteed to exist.
+    static int majorityElement(int[] nums) {
+        int candidate = 0;
+        int count = 0;
+        for (int x : nums) {
+            if (count == 0) {
+                candidate = x;
+            }
+            if (x == candidate) {
+                count = count + 1;
+            } else {
+                count = count - 1;
+            }
+        }
+        return candidate;
+    }
+
+    // No guarantee: count the candidate again. Returns null when there is no majority.
+    static Integer majorityOrNone(int[] nums) {
+        if (nums.length == 0) return null;
+        int candidate = majorityElement(nums);
+        int seen = 0;
+        for (int x : nums) {
+            if (x == candidate) seen = seen + 1;
+        }
+        return seen > nums.length / 2 ? candidate : null;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        StringBuilder out = new StringBuilder();
+        String line;
+        while ((line = in.readLine()) != null) {
+            line = line.trim();
+            int[] nums = line.isEmpty() ? new int[0]
+                : Arrays.stream(line.split(" ")).mapToInt(Integer::parseInt).toArray();
+            String c = nums.length == 0 ? "none" : String.valueOf(majorityElement(nums));
+            Integer v = majorityOrNone(nums);
+            out.append(c).append(' ').append(v == null ? "none" : v).append('\n');
+        }
+        System.out.print(out);
+    }
+}
+```
+
+## Python
+
+```python
+import sys
+
+def majority_element(nums):
+    # LeetCode 169: a majority is guaranteed to exist.
+    candidate = None
+    count = 0
+    for x in nums:
+        if count == 0:
+            candidate = x
+        if x == candidate:
+            count = count + 1
+        else:
+            count = count - 1
+    return candidate
+
+def majority_or_none(nums):
+    # No guarantee: count the candidate again.
+    if not nums:
+        return None
+    candidate = majority_element(nums)
+    seen = sum(1 for x in nums if x == candidate)
+    return candidate if seen > len(nums) // 2 else None
+
+if __name__ == "__main__":
+    out = []
+    for line in sys.stdin.read().split("\n")[:-1]:
+        nums = [int(t) for t in line.split()]
+        c = majority_element(nums)
+        v = majority_or_none(nums)
+        out.append(f"{'none' if c is None else c} {'none' if v is None else v}")
+    print("\n".join(out))
+```
+
+## C++
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// LeetCode 169: a majority is guaranteed to exist.
+int majorityElement(const vector<int>& nums) {
+    int candidate = 0;
+    int count = 0;
+    for (int x : nums) {
+        if (count == 0) {
+            candidate = x;
+        }
+        if (x == candidate) {
+            count = count + 1;
+        } else {
+            count = count - 1;
+        }
+    }
+    return candidate;
+}
+
+// No guarantee: count the candidate again.
+optional<int> majorityOrNone(const vector<int>& nums) {
+    if (nums.empty()) return nullopt;
+    int candidate = majorityElement(nums);
+    long long seen = 0;
+    for (int x : nums) if (x == candidate) seen = seen + 1;
+    if (seen > (long long)nums.size() / 2) return candidate;
+    return nullopt;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    string line;
+    while (getline(cin, line)) {
+        stringstream ss(line);
+        vector<int> nums; int t;
+        while (ss >> t) nums.push_back(t);
+        string c = nums.empty() ? "none" : to_string(majorityElement(nums));
+        auto v = majorityOrNone(nums);
+        cout << c << ' ' << (v ? to_string(*v) : string("none")) << '\n';
+    }
+}
+```
+
+## JavaScript
+
+```javascript
+// LeetCode 169: a majority is guaranteed to exist.
+function majorityElement(nums) {
+    let candidate = null;
+    let count = 0;
+    for (const x of nums) {
+        if (count === 0) {
+            candidate = x;
+        }
+        if (x === candidate) {
+            count = count + 1;
+        } else {
+            count = count - 1;
+        }
+    }
+    return candidate;
+}
+
+// No guarantee: count the candidate again.
+function majorityOrNone(nums) {
+    if (nums.length === 0) return null;
+    const candidate = majorityElement(nums);
+    let seen = 0;
+    for (const x of nums) if (x === candidate) seen = seen + 1;
+    return seen > Math.floor(nums.length / 2) ? candidate : null;
+}
+
+if (require.main === module) {
+    const lines = require("fs").readFileSync(0, "utf8").split("\n").slice(0, -1);
+    const out = lines.map((line) => {
+        const nums = line.trim() === "" ? [] : line.trim().split(" ").map(Number);
+        const c = majorityElement(nums);
+        const v = majorityOrNone(nums);
+        return `${c === null ? "none" : c} ${v === null ? "none" : v}`;
+    });
+    console.log(out.join("\n"));
+}
+module.exports = { majorityElement, majorityOrNone };
+```
+
+## Complexity
+
+- Time: O(n). One pass for LeetCode 169; two passes with the check.
+- Extra space: O(1), just `candidate` and `count`. (A hash map of counts also takes O(n) time but O(n) space; sorting takes O(n log n).)
+
+## How it was tested
+
+All four versions were compiled and run on the same 3,015 inputs (3,000 random arrays of length 0 to 12, half of them forced to have a majority, plus edge cases: empty, single element, all equal, no majority, sorted, reversed, values at ±10^9, and a 100,001-element array) and compared with a brute-force counter. Zero mismatches.

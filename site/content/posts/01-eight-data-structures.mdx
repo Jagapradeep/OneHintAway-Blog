@@ -1,0 +1,381 @@
+---
+number: 1
+title: "Eight data structures"
+slug: eight-data-structures
+pattern: "Foundations"
+section: "Foundations"
+summary: "The eight structures every pattern is built on, and what each operation costs."
+practice:
+  - { name: "LeetCode 1480 Running Sum of 1d Array", url: "https://leetcode.com/problems/running-sum-of-1d-array/", level: easy, note: "Array." }
+  - { name: "LeetCode 344 Reverse String", url: "https://leetcode.com/problems/reverse-string/", level: easy, note: "String." }
+  - { name: "LeetCode 1 Two Sum", url: "https://leetcode.com/problems/two-sum/", level: easy, note: "Hash map." }
+  - { name: "LeetCode 217 Contains Duplicate", url: "https://leetcode.com/problems/contains-duplicate/", level: easy, note: "Hash set." }
+  - { name: "LeetCode 20 Valid Parentheses", url: "https://leetcode.com/problems/valid-parentheses/", level: easy, note: "Stack." }
+  - { name: "LeetCode 232 Implement Queue using Stacks", url: "https://leetcode.com/problems/implement-queue-using-stacks/", level: easy, note: "Queue." }
+  - { name: "LeetCode 206 Reverse Linked List", url: "https://leetcode.com/problems/reverse-linked-list/", level: easy, note: "Linked list." }
+  - { name: "LeetCode 104 Maximum Depth of Binary Tree", url: "https://leetcode.com/problems/maximum-depth-of-binary-tree/", level: easy, note: "Binary tree." }
+slides: 10
+tags: [foundations, data-structures]
+published: 2026-10-09
+---
+
+Companion code for the One Hint Away post on the eight structures you need before any pattern. Each snippet below was run in Java, Python and C++, and all three printed the same values. JavaScript was added for the blog and prints the same values too.
+
+## Pseudocode
+
+```
+// array
+a = [7, 2, 9, 4, 1]
+a[2]                    // 9
+length(a)               // 5
+
+// string
+s = "code"
+s[0]                    // 'c'
+length(s)               // 4
+substring(s, 1)         // "ode"
+
+// hash map
+m = empty map
+m["apple"] = 3
+m["apple"]              // 3
+"fig" in m              // false
+
+// hash set
+seen = empty set
+add 9 to seen
+add 9 to seen           // ignored, already in
+4 in seen               // false
+
+// stack
+st = empty stack
+push 5 onto st
+top of st               // 5, only looks
+pop from st             // 5, removes it
+
+// queue
+q = empty queue
+add 4 to q
+front of q              // 4, only looks
+remove front of q       // 4, removes it
+
+// linked list
+node has: value, next
+cur = head
+while cur != none:
+    cur = cur.next
+
+// binary tree
+node has: value, left, right
+root.value              // 8
+root.left.value         // 3
+root.right.value        // 10
+```
+
+## Java
+
+```java
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+
+public class EightStructures {
+    static class ListNode {
+        int value;
+        ListNode next;
+        ListNode(int value, ListNode next) { this.value = value; this.next = next; }
+    }
+
+    static class TreeNode {
+        int value;
+        TreeNode left, right;
+        TreeNode(int value, TreeNode left, TreeNode right) {
+            this.value = value; this.left = left; this.right = right;
+        }
+    }
+
+    public static void main(String[] args) {
+        // array
+        int[] a = {7, 2, 9, 4, 1};
+        System.out.println(a[2]);            // 9
+        System.out.println(a.length);        // 5
+
+        // string
+        String s = "code";
+        System.out.println(s.charAt(0));     // c
+        System.out.println(s.length());      // 4
+        System.out.println(s.substring(1));  // ode
+
+        // hash map
+        Map<String, Integer> m = new HashMap<>();
+        m.put("apple", 3);
+        System.out.println(m.get("apple"));          // 3
+        System.out.println(m.containsKey("fig"));    // false
+
+        // hash set
+        Set<Integer> seen = new HashSet<>();
+        seen.add(9);
+        seen.add(9);                                  // ignored, already in
+        System.out.println(seen.contains(4));         // false
+
+        // stack
+        Deque<Integer> st = new ArrayDeque<>();
+        st.push(5);
+        System.out.println(st.peek());       // 5, only looks
+        System.out.println(st.pop());        // 5, removes it
+
+        // queue
+        Queue<Integer> q = new ArrayDeque<>();
+        q.offer(4);
+        System.out.println(q.peek());        // 4, only looks
+        System.out.println(q.poll());        // 4, removes it
+
+        // linked list: 7 -> 2 -> 9
+        ListNode head = new ListNode(7, new ListNode(2, new ListNode(9, null)));
+        ListNode cur = head;
+        while (cur != null) {
+            cur = cur.next;
+        }
+
+        // binary tree
+        TreeNode root = new TreeNode(8,
+            new TreeNode(3, new TreeNode(1, null, null), new TreeNode(6, null, null)),
+            new TreeNode(10, null, null));
+        System.out.println(root.value);        // 8
+        System.out.println(root.left.value);   // 3
+        System.out.println(root.right.value);  // 10
+    }
+}
+```
+
+## Python
+
+```python
+from collections import deque
+
+class ListNode:
+    def __init__(self, value, next=None):
+        self.value = value
+        self.next = next
+
+class TreeNode:
+    def __init__(self, value, left=None, right=None):
+        self.value = value
+        self.left = left
+        self.right = right
+
+# array (a Python list)
+a = [7, 2, 9, 4, 1]
+print(a[2])            # 9
+print(len(a))          # 5
+
+# string
+s = "code"
+print(s[0])            # c
+print(len(s))          # 4
+print(s[1:])           # ode
+
+# hash map (a dict)
+m = {}
+m["apple"] = 3
+print(m["apple"])      # 3
+print("fig" in m)      # False
+
+# hash set
+seen = set()
+seen.add(9)
+seen.add(9)            # ignored, already in
+print(4 in seen)       # False
+
+# stack (a list used from the end)
+st = []
+st.append(5)
+print(st[-1])          # 5, only looks
+print(st.pop())        # 5, removes it
+
+# queue
+q = deque()
+q.append(4)
+print(q[0])            # 4, only looks
+print(q.popleft())     # 4, removes it
+
+# linked list: 7 -> 2 -> 9
+head = ListNode(7, ListNode(2, ListNode(9)))
+cur = head
+while cur is not None:
+    cur = cur.next
+
+# binary tree
+root = TreeNode(8, TreeNode(3, TreeNode(1), TreeNode(6)), TreeNode(10))
+print(root.value)        # 8
+print(root.left.value)   # 3
+print(root.right.value)  # 10
+```
+
+## C++
+
+```cpp
+#include <iostream>
+#include <queue>
+#include <stack>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+using namespace std;
+
+struct ListNode {
+    int value;
+    ListNode* next;
+};
+
+struct TreeNode {
+    int value;
+    TreeNode* left;
+    TreeNode* right;
+};
+
+int main() {
+    cout << boolalpha;
+
+    // array (a vector)
+    vector<int> a = {7, 2, 9, 4, 1};
+    cout << a[2] << "\n";        // 9
+    cout << a.size() << "\n";    // 5
+
+    // string
+    string s = "code";
+    cout << s[0] << "\n";        // c
+    cout << s.size() << "\n";    // 4
+    cout << s.substr(1) << "\n"; // ode
+
+    // hash map
+    unordered_map<string, int> m;
+    m["apple"] = 3;
+    cout << m["apple"] << "\n";            // 3
+    cout << (m.count("fig") > 0) << "\n";  // false
+
+    // hash set
+    unordered_set<int> seen;
+    seen.insert(9);
+    seen.insert(9);                        // ignored, already in
+    cout << (seen.count(4) > 0) << "\n";   // false
+
+    // stack
+    stack<int> st;
+    st.push(5);
+    cout << st.top() << "\n";    // 5, only looks
+    st.pop();                    // removes it
+
+    // queue
+    queue<int> q;
+    q.push(4);
+    cout << q.front() << "\n";   // 4, only looks
+    q.pop();                     // removes it
+
+    // linked list: 7 -> 2 -> 9
+    ListNode third{9, nullptr}, second{2, &third}, first{7, &second};
+    ListNode* cur = &first;
+    while (cur != nullptr) {
+        cur = cur->next;
+    }
+
+    // binary tree
+    TreeNode one{1, nullptr, nullptr}, six{6, nullptr, nullptr};
+    TreeNode three{3, &one, &six}, ten{10, nullptr, nullptr};
+    TreeNode root{8, &three, &ten};
+    cout << root.value << "\n";          // 8
+    cout << root.left->value << "\n";    // 3
+    cout << root.right->value << "\n";   // 10
+}
+```
+
+## JavaScript
+
+```javascript
+class ListNode {
+    constructor(value, next = null) {
+        this.value = value;
+        this.next = next;
+    }
+}
+
+class TreeNode {
+    constructor(value, left = null, right = null) {
+        this.value = value;
+        this.left = left;
+        this.right = right;
+    }
+}
+
+// array
+const a = [7, 2, 9, 4, 1];
+console.log(a[2]);            // 9
+console.log(a.length);        // 5
+
+// string
+const s = "code";
+console.log(s[0]);            // c
+console.log(s.length);        // 4
+console.log(s.slice(1));      // ode
+
+// hash map (a Map)
+const m = new Map();
+m.set("apple", 3);
+console.log(m.get("apple"));  // 3
+console.log(m.has("fig"));    // false
+
+// hash set
+const seen = new Set();
+seen.add(9);
+seen.add(9);                  // ignored, already in
+console.log(seen.has(4));     // false
+
+// stack (an array used from the end)
+const st = [];
+st.push(5);
+console.log(st[st.length - 1]); // 5, only looks
+console.log(st.pop());          // 5, removes it
+
+// queue (an array plus a head index, so removing is O(1))
+const q = [];
+let head = 0;
+q.push(4);
+console.log(q[head]);         // 4, only looks
+console.log(q[head++]);       // 4, removes it
+
+// linked list: 7 -> 2 -> 9
+const list = new ListNode(7, new ListNode(2, new ListNode(9)));
+let cur = list;
+while (cur !== null) {
+    cur = cur.next;
+}
+
+// binary tree
+const root = new TreeNode(8, new TreeNode(3, new TreeNode(1), new TreeNode(6)), new TreeNode(10));
+console.log(root.value);        // 8
+console.log(root.left.value);   // 3
+console.log(root.right.value);  // 10
+```
+
+## Costs to remember
+
+| Structure | Operation | Cost |
+|---|---|---|
+| Array | read by index | O(1) |
+| Array | search, insert in the middle | O(n) |
+| String | read by index | O(1) |
+| String | take a substring, compare two strings | O(n) |
+| Hash map | add, look up, remove | O(1) on average |
+| Hash set | add, check | O(1) on average |
+| Stack | push, pop, look at top | O(1) |
+| Queue | add to back, remove front, look at front | O(1) |
+| Linked list | insert at head | O(1) |
+| Linked list | reach the k-th node, search | O(n) |
+| Binary tree | visit every node | O(n) |
+| Binary tree | height when balanced | O(log n) |
+| Binary tree | height when skewed | O(n) |

@@ -1,0 +1,311 @@
+---
+number: 3
+title: "Same structure, three languages"
+slug: three-languages
+pattern: "Foundations"
+section: "Foundations"
+summary: "One pseudocode, mapped line by line to Java, Python, C++ and JavaScript."
+practice:
+  - { name: "LeetCode 20 Valid Parentheses", url: "https://leetcode.com/problems/valid-parentheses/", level: easy, note: "Needs a stack." }
+  - { name: "LeetCode 49 Group Anagrams", url: "https://leetcode.com/problems/group-anagrams/", level: medium, note: "Needs a hash map whose values are arrays." }
+slides: 8
+tags: [foundations, java, python, cpp, javascript]
+published: 2026-10-12
+---
+
+Companion code for the One Hint Away post that maps our pseudocode to Java, Python and C++. The slides cover those three; JavaScript was added to the blog afterwards, so it appears here as a fourth column. The four programs at the bottom were run, and all four printed the same output.
+
+## The dictionary
+
+### Array
+
+| Pseudocode | Java | Python | C++ | JavaScript |
+|---|---|---|---|---|
+| `a = empty array` | `List<Integer> a = new ArrayList<>();` | `a = []` | `vector<int> a;` | `const a = [];` |
+| `append 7 to a` | `a.add(7);` | `a.append(7)` | `a.push_back(7);` | `a.push(7);` |
+| `a[0]` | `a.get(0)` | `a[0]` | `a[0]` | `a[0]` |
+| `length(a)` | `a.size()` | `len(a)` | `a.size()` | `a.length` |
+
+Java also has fixed-size arrays: `int[] a = {7, 2, 9};`, read with `a[0]`, size with `a.length`. In JavaScript, every array grows as needed.
+
+### Hash map
+
+| Pseudocode | Java | Python | C++ | JavaScript |
+|---|---|---|---|---|
+| `m = empty map` | `Map<String, Integer> m = new HashMap<>();` | `m = {}` | `unordered_map<string, int> m;` | `const m = new Map();` |
+| `m["apple"] = 3` | `m.put("apple", 3);` | `m["apple"] = 3` | `m["apple"] = 3;` | `m.set("apple", 3);` |
+| `m["apple"]` | `m.get("apple")` | `m["apple"]` | `m["apple"]` | `m.get("apple")` |
+| `"fig" in m` | `m.containsKey("fig")` | `"fig" in m` | `m.count("fig") > 0` | `m.has("fig")` |
+
+In JavaScript, use `Map` rather than a plain object `{}`: a `Map` keeps keys of any type and has `has()` built in.
+
+### Hash set
+
+| Pseudocode | Java | Python | C++ | JavaScript |
+|---|---|---|---|---|
+| `seen = empty set` | `Set<Integer> seen = new HashSet<>();` | `seen = set()` | `unordered_set<int> seen;` | `const seen = new Set();` |
+| `add 9 to seen` | `seen.add(9);` | `seen.add(9)` | `seen.insert(9);` | `seen.add(9);` |
+| `9 in seen` | `seen.contains(9)` | `9 in seen` | `seen.count(9) > 0` | `seen.has(9)` |
+| `remove 9 from seen` | `seen.remove(9);` | `seen.remove(9)` | `seen.erase(9);` | `seen.delete(9);` |
+
+### Stack
+
+| Pseudocode | Java | Python | C++ | JavaScript |
+|---|---|---|---|---|
+| `st = empty stack` | `Deque<Integer> st = new ArrayDeque<>();` | `st = []` | `stack<int> st;` | `const st = [];` |
+| `push 5 onto st` | `st.push(5);` | `st.append(5)` | `st.push(5);` | `st.push(5);` |
+| `top of st` | `st.peek()` | `st[-1]` | `st.top()` | `st[st.length - 1]` |
+| `pop from st` | `st.pop()` | `st.pop()` | `st.pop();` | `st.pop()` |
+
+In C++, `pop()` removes the top but returns nothing, so read `top()` first.
+
+### Queue
+
+| Pseudocode | Java | Python | C++ | JavaScript |
+|---|---|---|---|---|
+| `q = empty queue` | `Queue<Integer> q = new ArrayDeque<>();` | `q = deque()` | `queue<int> q;` | `const q = []; let head = 0;` |
+| `add 4 to q` | `q.offer(4);` | `q.append(4)` | `q.push(4);` | `q.push(4);` |
+| `front of q` | `q.peek()` | `q[0]` | `q.front()` | `q[head]` |
+| `remove front of q` | `q.poll()` | `q.popleft()` | `q.pop();` | `q[head++]` |
+
+Python needs `from collections import deque` at the top. In C++, `pop()` returns nothing here too, so read `front()` first.
+
+JavaScript has no built-in queue. `q.shift()` removes the front but moves every other element, which is O(n). The array plus a `head` index keeps each step O(1): the front is `q[head]`, and `q[head++]` reads it and moves past it.
+
+## Pseudocode
+
+```
+// array
+a = empty array
+append 7 to a
+append 2 to a
+a[0]                    // 7
+length(a)               // 2
+
+// hash map
+m = empty map
+m["apple"] = 3
+m["apple"]              // 3
+"fig" in m              // false
+
+// hash set
+seen = empty set
+add 9 to seen
+9 in seen               // true
+remove 9 from seen
+9 in seen               // false
+
+// stack
+st = empty stack
+push 3 onto st
+push 5 onto st
+top of st               // 5
+pop from st             // 5
+top of st               // 3
+
+// queue
+q = empty queue
+add 4 to q
+add 7 to q
+front of q              // 4
+remove front of q       // 4
+front of q              // 7
+```
+
+## Java
+
+```java
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+
+public class ThreeLanguages {
+    public static void main(String[] args) {
+        // array
+        List<Integer> a = new ArrayList<>();
+        a.add(7);
+        a.add(2);
+        System.out.println(a.get(0));              // 7
+        System.out.println(a.size());              // 2
+
+        // hash map
+        Map<String, Integer> m = new HashMap<>();
+        m.put("apple", 3);
+        System.out.println(m.get("apple"));        // 3
+        System.out.println(m.containsKey("fig"));  // false
+
+        // hash set
+        Set<Integer> seen = new HashSet<>();
+        seen.add(9);
+        System.out.println(seen.contains(9));      // true
+        seen.remove(9);
+        System.out.println(seen.contains(9));      // false
+
+        // stack
+        Deque<Integer> st = new ArrayDeque<>();
+        st.push(3);
+        st.push(5);
+        System.out.println(st.peek());             // 5
+        System.out.println(st.pop());              // 5
+        System.out.println(st.peek());             // 3
+
+        // queue
+        Queue<Integer> q = new ArrayDeque<>();
+        q.offer(4);
+        q.offer(7);
+        System.out.println(q.peek());              // 4
+        System.out.println(q.poll());              // 4
+        System.out.println(q.peek());              // 7
+    }
+}
+```
+
+## Python
+
+```python
+from collections import deque
+
+# array
+a = []
+a.append(7)
+a.append(2)
+print(a[0])            # 7
+print(len(a))          # 2
+
+# hash map
+m = {}
+m["apple"] = 3
+print(m["apple"])      # 3
+print("fig" in m)      # False
+
+# hash set
+seen = set()
+seen.add(9)
+print(9 in seen)       # True
+seen.remove(9)
+print(9 in seen)       # False
+
+# stack
+st = []
+st.append(3)
+st.append(5)
+print(st[-1])          # 5
+print(st.pop())        # 5
+print(st[-1])          # 3
+
+# queue
+q = deque()
+q.append(4)
+q.append(7)
+print(q[0])            # 4
+print(q.popleft())     # 4
+print(q[0])            # 7
+```
+
+## C++
+
+```cpp
+#include <iostream>
+#include <queue>
+#include <stack>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+using namespace std;
+
+int main() {
+    cout << boolalpha;
+
+    // array
+    vector<int> a;
+    a.push_back(7);
+    a.push_back(2);
+    cout << a[0] << "\n";                    // 7
+    cout << a.size() << "\n";                // 2
+
+    // hash map
+    unordered_map<string, int> m;
+    m["apple"] = 3;
+    cout << m["apple"] << "\n";              // 3
+    cout << (m.count("fig") > 0) << "\n";    // false
+
+    // hash set
+    unordered_set<int> seen;
+    seen.insert(9);
+    cout << (seen.count(9) > 0) << "\n";     // true
+    seen.erase(9);
+    cout << (seen.count(9) > 0) << "\n";     // false
+
+    // stack
+    stack<int> st;
+    st.push(3);
+    st.push(5);
+    cout << st.top() << "\n";                // 5
+    int popped = st.top();                   // read first,
+    st.pop();                                // then remove
+    cout << popped << "\n";                  // 5
+    cout << st.top() << "\n";                // 3
+
+    // queue
+    queue<int> q;
+    q.push(4);
+    q.push(7);
+    cout << q.front() << "\n";               // 4
+    int removed = q.front();                 // read first,
+    q.pop();                                 // then remove
+    cout << removed << "\n";                 // 4
+    cout << q.front() << "\n";               // 7
+}
+```
+
+## JavaScript
+
+```javascript
+// array
+const a = [];
+a.push(7);
+a.push(2);
+console.log(a[0]);                 // 7
+console.log(a.length);             // 2
+
+// hash map
+const m = new Map();
+m.set("apple", 3);
+console.log(m.get("apple"));       // 3
+console.log(m.has("fig"));         // false
+
+// hash set
+const seen = new Set();
+seen.add(9);
+console.log(seen.has(9));          // true
+seen.delete(9);
+console.log(seen.has(9));          // false
+
+// stack
+const st = [];
+st.push(3);
+st.push(5);
+console.log(st[st.length - 1]);    // 5
+console.log(st.pop());             // 5
+console.log(st[st.length - 1]);    // 3
+
+// queue (array + head index)
+const q = [];
+let head = 0;
+q.push(4);
+q.push(7);
+console.log(q[head]);              // 4
+console.log(q[head++]);            // 4
+console.log(q[head]);              // 7
+```
+
+## Costs
+
+Every operation in the tables above is O(1), on average for the hash map and hash set, and amortised for appending to an array. The JavaScript queue is O(1) per step only with the head index; `shift()` is O(n).

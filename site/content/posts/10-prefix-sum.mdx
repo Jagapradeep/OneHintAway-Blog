@@ -1,0 +1,142 @@
+---
+number: 10
+title: "Prefix sum"
+slug: prefix-sum
+pattern: "Prefix sum"
+section: "Arrays and hashing"
+summary: "Many \"sum from left to right\" questions on an array that never changes: build once, answer each with one subtraction."
+worked: { name: "LeetCode 303 Range Sum Query - Immutable", url: "https://leetcode.com/problems/range-sum-query-immutable/" }
+practice:
+  - { name: "LeetCode 238 Product of Array Except Self", url: "https://leetcode.com/problems/product-of-array-except-self/", level: medium, note: "The same running idea with products, once from the left and once from the right." }
+slides: 7
+video: 2
+tags: [prefix-sum, arrays]
+published: 2026-10-20
+---
+
+One Hint Away (@onehintaway). Clue: **many questions that ask "what is the sum from index left to right?"** on an array that never changes.
+
+Worked example: **range sum query.** Build the prefix array once, then answer every query with one subtraction. This is exactly LeetCode 303, Range Sum Query - Immutable (Easy).
+
+## The idea
+
+`prefix[i]` is the sum of the first `i` numbers, so `prefix[0] = 0`. The sum from `left` to `right` (both included) is everything up to `right`, minus everything before `left`:
+
+```
+sum(left, right) = prefix[right + 1] - prefix[left]
+```
+
+## The walk
+
+`nums = [3, 1, 4, 1, 5]`
+
+| i | nums[i] | prefix[i + 1] = prefix[i] + nums[i] |
+|---|---|---|
+| 0 | 3 | 0 + 3 = 3 |
+| 1 | 1 | 3 + 1 = 4 |
+| 2 | 4 | 4 + 4 = 8 |
+| 3 | 1 | 8 + 1 = 9 |
+| 4 | 5 | 9 + 5 = 14 |
+
+`prefix = [0, 3, 4, 8, 9, 14]`. Query `sum(1, 3)` = `prefix[4] - prefix[1]` = `9 - 3` = **6** (1 + 4 + 1).
+
+## Pseudocode
+
+```
+function buildPrefix(nums):
+    n = length(nums)
+    prefix = array of n + 1 zeros
+    for i from 0 to n - 1:
+        prefix[i + 1] = prefix[i] + nums[i]
+    return prefix
+
+function rangeSum(prefix, left, right):
+    return prefix[right + 1] - prefix[left]
+```
+
+**Cost:** building is O(n) time and O(n) space. Each query is O(1). Adding the numbers one by one is O(n) per query, so with q queries that is O(n · q) against O(n + q).
+
+**The trap:** forgetting the shift. `prefix[right] - prefix[left]` on the example gives `8 - 3 = 5`, which drops `nums[3]`. Use `prefix[right + 1]`.
+
+## Java
+
+```java
+class Prefix {
+    // build: O(n) time, O(n) space
+    static long[] buildPrefix(int[] nums) {
+        int n = nums.length;
+        long[] prefix = new long[n + 1];
+        for (int i = 0; i < n; i++) {
+            prefix[i + 1] = prefix[i] + nums[i];
+        }
+        return prefix;
+    }
+
+    // query: O(1)
+    static long rangeSum(long[] prefix, int left, int right) {
+        return prefix[right + 1] - prefix[left];
+    }
+}
+```
+
+## Python
+
+```python
+# build: O(n) time, O(n) space
+def build_prefix(nums):
+    n = len(nums)
+    prefix = [0] * (n + 1)
+    for i in range(n):
+        prefix[i + 1] = prefix[i] + nums[i]
+    return prefix
+
+# query: O(1)
+def range_sum(prefix, left, right):
+    return prefix[right + 1] - prefix[left]
+```
+
+## C++
+
+```cpp
+#include <vector>
+using namespace std;
+
+// build: O(n) time, O(n) space
+vector<long long> buildPrefix(const vector<int>& nums) {
+    int n = nums.size();
+    vector<long long> prefix(n + 1, 0);
+    for (int i = 0; i < n; i++) {
+        prefix[i + 1] = prefix[i] + nums[i];
+    }
+    return prefix;
+}
+
+// query: O(1)
+long long rangeSum(const vector<long long>& prefix, int left, int right) {
+    return prefix[right + 1] - prefix[left];
+}
+```
+
+## JavaScript
+
+```javascript
+// build: O(n) time, O(n) space
+function buildPrefix(nums) {
+    const n = nums.length;
+    const prefix = new Array(n + 1).fill(0);
+    for (let i = 0; i < n; i++) {
+        prefix[i + 1] = prefix[i] + nums[i];
+    }
+    return prefix;
+}
+
+// query: O(1)
+function rangeSum(prefix, left, right) {
+    return prefix[right + 1] - prefix[left];
+}
+```
+
+## Practice
+
+- **LeetCode 303, Range Sum Query - Immutable (Easy):** this exact post, wrapped in a class.
+- **LeetCode 238, Product of Array Except Self (Medium):** the same running idea with products, once from the left and once from the right.

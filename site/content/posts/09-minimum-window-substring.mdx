@@ -1,0 +1,249 @@
+---
+number: 9
+title: "Minimum Window Substring"
+slug: minimum-window-substring
+pattern: "Sliding window"
+section: "Arrays and hashing"
+summary: "The shortest stretch that holds every letter of t: grow until nothing is missing, then shrink."
+worked: { name: "LeetCode 76 Minimum Window Substring", url: "https://leetcode.com/problems/minimum-window-substring/" }
+practice:
+  - { name: "LeetCode 567 Permutation in String", url: "https://leetcode.com/problems/permutation-in-string/", level: medium, note: "The same need and missing counts, with a window of fixed size (post 07)." }
+slides: 13
+video: 10
+tags: [sliding-window, hash-map, strings, challenge]
+published: 2026-10-19
+---
+
+One Hint Away (@onehintaway). **LeetCode 76, Minimum Window Substring (Hard).** Pattern: sliding window (post 08) + a counting map (post 05).
+
+Given strings `s` and `t`, return the shortest part of `s` that contains every letter of `t`, repeats included. If there is none, return `""`.
+
+Worked example: `s = "ABDBCA"`, `t = "ABC"` returns `"BCA"`. LeetCode's own example `s = "ADOBECODEBANC"` returns `"BANC"`.
+
+## The idea
+
+- `need[letter]`: how many of that letter the window still needs. It starts from `t`. It can go below 0, which means the window holds extra copies.
+- `missing`: how many letters of `t` the window still lacks. The window has everything exactly when `missing == 0`.
+- **Grow** on the right until `missing == 0`. Then **shrink** from the left while `missing` stays 0, recording every window along the way.
+
+## The walk
+
+| step | move | letter | missing | need A, B, C | window | recorded |
+|---|---|---|---|---|---|---|
+| 0 | start | | 3 | 1, 1, 1 | (empty) | |
+| 1 | grow | A | 3 − 1 = 2 | 0, 1, 1 | A | |
+| 2 | grow | B | 2 − 1 = 1 | 0, 0, 1 | AB | |
+| 3 | grow | D | 1 − 0 = 1 | 0, 0, 1 | ABD | |
+| 4 | grow | B | 1 − 0 = 1 | 0, −1, 1 | ABDB | |
+| 5 | grow | C | 1 − 1 = 0 | 0, −1, 0 | ABDBC | **ABDBC · 5** |
+| 6 | shrink | A out | 0 + 1 = 1 | 1, −1, 0 | BDBC | |
+| 7 | grow | A | 1 − 1 = 0 | 0, −1, 0 | BDBCA | 5, not shorter |
+| 8 | shrink | B out | 0 + 0 = 0 | 0, 0, 0 | DBCA | **DBCA · 4** |
+| 9 | shrink | D out | 0 + 0 = 0 | 0, 0, 0 | BCA | **BCA · 3** |
+| 10 | shrink | B out | 0 + 1 = 1 | 0, 1, 0 | CA | |
+
+Answer: `"BCA"`.
+
+## Pseudocode
+
+```
+function minWindow(s, t):
+    need = empty map   // default 0
+    for each c in t:
+        need[c] = need[c] + 1
+    missing = length(t)
+    left = 0
+    bestStart = 0
+    bestLen = infinity
+    for right from 0 to length(s) - 1:
+        c = s[right]
+        if need[c] > 0:
+            missing = missing - 1
+        need[c] = need[c] - 1
+        while missing == 0:
+            if right - left + 1 < bestLen:
+                bestStart = left
+                bestLen = right - left + 1
+            d = s[left]
+            need[d] = need[d] + 1
+            if need[d] > 0:
+                missing = missing + 1
+            left = left + 1
+    if bestLen == infinity:
+        return ""
+    return s from bestStart, bestLen letters
+```
+
+**Cost:** O(m + n) time, where m and n are the lengths of `s` and `t`: each letter of `s` joins once and leaves at most once. O(k) extra space, where k is the number of different letters. Trying every stretch is O(m²) stretches, each checked letter by letter.
+
+**Why record start and length, not the string:** copying a substring every time costs extra work. Cut the answer once at the end.
+
+**Common mistakes:**
+- Lowering `missing` for every letter that joins. It should only drop when that letter was still needed (`need[c] > 0` before the decrement). Otherwise extra copies, like the second B, look like progress.
+- Raising `missing` every time a letter leaves. It should only rise when `need[d]` becomes positive, which means the window just lost a copy it needed.
+- Recording the window after the shrink instead of before it. You then miss the complete window you just had.
+
+## Java
+
+```java
+import java.util.*;
+
+class Solution {
+    // O(m + n) time, O(k) space
+    public String minWindow(String s, String t) {
+        Map<Character, Integer> need = new HashMap<>();
+        for (char c : t.toCharArray()) {
+            need.put(c, need.getOrDefault(c, 0) + 1);
+        }
+        int missing = t.length();
+        int left = 0;
+        int bestStart = 0;
+        int bestLen = Integer.MAX_VALUE;
+        for (int right = 0; right < s.length(); right++) {
+            char c = s.charAt(right);
+            if (need.getOrDefault(c, 0) > 0) {
+                missing = missing - 1;
+            }
+            need.put(c, need.getOrDefault(c, 0) - 1);
+            while (missing == 0) {
+                if (right - left + 1 < bestLen) {
+                    bestStart = left;
+                    bestLen = right - left + 1;
+                }
+                char d = s.charAt(left);
+                need.put(d, need.get(d) + 1);
+                if (need.get(d) > 0) {
+                    missing = missing + 1;
+                }
+                left = left + 1;
+            }
+        }
+        if (bestLen == Integer.MAX_VALUE) {
+            return "";
+        }
+        return s.substring(bestStart, bestStart + bestLen);
+    }
+}
+```
+
+## Python
+
+```python
+class Solution:
+    # O(m + n) time, O(k) space
+    def minWindow(self, s: str, t: str) -> str:
+        need = {}
+        for c in t:
+            need[c] = need.get(c, 0) + 1
+        missing = len(t)
+        left = 0
+        best_start = 0
+        best_len = float("inf")
+        for right in range(len(s)):
+            c = s[right]
+            if need.get(c, 0) > 0:
+                missing = missing - 1
+            need[c] = need.get(c, 0) - 1
+            while missing == 0:
+                if right - left + 1 < best_len:
+                    best_start = left
+                    best_len = right - left + 1
+                d = s[left]
+                need[d] = need[d] + 1
+                if need[d] > 0:
+                    missing = missing + 1
+                left = left + 1
+        if best_len == float("inf"):
+            return ""
+        return s[best_start:best_start + best_len]
+```
+
+## C++
+
+```cpp
+#include <string>
+#include <unordered_map>
+#include <climits>
+using namespace std;
+
+class Solution {
+public:
+    // O(m + n) time, O(k) space
+    string minWindow(string s, string t) {
+        unordered_map<char, int> need;
+        for (char c : t) {
+            need[c] = need[c] + 1;
+        }
+        int missing = t.size();
+        int left = 0;
+        int bestStart = 0;
+        int bestLen = INT_MAX;
+        for (int right = 0; right < (int)s.size(); right++) {
+            char c = s[right];
+            if (need[c] > 0) {
+                missing = missing - 1;
+            }
+            need[c] = need[c] - 1;
+            while (missing == 0) {
+                if (right - left + 1 < bestLen) {
+                    bestStart = left;
+                    bestLen = right - left + 1;
+                }
+                char d = s[left];
+                need[d] = need[d] + 1;
+                if (need[d] > 0) {
+                    missing = missing + 1;
+                }
+                left = left + 1;
+            }
+        }
+        if (bestLen == INT_MAX) {
+            return "";
+        }
+        return s.substr(bestStart, bestLen);
+    }
+};
+```
+
+## JavaScript
+
+```javascript
+// O(m + n) time, O(k) space
+var minWindow = function (s, t) {
+    const need = new Map();
+    for (const c of t) {
+        need.set(c, (need.get(c) ?? 0) + 1);
+    }
+    let missing = t.length;
+    let left = 0;
+    let bestStart = 0;
+    let bestLen = Infinity;
+    for (let right = 0; right < s.length; right++) {
+        const c = s[right];
+        if ((need.get(c) ?? 0) > 0) {
+            missing = missing - 1;
+        }
+        need.set(c, (need.get(c) ?? 0) - 1);
+        while (missing === 0) {
+            if (right - left + 1 < bestLen) {
+                bestStart = left;
+                bestLen = right - left + 1;
+            }
+            const d = s[left];
+            need.set(d, need.get(d) + 1);
+            if (need.get(d) > 0) {
+                missing = missing + 1;
+            }
+            left = left + 1;
+        }
+    }
+    if (bestLen === Infinity) {
+        return "";
+    }
+    return s.substring(bestStart, bestStart + bestLen);
+};
+```
+
+## Practice next
+
+- **LeetCode 567, Permutation in String (Medium):** the same `need` and `missing` counts, with a window of fixed size (post 07).

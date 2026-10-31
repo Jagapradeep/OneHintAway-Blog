@@ -1,0 +1,156 @@
+---
+number: 8
+title: "Sliding window, any size"
+slug: sliding-window-any-size
+pattern: "Sliding window"
+section: "Arrays and hashing"
+summary: "The longest stretch in a row that follows a rule, like sum ≤ 5: grow on the right, shrink on the left."
+practice:
+  - { name: "LeetCode 3 Longest Substring Without Repeating Characters", url: "https://leetcode.com/problems/longest-substring-without-repeating-characters/", level: medium, note: "The rule: no letter twice. Shrink while the new letter is already inside." }
+  - { name: "LeetCode 209 Minimum Size Subarray Sum", url: "https://leetcode.com/problems/minimum-size-subarray-sum/", level: medium, note: "Flipped: shrink while the sum still reaches the target, and keep the shortest." }
+slides: 8
+video: 2
+tags: [sliding-window, arrays]
+published: 2026-10-18
+---
+
+One Hint Away (@onehintaway). Clues: **the longest stretch in a row** (a subarray or substring) and **a rule it must follow**, like "the sum is at most 5".
+
+Post 07's window never changed size. This one stretches and shrinks, like an inchworm:
+
+- **Head = `right`.** Moves every turn: a new day joins the window.
+- **Tail = `left`.** Moves only when the rule breaks: the oldest day leaves, until the total fits again.
+
+Worked example: daily costs `nums = [2, 1, 3, 1, 4]` with `budget = 5`. What is the longest run of days in a row that costs at most 5? Answer: `3` (1 + 3 + 1).
+
+## The walk
+
+| right | joins | total | shrink | window | length |
+|---|---|---|---|---|---|
+| 0 | 2 | 2 | | [2] | 1 |
+| 1 | 1 | 2 + 1 = 3 | | [2, 1] | 2 |
+| 2 | 3 | 3 + 3 = 6, too much | drop 2 → 4 | [1, 3] | 2 |
+| 3 | 1 | 4 + 1 = 5 | | [1, 3, 1] | **3** |
+| 4 | 4 | 5 + 4 = 9, too much | drop 1, drop 3 → 5 | [1, 4] | 2 |
+
+Longest run: 1 + 3 + 1 = 5, three days.
+
+## Pseudocode
+
+Grow, shrink, measure: add the new day, shrink while the rule is broken, then measure.
+
+```
+function longestWithin(nums, budget):
+    left = 0
+    total = 0
+    best = 0
+    for right from 0 to length(nums) - 1:
+        total = total + nums[right]
+        while total > budget:
+            total = total - nums[left]
+            left = left + 1
+        best = max(best, right - left + 1)
+    return best
+```
+
+Window length = `right - left + 1`. This works when every number is positive: dropping one always lowers the total.
+
+**Why two loops are still O(n):** a loop inside a loop usually means O(n²), but here each pointer only moves forward. On the example `right` moves 5 times and `left` 3 times: 8 moves, never more than 2 × 5 = 10. Every day joins once and leaves at most once.
+
+**The trap:** measuring too early. Record the length before you shrink and you count a window that breaks the rule. On the example, "measure, then shrink" counts `1 + 3 + 1 + 4 = 9`, over budget, as length 4. "Shrink, then measure" drops days first, so every window it counts fits, and it returns 3.
+
+## Java
+
+```java
+class Solution {
+    // O(n) time, O(1) space. Every number must be positive.
+    public int longestWithin(int[] nums, int budget) {
+        int left = 0;
+        int total = 0;
+        int best = 0;
+        for (int right = 0; right < nums.length; right++) {
+            total = total + nums[right];
+            while (total > budget) {
+                total = total - nums[left];
+                left = left + 1;
+            }
+            best = Math.max(best, right - left + 1);
+        }
+        return best;
+    }
+}
+```
+
+## Python
+
+```python
+class Solution:
+    # O(n) time, O(1) space. Every number must be positive.
+    def longestWithin(self, nums: list[int], budget: int) -> int:
+        left = 0
+        total = 0
+        best = 0
+        for right in range(len(nums)):
+            total = total + nums[right]
+            while total > budget:
+                total = total - nums[left]
+                left = left + 1
+            best = max(best, right - left + 1)
+        return best
+```
+
+## C++
+
+```cpp
+class Solution {
+public:
+    // O(n) time, O(1) space. Every number must be positive.
+    int longestWithin(vector<int>& nums, int budget) {
+        int left = 0;
+        int total = 0;
+        int best = 0;
+        for (int right = 0; right < (int)nums.size(); right++) {
+            total = total + nums[right];
+            while (total > budget) {
+                total = total - nums[left];
+                left = left + 1;
+            }
+            best = max(best, right - left + 1);
+        }
+        return best;
+    }
+};
+```
+
+## JavaScript
+
+```javascript
+// O(n) time, O(1) space. Every number must be positive.
+function longestWithin(nums, budget) {
+    let left = 0;
+    let total = 0;
+    let best = 0;
+    for (let right = 0; right < nums.length; right++) {
+        total = total + nums[right];
+        while (total > budget) {
+            total = total - nums[left];
+            left = left + 1;
+        }
+        best = Math.max(best, right - left + 1);
+    }
+    return best;
+}
+```
+
+If a number can be 0 or negative, dropping the oldest day might not lower the total, so the shrink step stops being safe. Those problems need a different tool, like the prefix sum with a hash map in post 11.
+
+## Complexity
+
+| Version | Time | Extra space |
+|---|---|---|
+| Try every stretch | O(n²) | O(1) |
+| Grow and shrink | O(n) | O(1) |
+
+## How it was tested
+
+The Java, Python and JavaScript versions return 3 on the example and match a try-every-stretch brute force on 3,007 inputs (3,000 random arrays of length 0 to 12 with values 1 to 10, plus edge cases: empty, one number over or exactly at the budget, budget 0, every number over budget). The measure-too-early version returns 4 on the example. The C++ version is the same code line for line but was not compiled for this post.

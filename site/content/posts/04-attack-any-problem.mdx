@@ -1,0 +1,187 @@
+---
+number: 4
+title: "How to attack any problem"
+slug: attack-any-problem
+pattern: "Foundations"
+section: "Foundations"
+summary: "Read the constraints, write the brute force, then optimise and test the edges."
+worked: { name: "LeetCode 121 Best Time to Buy and Sell Stock", url: "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/" }
+practice:
+  - { name: "LeetCode 1 Two Sum", url: "https://leetcode.com/problems/two-sum/", level: easy, note: "Write the O(n²) version first, then try to beat it." }
+  - { name: "LeetCode 238 Product of Array Except Self", url: "https://leetcode.com/problems/product-of-array-except-self/", level: medium, note: "The problem requires O(n)." }
+slides: 7
+tags: [foundations, problem-solving]
+published: 2026-10-13
+---
+
+One Hint Away (@onehintaway). Worked example: **LeetCode 121, Best Time to Buy and Sell Stock** (Easy).
+
+Constraints from the problem page: `1 <= prices.length <= 10^5`, `0 <= prices[i] <= 10^4`.
+
+## The four steps
+
+1. **Read the constraints.** Up to 10^5 prices means O(n²) is about 10 billion steps, too slow. Aim for O(n).
+2. **Brute force first.** Try every buy day and every later sell day.
+3. **Then optimise.** To sell on a given day you only need the cheapest price before it, so keep it in one variable.
+4. **Test the edges.** `[5]`, `[7, 6, 4, 3, 1]` and `[2, 2, 2]` all return 0. Keep the brute force to check the fast version on random inputs.
+
+Example: `prices = [7, 1, 5, 3, 6, 4]` returns `5` (buy at 1, sell at 6).
+
+| price    | 7 | 1 | 5 | 3 | 6 | 4 |
+|----------|---|---|---|---|---|---|
+| cheapest | 7 | 1 | 1 | 1 | 1 | 1 |
+| best     | 0 | 0 | 4 | 4 | 5 | 5 |
+
+## Pseudocode
+
+Brute force, O(n²) time, O(1) extra space:
+
+```
+function maxProfit(prices):
+    n = length(prices)
+    best = 0
+    for buy from 0 to n - 1:
+        for sell from buy + 1 to n - 1:
+            profit = prices[sell] - prices[buy]
+            best = max(best, profit)
+    return best
+```
+
+One pass, O(n) time, O(1) extra space:
+
+```
+function maxProfit(prices):
+    cheapest = prices[0]
+    best = 0
+    for each price in prices:
+        cheapest = min(cheapest, price)
+        best = max(best, price - cheapest)
+    return best
+```
+
+## Java
+
+```java
+class Solution {
+    // Brute force: O(n^2) time, O(1) space
+    public int maxProfitBrute(int[] prices) {
+        int n = prices.length;
+        int best = 0;
+        for (int buy = 0; buy < n; buy++) {
+            for (int sell = buy + 1; sell < n; sell++) {
+                int profit = prices[sell] - prices[buy];
+                best = Math.max(best, profit);
+            }
+        }
+        return best;
+    }
+
+    // One pass: O(n) time, O(1) space
+    public int maxProfit(int[] prices) {
+        int cheapest = prices[0];
+        int best = 0;
+        for (int price : prices) {
+            cheapest = Math.min(cheapest, price);
+            best = Math.max(best, price - cheapest);
+        }
+        return best;
+    }
+}
+```
+
+## Python
+
+```python
+class Solution:
+    # Brute force: O(n^2) time, O(1) space
+    def maxProfitBrute(self, prices: list[int]) -> int:
+        n = len(prices)
+        best = 0
+        for buy in range(n):
+            for sell in range(buy + 1, n):
+                profit = prices[sell] - prices[buy]
+                best = max(best, profit)
+        return best
+
+    # One pass: O(n) time, O(1) space
+    def maxProfit(self, prices: list[int]) -> int:
+        cheapest = prices[0]
+        best = 0
+        for price in prices:
+            cheapest = min(cheapest, price)
+            best = max(best, price - cheapest)
+        return best
+```
+
+## C++
+
+```cpp
+class Solution {
+public:
+    // Brute force: O(n^2) time, O(1) space
+    int maxProfitBrute(vector<int>& prices) {
+        int n = prices.size();
+        int best = 0;
+        for (int buy = 0; buy < n; buy++) {
+            for (int sell = buy + 1; sell < n; sell++) {
+                int profit = prices[sell] - prices[buy];
+                best = max(best, profit);
+            }
+        }
+        return best;
+    }
+
+    // One pass: O(n) time, O(1) space
+    int maxProfit(vector<int>& prices) {
+        int cheapest = prices[0];
+        int best = 0;
+        for (int price : prices) {
+            cheapest = min(cheapest, price);
+            best = max(best, price - cheapest);
+        }
+        return best;
+    }
+};
+```
+
+## JavaScript
+
+```javascript
+// Brute force: O(n^2) time, O(1) space
+function maxProfitBrute(prices) {
+    const n = prices.length;
+    let best = 0;
+    for (let buy = 0; buy < n; buy++) {
+        for (let sell = buy + 1; sell < n; sell++) {
+            const profit = prices[sell] - prices[buy];
+            best = Math.max(best, profit);
+        }
+    }
+    return best;
+}
+
+// One pass: O(n) time, O(1) space
+function maxProfit(prices) {
+    let cheapest = prices[0];
+    let best = 0;
+    for (const price of prices) {
+        cheapest = Math.min(cheapest, price);
+        best = Math.max(best, price - cheapest);
+    }
+    return best;
+}
+```
+
+## Complexity
+
+| Version     | Time  | Extra space |
+|-------------|-------|-------------|
+| Brute force | O(n²) | O(1)        |
+| One pass    | O(n)  | O(1)        |
+
+## Practice
+
+- LeetCode 1, Two Sum (Easy): write the O(n²) version first, then try to beat it.
+- LeetCode 238, Product of Array Except Self (Medium): the problem requires O(n).
+
+Verified: all four languages return 5 on the example and 0 on each edge case, and match the brute force on 3,000+ random inputs.

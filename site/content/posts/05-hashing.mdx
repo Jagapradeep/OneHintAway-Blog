@@ -1,0 +1,245 @@
+---
+number: 5
+title: "Hashing"
+slug: hashing
+pattern: "Hashing"
+section: "Arrays and hashing"
+summary: "\"How many times?\" or \"have I seen this before?\": reach for a hash map."
+worked: { name: "LeetCode 1 Two Sum", url: "https://leetcode.com/problems/two-sum/" }
+practice:
+  - { name: "LeetCode 242 Valid Anagram", url: "https://leetcode.com/problems/valid-anagram/", level: easy, note: "Count the letters in both words." }
+  - { name: "LeetCode 49 Group Anagrams", url: "https://leetcode.com/problems/group-anagrams/", level: medium, note: "What key would put words with the same letters together?" }
+slides: 7
+tags: [hashing, hash-map, arrays]
+published: 2026-10-14
+---
+
+One Hint Away (@onehintaway). A hash map does two jobs: **count** ("how many times?") and **remember** ("have I seen this, and where?").
+
+Worked example: **LeetCode 1, Two Sum** (Easy). Each input has exactly one answer, and you can't use the same element twice.
+
+## Job 1: count
+
+`countLetters("banana")` gives `b → 1, a → 3, n → 2`.
+
+```
+function countLetters(word):
+    counts = empty map
+    for each ch in word:
+        if ch in counts:
+            counts[ch] = counts[ch] + 1
+        else:
+            counts[ch] = 1
+    return counts
+```
+
+## Job 2: remember (Two Sum)
+
+`nums = [3, 8, 4, 6, 1]`, `target = 10` returns `[2, 3]` (4 + 6).
+
+| i | num | need | seen it? | seen after |
+|---|-----|------|----------|------------|
+| 0 | 3 | 7 | no | \{3:0\} |
+| 1 | 8 | 2 | no | \{3:0, 8:1\} |
+| 2 | 4 | 6 | no | \{3:0, 8:1, 4:2\} |
+| 3 | 6 | 4 | yes | return [2, 3] |
+
+```
+function twoSum(nums, target):
+    seen = empty map          // value -> index
+    for i from 0 to length(nums) - 1:
+        need = target - nums[i]
+        if need in seen:
+            return [seen[need], i]
+        seen[nums[i]] = i
+    return none
+```
+
+**The trap:** store the number before checking and it can pair with itself. For `nums = [3, 2, 4]`, `target = 6`, "store, then check" returns `[0, 0]`; "check, then store" returns the correct `[1, 2]`.
+
+## Java
+
+```java
+import java.util.HashMap;
+import java.util.Map;
+
+class Solution {
+    // O(n) time, O(k) space for k different letters
+    public Map<Character, Integer> countLetters(String word) {
+        Map<Character, Integer> counts = new HashMap<>();
+        for (char ch : word.toCharArray()) {
+            if (counts.containsKey(ch)) {
+                counts.put(ch, counts.get(ch) + 1);
+            } else {
+                counts.put(ch, 1);
+            }
+        }
+        return counts;
+    }
+
+    // Brute force: O(n^2) time, O(1) space
+    public int[] twoSumBrute(int[] nums, int target) {
+        int n = nums.length;
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                if (nums[i] + nums[j] == target) {
+                    return new int[]{i, j};
+                }
+            }
+        }
+        return null;
+    }
+
+    // Hash map: O(n) time, O(n) space
+    public int[] twoSum(int[] nums, int target) {
+        Map<Integer, Integer> seen = new HashMap<>();   // value -> index
+        for (int i = 0; i < nums.length; i++) {
+            int need = target - nums[i];
+            if (seen.containsKey(need)) {
+                return new int[]{seen.get(need), i};
+            }
+            seen.put(nums[i], i);
+        }
+        return null;
+    }
+}
+```
+
+## Python
+
+```python
+class Solution:
+    # O(n) time, O(k) space for k different letters
+    def countLetters(self, word: str) -> dict:
+        counts = {}
+        for ch in word:
+            if ch in counts:
+                counts[ch] = counts[ch] + 1
+            else:
+                counts[ch] = 1
+        return counts
+
+    # Brute force: O(n^2) time, O(1) space
+    def twoSumBrute(self, nums: list[int], target: int) -> list[int]:
+        n = len(nums)
+        for i in range(n):
+            for j in range(i + 1, n):
+                if nums[i] + nums[j] == target:
+                    return [i, j]
+        return None
+
+    # Hash map: O(n) time, O(n) space
+    def twoSum(self, nums: list[int], target: int) -> list[int]:
+        seen = {}                      # value -> index
+        for i in range(len(nums)):
+            need = target - nums[i]
+            if need in seen:
+                return [seen[need], i]
+            seen[nums[i]] = i
+        return None
+```
+
+## C++
+
+```cpp
+class Solution {
+public:
+    // O(n) time, O(k) space for k different letters
+    unordered_map<char, int> countLetters(const string& word) {
+        unordered_map<char, int> counts;
+        for (char ch : word) {
+            if (counts.count(ch)) {
+                counts[ch] = counts[ch] + 1;
+            } else {
+                counts[ch] = 1;
+            }
+        }
+        return counts;
+    }
+
+    // Brute force: O(n^2) time, O(1) space
+    vector<int> twoSumBrute(vector<int>& nums, int target) {
+        int n = nums.size();
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                if (nums[i] + nums[j] == target) {
+                    return {i, j};
+                }
+            }
+        }
+        return {};
+    }
+
+    // Hash map: O(n) time, O(n) space
+    vector<int> twoSum(vector<int>& nums, int target) {
+        unordered_map<int, int> seen;   // value -> index
+        for (int i = 0; i < (int)nums.size(); i++) {
+            int need = target - nums[i];
+            if (seen.count(need)) {
+                return {seen[need], i};
+            }
+            seen[nums[i]] = i;
+        }
+        return {};
+    }
+};
+```
+
+## JavaScript
+
+```javascript
+// O(n) time, O(k) space for k different letters
+function countLetters(word) {
+    const counts = new Map();
+    for (const ch of word) {
+        if (counts.has(ch)) {
+            counts.set(ch, counts.get(ch) + 1);
+        } else {
+            counts.set(ch, 1);
+        }
+    }
+    return counts;
+}
+
+// Brute force: O(n^2) time, O(1) space
+function twoSumBrute(nums, target) {
+    for (let i = 0; i < nums.length; i++) {
+        for (let j = i + 1; j < nums.length; j++) {
+            if (nums[i] + nums[j] === target) {
+                return [i, j];
+            }
+        }
+    }
+    return null;
+}
+
+// Hash map: O(n) time, O(n) space
+function twoSum(nums, target) {
+    const seen = new Map();   // value -> index
+    for (let i = 0; i < nums.length; i++) {
+        const need = target - nums[i];
+        if (seen.has(need)) {
+            return [seen.get(need), i];
+        }
+        seen.set(nums[i], i);
+    }
+    return null;
+}
+```
+
+## Complexity
+
+| Function | Time | Extra space |
+|---|---|---|
+| `countLetters` | O(n) | O(k), k = different letters |
+| `twoSumBrute` | O(n²) | O(1) |
+| `twoSum` | O(n) on average | O(n) |
+
+Hash map lookups are O(1) on average, which is where the speed comes from.
+
+## Practice
+
+- LeetCode 242, Valid Anagram (Easy): count the letters in both words.
+- LeetCode 49, Group Anagrams (Medium): what key would put words with the same letters together?
+
+Verified: all four languages return `[2, 3]` on the example and `[1, 2]` on the trap input, count "banana" as b 1, a 3, n 2, and match the brute force on 3,000 random inputs that each have exactly one answer.

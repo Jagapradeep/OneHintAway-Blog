@@ -1,0 +1,204 @@
+---
+number: 6
+title: "Two pointers"
+slug: two-pointers
+pattern: "Two pointers"
+section: "Arrays and hashing"
+summary: "A sorted array and a pair to find: start at both ends and walk inward."
+worked: { name: "LeetCode 167 Two Sum II - Input Array Is Sorted", url: "https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/" }
+practice:
+  - { name: "LeetCode 344 Reverse String", url: "https://leetcode.com/problems/reverse-string/", level: easy, note: "Swap the two ends, then move both pointers in." }
+  - { name: "LeetCode 15 3Sum", url: "https://leetcode.com/problems/3sum/", level: medium, note: "Sort first, fix one number, then run two pointers on the rest." }
+slides: 7
+tags: [two-pointers, arrays]
+published: 2026-10-15
+---
+
+One Hint Away (@onehintaway). Clues: **the array is sorted** and **you need a pair** with some property, such as a target sum.
+
+Worked example: **LeetCode 167, Two Sum II - Input Array Is Sorted** (Medium). The array is sorted in non-decreasing order, there is exactly one answer, and LeetCode wants the two positions **counted from 1**, using only constant extra space.
+
+## The walk
+
+`numbers = [1, 3, 4, 6, 8, 11]`, `target = 10` returns `[3, 4]` (positions of 4 and 6, counted from 1).
+
+| left | right | sum | move |
+|------|-------|-----|------|
+| 1 | 11 | 12 | too big: right in |
+| 1 | 8 | 9 | too small: left in |
+| 3 | 8 | 11 | too big: right in |
+| 3 | 6 | 9 | too small: left in |
+| 4 | 6 | 10 | found it |
+
+5 checks instead of 15 pairs.
+
+**Why skipping is safe:** if `1 + 11` is already too big, 11 plus any number to the right of 1 is bigger still, so 11 can't be in the answer. If `1 + 8` is too small, 1 plus anything left of 8 is smaller still, so 1 can't be in the answer.
+
+## Pseudocode
+
+```
+function twoSum(numbers, target):
+    left = 0
+    right = length(numbers) - 1
+    while left < right:
+        total = numbers[left] + numbers[right]
+        if total == target:
+            return [left + 1, right + 1]
+        else if total < target:
+            left = left + 1
+        else:
+            right = right - 1
+    return none
+```
+
+**The trap:** two pointers only works on sorted input. On `[1, 4, 6, 3]` with target 10, every sum (1+3, 4+3, 6+3) is too small, the pointers meet and nothing is found, even though 4 + 6 = 10. For unsorted input, sort first or use the hash map from post 05.
+
+## Java
+
+```java
+class Solution {
+    // Brute force: O(n^2) time, O(1) space
+    public int[] twoSumBrute(int[] numbers, int target) {
+        for (int i = 0; i < numbers.length; i++) {
+            for (int j = i + 1; j < numbers.length; j++) {
+                if (numbers[i] + numbers[j] == target) {
+                    return new int[]{i + 1, j + 1};
+                }
+            }
+        }
+        return null;
+    }
+
+    // Two pointers: O(n) time, O(1) space
+    public int[] twoSum(int[] numbers, int target) {
+        int left = 0;
+        int right = numbers.length - 1;
+        while (left < right) {
+            int total = numbers[left] + numbers[right];
+            if (total == target) {
+                return new int[]{left + 1, right + 1};
+            } else if (total < target) {
+                left = left + 1;
+            } else {
+                right = right - 1;
+            }
+        }
+        return null;
+    }
+}
+```
+
+## Python
+
+```python
+class Solution:
+    # Brute force: O(n^2) time, O(1) space
+    def twoSumBrute(self, numbers: list[int], target: int) -> list[int]:
+        n = len(numbers)
+        for i in range(n):
+            for j in range(i + 1, n):
+                if numbers[i] + numbers[j] == target:
+                    return [i + 1, j + 1]
+        return None
+
+    # Two pointers: O(n) time, O(1) space
+    def twoSum(self, numbers: list[int], target: int) -> list[int]:
+        left = 0
+        right = len(numbers) - 1
+        while left < right:
+            total = numbers[left] + numbers[right]
+            if total == target:
+                return [left + 1, right + 1]
+            elif total < target:
+                left = left + 1
+            else:
+                right = right - 1
+        return None
+```
+
+## C++
+
+```cpp
+class Solution {
+public:
+    // Brute force: O(n^2) time, O(1) space
+    vector<int> twoSumBrute(vector<int>& numbers, int target) {
+        int n = numbers.size();
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                if (numbers[i] + numbers[j] == target) {
+                    return {i + 1, j + 1};
+                }
+            }
+        }
+        return {};
+    }
+
+    // Two pointers: O(n) time, O(1) space
+    vector<int> twoSum(vector<int>& numbers, int target) {
+        int left = 0;
+        int right = numbers.size() - 1;
+        while (left < right) {
+            int total = numbers[left] + numbers[right];
+            if (total == target) {
+                return {left + 1, right + 1};
+            } else if (total < target) {
+                left = left + 1;
+            } else {
+                right = right - 1;
+            }
+        }
+        return {};
+    }
+};
+```
+
+## JavaScript
+
+```javascript
+// Brute force: O(n^2) time, O(1) space
+function twoSumBrute(numbers, target) {
+    for (let i = 0; i < numbers.length; i++) {
+        for (let j = i + 1; j < numbers.length; j++) {
+            if (numbers[i] + numbers[j] === target) {
+                return [i + 1, j + 1];
+            }
+        }
+    }
+    return null;
+}
+
+// Two pointers: O(n) time, O(1) space
+function twoSum(numbers, target) {
+    let left = 0;
+    let right = numbers.length - 1;
+    while (left < right) {
+        const total = numbers[left] + numbers[right];
+        if (total === target) {
+            return [left + 1, right + 1];
+        } else if (total < target) {
+            left = left + 1;
+        } else {
+            right = right - 1;
+        }
+    }
+    return null;
+}
+```
+
+If you sort in JavaScript yourself, pass a compare function: `nums.sort((a, b) => a - b)`. Plain `sort()` compares numbers as text, so `[10, 9, 1]` becomes `[1, 10, 9]`.
+
+## Complexity
+
+| Version | Time | Extra space |
+|---|---|---|
+| Brute force | O(n²) | O(1) |
+| Hash map (post 05) | O(n) | O(n) |
+| Two pointers | O(n) | O(1) |
+
+## Practice
+
+- LeetCode 344, Reverse String (Easy): swap the two ends, then move both pointers in.
+- LeetCode 15, 3Sum (Medium): sort first, fix one number, then run two pointers on the rest.
+
+Verified: all four languages return `[3, 4]` on the example, find nothing on the unsorted trap input, and match the brute force on 3,000 random sorted inputs that each have exactly one answer.

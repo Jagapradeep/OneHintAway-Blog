@@ -22,6 +22,7 @@ const LANGS = [
 ];
 const LEVELS = ["easy", "medium", "hard"];
 const MAX_FILE = 25 * 1024 * 1024; // Cloudflare Pages per-file limit
+const MAX_VIDEO = 5 * 1000 * 1000; // readers are mostly on phones; add-post compresses well under this
 const pad = (n) => String(n).padStart(2, "0");
 
 const only = process.argv[2] ? Number(process.argv[2]) : null;
@@ -109,6 +110,9 @@ for (const file of files) {
         present.delete(want);
         const full = path.join(dir, want);
         if (fs.existsSync(full) && fs.statSync(full).size > MAX_FILE) err(`${want} is over 25 MB (Cloudflare Pages limit)`);
+        else if (want.endsWith(".mp4") && fs.existsSync(full) && fs.statSync(full).size > MAX_VIDEO) {
+          warn.push(`${want} is over 5 MB; re-add the post with ffmpeg installed so add-post compresses it`);
+        }
       }
       const extra = [...present].filter((f) => /^slide-/.test(f));
       if (extra.length) err(`slide files not counted in "slides": ${extra.join(", ")}`);

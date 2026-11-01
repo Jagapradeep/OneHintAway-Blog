@@ -58,7 +58,11 @@ if (fs.existsSync(dest)) {
   for (const f of fs.readdirSync(dest)) if (/^slide-/.test(f)) fs.rmSync(path.join(dest, f));
 }
 fs.mkdirSync(dest, { recursive: true });
-for (const f of found) fs.copyFileSync(f, path.join(dest, path.basename(f)));
+for (const f of found) {
+  const out = path.join(dest, path.basename(f));
+  if (f.endsWith(".mp4")) addVideo(f, out);
+  else fs.copyFileSync(f, out);
+}
 if (temp) fs.rmSync(temp, { recursive: true, force: true });
 
 // 2. The post itself. An older file for the same number under another slug is removed.
@@ -76,3 +80,38 @@ console.log(`Added content/posts/${name} and ${found.length} slide file(s) in pu
 execFileSync(process.execPath, ["--disable-warning=MODULE_TYPELESS_PACKAGE_JSON", path.join(ROOT, "scripts", "check-posts.mjs"), String(fm.number)], {
   stdio: "inherit",
 });
+
+// Videos play muted and looping, so drop audio and re-encode for size, keeping resolution and fps.
+// CRF 20 + tune animation keeps text edges clean when zoomed (CRF 28 showed ghosting around text).
+// The original (in the zip or folder) is never changed; if ffmpeg is missing or the result fails
+// a check, the original is copied as-is.
+function probe(file) {
+  const out = execFileSync("ffprobe", ["-v", "error", "-select_streams", "v:0",
+    "-show_entries", "stream=width,height,r_frame_rate:format=duration", "-of", "json", file]);
+  const j = JSON.parse(out);
+  const s = j.streams[0];
+  return { shape: `${s.width}x${s.height}@${s.r_frame_rate}`, dur: Number(j.format.duration) };
+}
+
+function addVideo(src, out) {
+  const name = path.basename(out);
+  const tmp = out + ".tmp.mp4";
+  try {
+    execFileSync("ffmpeg", ["-y", "-v", "error", "-i", src, "-c:v", "libx264", "-preset", "slow",
+      "-tune", "animation", "-crf", "20", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", tmp]);
+    const a = probe(src);
+    const b = probe(tmp);
+    const before = fs.statSync(src).size;
+    const after = fs.statSync(tmp).size;
+    if (a.shape === b.shape && Math.abs(a.dur - b.dur) <= 0.1 && after < before) {
+      fs.renameSync(tmp, out);
+      console.log(`${name}: compressed ${(before / 1e6).toFixed(2)} MB -> ${(after / 1e6).toFixed(2)} MB`);
+      return;
+    }
+    console.warn(`${name}: compressed copy failed a check (${a.shape} ${a.dur}s vs ${b.shape} ${b.dur}s, ${before} vs ${after} bytes); keeping the original.`);
+  } catch {
+    console.warn(`${name}: ffmpeg not found or failed (winget install Gyan.FFmpeg); copying the original as-is.`);
+  }
+  fs.rmSync(tmp, { force: true });
+  fs.copyFileSync(src, out);
+}

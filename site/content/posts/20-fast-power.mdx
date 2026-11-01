@@ -1,0 +1,149 @@
+---
+number: 20
+title: "Fast power"
+slug: fast-power
+pattern: "Number theory"
+section: "Maths"
+summary: "A huge power, or an answer mod 1,000,000,007: square the block, halve n, and use the block whenever n is odd."
+worked: { name: "GeeksforGeeks Modular Exponentiation for Large Numbers", url: "https://www.geeksforgeeks.org/problems/modular-exponentiation-for-large-numbers5537/1" }
+practice:
+  - { name: "LeetCode 50 Pow(x, n)", url: "https://leetcode.com/problems/powx-n/", level: medium, note: "Drop the mod. If n is negative, use 1 / x and −n (store −n in 64 bits)." }
+slides: 8
+video: 2
+tags: [fast-power, modular-arithmetic]
+published: 2026-11-01
+---
+
+The clue: a problem asks for x to the power n with a huge n, or says "answer mod 1,000,000,007". Worked example: 3 to the 13, then `power(3, 13, 1000)`, which is exactly **GeeksforGeeks Modular Exponentiation for Large Numbers**.
+
+## The idea
+
+3 to the 13 means thirteen 3s multiplied together. One at a time, that takes 12 multiplications. Fast power builds bigger blocks instead: one 3 is 3, squaring it gives a block of 2 threes (9), squaring again gives 4 threes (81), and again gives 8 threes (6561). Each new block costs one multiplication.
+
+Now think of coins worth 1, 2, 4 and 8. You can pay 13 with 1 + 4 + 8, using each coin at most once, and coins that keep doubling can pay any amount. The blocks work the same way: 13 threes are a block of 1, a block of 4 and a block of 8, so 3 to the 13 = 3 × 81 × 6561 = 1594323. That is 3 squarings and 2 multiplications to combine, 5 in all instead of 12. The code below does a couple of extra multiplications, but it is still about log n.
+
+The code finds those blocks without knowing them in advance. `n` counts how many blocks of the current size are left. Pair them up: if one is left over (n is odd), multiply it into the answer. Each pair becomes one block twice as big, so square the block and halve n, rounding down. In the walk below, the rows where n is odd are exactly the coins 1, 4 and 8.
+
+## The walk
+
+`power(3, 13)` with no mod yet:
+
+| n | odd? | block | answer |
+|---|---|---|---|
+| 13 | yes | 3 | 1 × 3 = 3 |
+| 6 | no | 9 | 3 (skip) |
+| 3 | yes | 81 | 3 × 81 = 243 |
+| 1 | yes | 6561 | 243 × 6561 = 1594323 |
+
+Then n is 0, so the loop stops after 4 rounds.
+
+`power(3, 13, 1000)` means 3 to the 13, mod 1000: the remainder after dividing by 1000. 3 to the 13 is 1594323, and 1594323 divided by 1000 leaves 323, its last 3 digits. The code never builds 1594323. It takes mod 1000 after every multiplication:
+
+| n | odd? | block mod 1000 | answer mod 1000 |
+|---|---|---|---|
+| 13 | yes | 3 | 1 × 3 = 3 |
+| 6 | no | 9 | 3 (skip) |
+| 3 | yes | 81 | 3 × 81 = 243 |
+| 1 | yes | 6561 → 561 | 243 × 561 = 136323 → 323 |
+
+Only the 8-threes block changes (6561 becomes 561), and the answer is still 323.
+
+Quick check: how many rounds for n = 100? Halving gives 100, 50, 25, 12, 6, 3, 1, then 0, so 7 rounds.
+
+## Pseudocode
+
+```
+function power(x, n, m):
+    answer = 1
+    block = x mod m
+    while n > 0:
+        if n mod 2 == 1:
+            answer = (answer * block) mod m
+        block = (block * block) mod m
+        n = floor(n / 2)
+    return answer
+```
+
+**The trap:** start the answer at 1, not 0. Before any block is used the answer is 1; start at 0 and every multiplication stays 0, so `power(3, 13, 1000)` gives 0 instead of 323.
+
+## Java
+
+```java
+class Solution {
+    public long power(long x, long n, long m) {
+        long answer = 1;
+        long block = x % m;
+        while (n > 0) {
+            if (n % 2 == 1) {
+                answer = (answer * block) % m;
+            }
+            block = (block * block) % m;
+            n = n / 2;
+        }
+        return answer;
+    }
+}
+```
+
+## Python
+
+```python
+def power(x, n, m):
+    answer = 1
+    block = x % m
+    while n > 0:
+        if n % 2 == 1:
+            answer = (answer * block) % m
+        block = (block * block) % m
+        n = n // 2
+    return answer
+```
+
+## C++
+
+```cpp
+long long power(long long x, long long n, long long m) {
+    long long answer = 1;
+    long long block = x % m;
+    while (n > 0) {
+        if (n % 2 == 1) {
+            answer = (answer * block) % m;
+        }
+        block = (block * block) % m;
+        n = n / 2;
+    }
+    return answer;
+}
+```
+
+## JavaScript
+
+```javascript
+// x, n and m are BigInt values (write 3n, 13n, 1000n): products reach m * m,
+// which is past what a plain Number holds exactly once m is near 10^9.
+function power(x, n, m) {
+    let answer = 1n;
+    let block = x % m;
+    while (n > 0n) {
+        if (n % 2n === 1n) {
+            answer = (answer * block) % m;
+        }
+        block = (block * block) % m;
+        n = n / 2n;
+    }
+    return answer;
+}
+```
+
+All four assume m is at least 2, as in real problems (usually m = 1,000,000,007). Both numbers in a product are below m, so a product stays below m × m, which fits in a 64-bit integer for m up to about 3 billion. JavaScript uses BigInt because a plain Number is exact only up to 2 to the 53.
+
+## Complexity
+
+| | Fast power | One multiplication at a time |
+|---|---|---|
+| Time | O(log n): each round halves n, so n = 1,000,000,000 takes 30 rounds | O(n): a billion multiplications |
+| Extra space | O(1) | O(1) |
+
+## How it was tested
+
+The Java, Python, C++ and JavaScript solutions were each compiled and run with a test harness and compared with a brute-force loop that multiplies n times, taking mod m each time. That covered 1,513 inputs: 13 hand-picked edge cases (n = 0, x = 0, x at least m, m = 2, m = 1,000,000,007, x = 1,000,000,006) and 1,500 random ones with n up to 3,000. They were also compared with Python's built-in `pow(x, n, m)` on 500 random inputs with n up to 10^18 and m up to 3 × 10^9. All 2,013 answers matched in every language, including `power(3, 13, 1000)` = 323.

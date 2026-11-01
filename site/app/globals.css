@@ -456,12 +456,20 @@ a:hover { color: var(--gold); }
 /* ---------- Post page ---------- */
 .post-kicker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 8px 0 12px; }
 .post-kicker-section { font-size: 0.9rem; font-weight: 600; color: var(--muted); }
+/* Post info as a row of quiet chips, each with a steel line icon (as on post 19's first slide). Chips wrap on their own,
+   so every line starts on the page margin. */
 .post-meta {
-  display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; margin: 14px 0 0; padding: 0;
-  font-family: var(--mono); font-size: 0.8rem; color: var(--muted);
+  display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 18px 0 0; padding: 0;
+  font-size: 0.82rem; font-weight: 500; color: var(--text-2);
 }
-.post-meta li { display: inline-flex; align-items: center; gap: 18px; }
-.post-meta li + li::before { content: ""; width: 4px; height: 4px; margin-left: -11px; margin-right: -7px; border-radius: 50%; background: var(--border-strong); }
+.post-meta li {
+  display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px 5px 10px;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--card-top); line-height: 1.3;
+}
+.post-meta-icon {
+  flex: none; width: 15px; height: 15px; fill: none; stroke: var(--steel);
+  stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
 .post-kicker-num { font-family: var(--mono); font-weight: 600; color: var(--gold); letter-spacing: 0.1em; }
 .post-summary { font-size: clamp(1.05rem, 1rem + 0.4vw, 1.2rem); color: var(--text-2); }
 .post-body { color: var(--text-2); }
@@ -606,12 +614,24 @@ pre.shiki:has(> code.language-pseudo)::before {
 /* Practice */
 .practice ul { list-style: none; padding: 0; display: grid; gap: 10px; }
 .practice li {
-  padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 12px;
+  position: relative; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 12px;
   background: linear-gradient(180deg, var(--card-top), var(--card-bottom));
 }
-.practice a { font-weight: 700; }
+/* Name and tag share a row; when the tag wraps it starts on the card's left edge. */
+.practice-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.practice a { font-weight: 700; color: var(--text); text-decoration: none; transition: color 0.15s; }
+/* The whole card is the click target. */
+.practice a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.practice-arrow {
+  display: inline-block; margin-left: 6px; font-weight: 400; color: var(--muted);
+  transition: color 0.15s, transform 0.15s;
+}
+.practice li:hover a, .practice a:focus-visible { color: var(--gold-light); }
+.practice li:hover .practice-arrow { color: var(--gold); transform: translate(2px, -2px); }
+.practice a:focus-visible { outline: none; }
+.practice li:has(a:focus-visible) { outline: 2px solid var(--gold); outline-offset: 2px; }
 .practice .level {
-  margin-left: 10px; padding: 1px 8px; border-radius: 999px; border: 1.5px solid var(--border-strong);
+  padding: 1px 8px; border-radius: 999px; border: 1.5px solid var(--border-strong);
   font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
   white-space: nowrap;
 }
@@ -621,7 +641,7 @@ pre.shiki:has(> code.language-pseudo)::before {
 .practice-note { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
 .practice-intro { margin: -4px 0 0; color: var(--muted); }
 .practice li { transition: border-color 0.15s; }
-.practice li:hover { border-color: var(--border-strong); }
+.practice li:hover { border-color: var(--accent-border); }
 
 /* Previous / next */
 .post-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 48px; }
@@ -644,6 +664,8 @@ pre.shiki:has(> code.language-pseudo)::before {
 
   .patterns-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 20px; }
   .pattern-section { scroll-margin-top: calc(var(--header-h) + 76px); }
+  /* No screen-tall last section here: it left a big empty gap at the end of the page. */
+  .patterns-content > .pattern-section:last-child { min-height: 0; }
   .pattern-nav {
     top: var(--header-h); z-index: 40; max-height: none; flex-direction: row; align-items: center;
     margin: 0 calc(-1 * var(--gutter)); padding: 10px var(--gutter);
@@ -695,6 +717,7 @@ pre.shiki:has(> code.language-pseudo)::before {
 @media (prefers-reduced-motion: reduce) {
   .post-card, .roadmap-tile.is-live, .post-nav a { transition: none; }
   .post-card:hover, .roadmap-tile.is-live:hover, .post-nav a:hover { transform: none; }
+  .practice li:hover .practice-arrow { transform: none; }
   .art-window, .art-node, .art-edge.art-hot, .art-sum { animation: none; }
 }
 

@@ -30,15 +30,19 @@ export function PatternNav({ items, total }: { items: Item[]; total: number }) {
         const el = document.getElementById(id);
         if (el && el.getBoundingClientRect().top - offset <= 4) current = id;
       }
+      // On phones the last few patterns can't scroll up to the top, so at the very bottom
+      // of the page the last pattern is the one being read.
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      if (atBottom) current = ids[ids.length - 1];
       setActive(current);
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(spy);
     };
+    // Release the spy without re-checking: the clicked pattern stays highlighted even if it
+    // couldn't reach the top (near the page end). The next real scroll updates it.
     const unlock = () => {
-      if (!lockRef.current) return;
       lockRef.current = false;
-      onScroll();
     };
 
     // Arrived with #pattern in the address: highlight it.

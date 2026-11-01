@@ -11,6 +11,21 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const formatDate = (iso: string) =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
+// Small line icons for the post info chips (decorative: the chip text says it all).
+const metaIcons = {
+  date: <><rect x="3" y="4.5" width="14" height="12" rx="2" /><path d="M3 8.5h14M7 2.5v4M13 2.5v4" /></>,
+  slides: <><path d="M10 3 17 7l-7 4-7-4 7-4Z" /><path d="m3 10.5 7 4 7-4" /></>,
+  code: <path d="M7 6 3 10l4 4M13 6l4 4-4 4" />,
+  practice: <><circle cx="10" cy="10" r="7" /><circle cx="10" cy="10" r="3.5" /><circle cx="10" cy="10" r="0.6" /></>,
+};
+function MetaIcon({ name }: { name: keyof typeof metaIcons }) {
+  return (
+    <svg className="post-meta-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      {metaIcons[name]}
+    </svg>
+  );
+}
+
 // One HTML page per post, built ahead of time. Unknown slugs are a 404.
 export function generateStaticParams() {
   return getAllPosts().map((p) => ({ slug: p.slug }));
@@ -44,12 +59,22 @@ export default async function PostPage({ params }: Props) {
         <p className="post-summary">{post.summary}</p>
         <ul className="post-meta" aria-label="About this lesson">
           <li>
+            <MetaIcon name="date" />
             <time dateTime={post.published}>{formatDate(post.published)}</time>
           </li>
-          <li>{post.slides} slides</li>
-          {post.hasCode && <li>Java · Python · C++ · JavaScript</li>}
+          <li>
+            <MetaIcon name="slides" />
+            {post.slides} slides
+          </li>
+          {post.hasCode && (
+            <li>
+              <MetaIcon name="code" />
+              Java · Python · C++ · JavaScript
+            </li>
+          )}
           {practiceCount > 0 && (
             <li>
+              <MetaIcon name="practice" />
               {practiceCount} practice problem{practiceCount > 1 ? "s" : ""}
             </li>
           )}
@@ -72,18 +97,24 @@ export default async function PostPage({ params }: Props) {
           <ul>
             {post.worked && (
               <li>
-                <a href={post.worked.url} target="_blank" rel="noopener">
-                  {post.worked.name}
-                </a>{" "}
-                <span className="level">worked example</span>
+                <div className="practice-head">
+                  <a href={post.worked.url} target="_blank" rel="noopener">
+                    {post.worked.name}
+                    <span className="practice-arrow" aria-hidden="true">↗</span>
+                  </a>
+                  <span className="level">worked example</span>
+                </div>
               </li>
             )}
             {post.practice.map((p) => (
               <li key={p.url}>
-                <a href={p.url} target="_blank" rel="noopener">
-                  {p.name}
-                </a>
-                {p.level && <span className={`level level-${p.level}`}>{p.level}</span>}
+                <div className="practice-head">
+                  <a href={p.url} target="_blank" rel="noopener">
+                    {p.name}
+                    <span className="practice-arrow" aria-hidden="true">↗</span>
+                  </a>
+                  {p.level && <span className={`level level-${p.level}`}>{p.level}</span>}
+                </div>
                 {p.note && <p className="practice-note">{p.note}</p>}
               </li>
             ))}

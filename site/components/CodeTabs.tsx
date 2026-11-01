@@ -8,6 +8,8 @@ export const LANG_LABELS: Record<string, string> = {
   cpp: "C++",
   javascript: "JavaScript",
 };
+// Shorter tab names for phones, so the tabs and the Copy button fit on one row.
+const SHORT_LABELS: Record<string, string> = { javascript: "JS" };
 const ORDER = ["java", "python", "cpp", "javascript"];
 const STORAGE_KEY = "ohw.lang";
 const CHANGE_EVENT = "ohw-lang-change";
@@ -61,20 +63,46 @@ export function CodeTabs({ children, langs }: { children: ReactNode; langs?: str
 
   return (
     <div className="code-tabs" ref={boxRef}>
-      <div className="code-tabs-bar" role="tablist">
-        {available.map((l) => (
-          <button
-            key={l}
-            role="tab"
-            aria-selected={l === active}
-            className={l === active ? "active" : undefined}
-            onClick={() => writeLang(l)}
-          >
-            {LANG_LABELS[l] ?? l}
-          </button>
-        ))}
-        <button className="code-copy" onClick={copy} aria-label={`Copy ${LANG_LABELS[active]} code`}>
-          {copied ? "Copied" : "Copy"}
+      {/* Tabs and Copy share one row. The tabs scroll sideways if they ever run out of room,
+          and on phones Copy shrinks to an icon, so it never wraps onto a line of its own. */}
+      <div className="code-tabs-bar">
+        <div className="code-tabs-list" role="tablist">
+          {available.map((l) => (
+            <button
+              key={l}
+              role="tab"
+              aria-selected={l === active}
+              className={l === active ? "active" : undefined}
+              onClick={() => writeLang(l)}
+              aria-label={SHORT_LABELS[l] ? LANG_LABELS[l] : undefined}
+            >
+              {SHORT_LABELS[l] ? (
+                <>
+                  <span className="tab-full">{LANG_LABELS[l]}</span>
+                  <span className="tab-short">{SHORT_LABELS[l]}</span>
+                </>
+              ) : (
+                (LANG_LABELS[l] ?? l)
+              )}
+            </button>
+          ))}
+        </div>
+        <button
+          className={copied ? "code-copy is-copied" : "code-copy"}
+          onClick={copy}
+          aria-label={copied ? "Copied" : `Copy ${LANG_LABELS[active]} code`}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            {copied ? (
+              <path d="M5 12.5 10 17.5 19 7" />
+            ) : (
+              <>
+                <rect x="8" y="8" width="12" height="12" rx="2.5" />
+                <path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" />
+              </>
+            )}
+          </svg>
+          <span className="code-copy-label">{copied ? "Copied" : "Copy"}</span>
         </button>
       </div>
       <ActiveLang.Provider value={active}>{children}</ActiveLang.Provider>

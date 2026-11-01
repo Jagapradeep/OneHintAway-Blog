@@ -492,12 +492,16 @@ code, pre, kbd {
 /* Long inline code in running text may wrap; in tables it never does (the table scrolls instead). */
 p > code, li > code { overflow-wrap: anywhere; }
 pre {
-  overflow-x: auto; margin: 16px 0; padding: 16px 18px;
+  overflow-x: auto; margin: 16px 0; padding: 16px 0 16px 18px;
   background: var(--code-bg);
   border: 1.5px solid var(--border); border-radius: 12px;
   font-size: 0.92rem; line-height: 1.7; font-weight: 500; color: var(--text);
   tab-size: 4;
 }
+
+/* The right padding lives on the code itself (not on pre), so when a long line scrolls
+   sideways there is still breathing room after its last character. */
+pre > code { display: inline-block; min-width: 100%; padding-right: 18px; }
 
 /* Tables: a card that scrolls sideways on small screens rather than squeezing cells. */
 .post-body table, .prose table {
@@ -528,7 +532,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
   background: var(--code-bg);
 }
 .code-tabs-bar {
-  display: flex; flex-wrap: wrap; gap: 4px; padding: 8px;
+  display: flex; align-items: center; gap: 8px; padding: 8px;
   border-bottom: 1.5px solid var(--border); background: linear-gradient(180deg, var(--card-top), var(--card-bottom));
 }
 .code-tabs-bar button {
@@ -537,8 +541,27 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
 }
 .code-tabs-bar button:hover { color: var(--text); }
 .code-tabs-bar button.active { color: var(--steel-light); border-color: var(--tab-active-border); background: var(--tab-active-bg); }
-.code-tabs-bar .code-copy { margin-left: auto; color: var(--gold-light); border-color: var(--copy-border); }
-.code-tabs-bar .code-copy:hover { border-color: var(--accent-border); }
+.code-tabs-list {
+  display: flex; gap: 4px; flex: 1; min-width: 0;
+  overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain;
+}
+.code-tabs-list::-webkit-scrollbar { display: none; }
+.code-tabs-list button { flex: none; white-space: nowrap; }
+.code-tabs-list .tab-short { display: none; }
+/* Copy: gold pill outline around icon + label. The same outline stays on "Copied", and the
+   button keeps one width (sized for "Copied") so nothing jumps when it changes. */
+.code-tabs-bar .code-copy {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-width: 7.6em; color: var(--gold-light); border-color: var(--copy-border);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.code-copy svg {
+  width: 15px; height: 15px; fill: none; stroke: currentColor;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+.code-tabs-bar .code-copy:hover, .code-tabs-bar .code-copy.is-copied { border-color: var(--accent-border); }
+.code-tabs-bar .code-copy:hover { color: var(--gold-light); }
+.code-tabs-bar .code-copy:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 .code-tabs [role="tabpanel"] pre { margin: 0; border: 0; border-radius: 0; background: none; }
 /* Shiki colours each token inline: VS Code Dark+, with Light+ in --shiki-light for the light
    theme. Keep the site's own code background in both. */
@@ -558,12 +581,17 @@ pre.shiki { background: var(--code-bg) !important; }
   color: var(--line-number); font-style: normal; user-select: none;
 }
 
-/* Pseudocode blocks get the slides' "PSEUDOCODE · any language" header. */
-pre.shiki:has(> code.language-pseudo)::before {
-  content: "Pseudocode  ·  any language";
-  display: block; margin: -16px -18px 14px; padding: 9px 18px;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--code-label);
+/* Pseudocode blocks: the slides' "PSEUDOCODE · any language" header sits above the code,
+   outside the sideways scroll (see mdx-components.tsx). */
+.pseudo-block {
+  margin: 16px 0; overflow: hidden; border: 1.5px solid var(--border); border-radius: 12px;
+  background: var(--code-bg);
+}
+.pseudo-block pre { margin: 0; border: 0; border-radius: 0; }
+.pseudo-head {
+  padding: 9px 18px; border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--code-label); white-space: pre;
 }
 
 /* Slide gallery: one slide per view, swipe or arrow keys.
@@ -701,12 +729,20 @@ pre.shiki:has(> code.language-pseudo)::before {
   .site-nav { margin-left: -10px; overflow-x: auto; scrollbar-width: none; }
   .site-nav a { padding: 6px 10px; }
   .site-main { padding-top: 16px; }
-  pre { font-size: 0.84rem; padding: 14px; }
-  pre.shiki:has(> code.language-pseudo)::before { margin: -14px -14px 12px; padding: 8px 14px; }
+  pre { font-size: 0.84rem; padding: 14px 0 14px 14px; }
+  pre > code { padding-right: 14px; }
+  .pseudo-head { padding: 8px 14px; }
   .shiki .line::before { margin-right: 1.1em; }
   td { font-size: 0.88rem; }
   th, td { padding: 7px 10px; }
+  .code-tabs-bar { gap: 6px; padding: 6px; }
+  .code-tabs-list { gap: 2px; }
   .code-tabs-bar button { padding: 5px 9px; font-size: 0.8rem; }
+  /* Phones: keep the label inside the outline, drop the icon to save room. */
+  .code-tabs-bar .code-copy { min-width: 0; width: 5.6em; padding: 5px 0; }
+  .code-copy svg { display: none; }
+  .code-tabs-list .tab-full { display: none; }
+  .code-tabs-list .tab-short { display: inline; }
 }
 @media (max-width: 520px) {
   .post-nav { grid-template-columns: 1fr; }
@@ -716,6 +752,8 @@ pre.shiki:has(> code.language-pseudo)::before {
   :root { --gutter: 12px; }
   .brand { letter-spacing: 0.12em; }
   .gallery-controls { gap: 10px; }
+  .code-tabs-bar button { padding: 5px 7px; }
+  .code-tabs-bar .code-copy { padding: 5px 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

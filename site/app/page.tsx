@@ -19,7 +19,7 @@ const STEPS = [
     text: "Pseudocode first, then tested code in Java, Python, C++ and JavaScript.",
   },
   {
-    title: "Practise",
+    title: "Practice",
     text: "Hand-picked LeetCode problems, easiest first, each with a one-line hint.",
   },
 ];

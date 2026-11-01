@@ -38,6 +38,8 @@
   --easy-border: #3e5a74;
   --medium-border: #6b5728;
   --hard-bg: #2a2110;
+  /* The yellow square in the logo (same as the profile icon). */
+  --brand-yellow: #ffd447;
   --line-number: #4d535e;
   --row-alt: rgba(255, 255, 255, 0.025);
   --quote-bg: linear-gradient(180deg, #1a1c21, #141519);
@@ -94,6 +96,7 @@
   --easy-border: #a9c5df;
   --medium-border: #d9bf84;
   --hard-bg: #fff1cc;
+  --brand-yellow: #f2b705;
   --line-number: #a3a9b3;
   --row-alt: #f8f9fb;
   --quote-bg: #fffaeb;
@@ -188,7 +191,8 @@ a:hover { color: var(--gold); }
   color: var(--text); text-decoration: none;
 }
 .brand:hover { color: var(--text); }
-.brand-mark { width: 18px; height: 18px; border-radius: 5px; background: var(--gold-gradient); box-shadow: 0 0 12px rgba(244, 207, 110, 0.35); }
+.brand-mark { flex: none; width: 20px; height: 20px; color: var(--text); }
+.brand-mark-hint { fill: var(--brand-yellow); }
 .site-nav { display: flex; gap: 4px; min-width: 0; }
 .site-nav a {
   padding: 6px 12px; border-radius: 999px; text-decoration: none; border: 1.5px solid transparent;

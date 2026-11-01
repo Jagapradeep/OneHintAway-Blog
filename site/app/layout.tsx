@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Geist_Mono, Manrope, Sora } from "next/font/google";
 import { BackButton } from "@/components/BackButton";
+import { BrandMark } from "@/components/BrandMark";
 import { NavLinks } from "@/components/NavLinks";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { INSTAGRAM_URL } from "@/lib/site";
@@ -45,7 +46,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <div className="site-header-wrap">
           <header className="site-header">
             <Link href="/" className="brand" aria-label="One Hint Away, home">
-              <span className="brand-mark" aria-hidden="true" />
+              <BrandMark />
               ONE HINT AWAY
             </Link>
             <NavLinks />
@@ -60,7 +61,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <footer className="site-footer">
             <div className="footer-brand">
               <Link href="/" className="brand">
-                <span className="brand-mark" aria-hidden="true" />
+                <BrandMark />
                 ONE HINT AWAY
               </Link>
               <p>Learn data structures and algorithms one pattern at a time. Free, with code in four languages.</p>

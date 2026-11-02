@@ -1,0 +1,109 @@
+---
+number: 21
+title: "Recursion"
+slug: recursion
+pattern: "Recursion"
+section: "Recursion and sorting"
+summary: "A problem that holds a smaller copy of itself: answer the tiny case directly, call yourself on a smaller input, and let the call stack wait."
+practice:
+  - { name: "LeetCode 509 Fibonacci Number", url: "https://leetcode.com/problems/fibonacci-number/", level: easy, note: "fib(n - 1) + fib(n - 2). Base cases: fib(0) = 0, fib(1) = 1." }
+  - { name: "LeetCode 779 K-th Symbol in Grammar", url: "https://leetcode.com/problems/k-th-symbol-in-grammar/", level: medium, note: "Position k (from 1) comes from position (k + 1) / 2, rounded down, one row up. Even k flips it." }
+slides: 8
+video: 2
+tags: [recursion, call-stack]
+published: 2026-11-02
+---
+
+A problem that holds a smaller copy of itself, like `factorial(4) = 4 × factorial(3)`, is a job for recursion. Worked example: **factorial(4) = 24**, followed call by call.
+
+## The idea
+
+Picture working out factorial(4) with sticky notes. You can't finish `4 × ?` yet, so you write it on a note and put it on a pile. Then `3 × ?`, `2 × ?` and `1 × ?` go on top. The top note, `factorial(0) = 1`, is the **base case**: an answer you know without asking. From there you pay back: take the top note off, fill in its `?` with the answer you just got, and pass the result to the note below.
+
+That pile is the **call stack**. Each note is a call to `factorial` that is waiting for a smaller call to return. The last call in is the first one out, which is why the answers come back in reverse order: 1, 1, 2, 6, 24.
+
+Every recursion needs two things: a base case it answers straight away, and a smaller call that moves closer to that base case each time. Here `n - 1` brings n down to 0.
+
+## The walk
+
+The stack at its tallest, top first. Read the RETURNS column from the bottom up to see the order the answers arrive.
+
+| Call | Waits for | Returns |
+| --- | --- | --- |
+| factorial(0) | nothing (base case) | 1 |
+| factorial(1) | 1 × factorial(0) | 1 × 1 = 1 |
+| factorial(2) | 2 × factorial(1) | 2 × 1 = 2 |
+| factorial(3) | 3 × factorial(2) | 3 × 2 = 6 |
+| factorial(4) | 4 × factorial(3) | 4 × 6 = 24 |
+
+For factorial(4) the stack holds 5 calls at once. Quick check: for factorial(6), how many calls sit on the stack at its tallest? Answer: 7, factorial(6) down to factorial(0).
+
+## Pseudocode
+
+```
+function factorial(n):
+    if n == 0:
+        return 1  // base case
+    return n * factorial(n - 1)
+```
+
+**The trap:** a base case the input can skip. With `if n == 1` as the base case, factorial(4) still returns 24, but factorial(0) calls factorial(-1), factorial(-2) and so on until the stack runs out of room and it ends in a stack overflow. With `if n == 0`, factorial(0) returns 1 straight away.
+
+## Java
+
+```java
+class Solution {
+    public long factorial(int n) {
+        if (n == 0) {
+            return 1;            // base case
+        }
+        return n * factorial(n - 1);
+    }
+}
+```
+
+## Python
+
+```python
+class Solution:
+    def factorial(self, n: int) -> int:
+        if n == 0:
+            return 1             # base case
+        return n * self.factorial(n - 1)
+```
+
+## C++
+
+```cpp
+class Solution {
+public:
+    long long factorial(int n) {
+        if (n == 0) {
+            return 1;            // base case
+        }
+        return n * factorial(n - 1);
+    }
+};
+```
+
+## JavaScript
+
+```javascript
+function factorial(n) {
+    if (n === 0n) {
+        return 1n;               // base case (BigInt: exact past 2^53)
+    }
+    return n * factorial(n - 1n);
+}
+```
+
+Java `long` and C++ `long long` hold factorial(n) exactly up to n = 20; factorial(21) overflows 64 bits. Python integers have no limit. The JavaScript version uses BigInt, so call it as `factorial(4n)`.
+
+## Complexity
+
+- Time: O(n). There are n + 1 calls and n multiplies.
+- Extra space: O(n). Up to n + 1 calls wait on the call stack at once. A for loop multiplying 1 × 2 × … × n keeps only one running total, so it needs O(1).
+
+## How it was tested
+
+The Java, Python, C++ and JavaScript solutions were run on 1,021 inputs (every n from 0 to 20, plus 1,000 random n in that range) and every output matched a loop-based brute force. The call order and the returns 1, 1, 2, 6, 24 came from an instrumented run of factorial(4), and a second instrumented run of factorial(6) peaked at 7 calls on the stack. The trap was run in all four languages: factorial(4) gave 24 each time, and factorial(0) never stopped until it hit the stack limit (StackOverflowError in Java, RecursionError in Python, RangeError in JavaScript, a segmentation fault in C++).

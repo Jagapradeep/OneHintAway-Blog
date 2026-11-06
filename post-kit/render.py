@@ -54,18 +54,42 @@ def plain_page(slide_html):
     return f"<!doctype html><html><head><meta charset='utf-8'><style>{FONT_CSS}body{{margin:0}}</style></head><body>{slide_html}</body></html>"
 
 
+def weekdays(start, n):
+    import datetime as dt
+    d, out = dt.date.fromisoformat(start), []
+    while len(out) < n:
+        if d.weekday() < 5:
+            out.append(d.isoformat())
+        d += dt.timedelta(days=1)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("folder")
-    ap.add_argument("--out")
+    ap.add_argument("folders", nargs="+", help="one or more posts/NN-slug folders")
+    ap.add_argument("--out", help="output folder (default ./build)")
     ap.add_argument("--png", choices=["review", "final"])
     ap.add_argument("--video", choices=["draft", "final"])
+    ap.add_argument("--test", action="store_true", help="run the four-language tests against ref.py")
+    ap.add_argument("--export", action="store_true", help="final PNGs + MP4 + MDX + caption + alt text, zipped per post")
+    ap.add_argument("--start", help="posting date of the first post (YYYY-MM-DD); later posts take the next weekdays")
     ap.add_argument("--force", action="store_true", help="render even if validation fails")
     a = ap.parse_args()
-    folder = Path(a.folder)
+    if a.export:
+        a.png, a.video, a.test = "final", "final", True
+    folders = sorted(Path(f) for f in a.folders)
+    import datetime as dt
+    dates = weekdays(a.start or dt.date.today().isoformat(), len(folders))
+    failed = [f.name for f, d in zip(folders, dates) if not one(f, a, d)]
+    if len(folders) > 1:
+        print(f"\nDONE {len(folders) - len(failed)}/{len(folders)} posts" + (f"; FAILED: {', '.join(failed)}" if failed else ""))
+    sys.exit(1 if failed else 0)
+
+
+def one(folder, a, published):
+    from kit import blog as B
     post, ns = P.load(folder)
     errors = []
-    # video steps may come from ref.py
     for s in post["slides"]:
         if s["type"] == "video" and isinstance(s["video"].get("steps"), str):
             s["video"]["steps"] = eval(s["video"]["steps"], dict(ns))
@@ -78,19 +102,29 @@ def main():
     tl = V.timeline(vslide["video"]) if vslide else None
     vdur = tl["duration"] if tl else 0
     post["_read_time"] = f"About {max(1, math.ceil(((len(seq) - (1 if vslide else 0)) * 10 + vdur) / 60))} min"
+    out_root = Path(a.out or Path.cwd() / "build")
+    out = out_root / folder.name
+    tested = 0
+    if a.test:
+        tested, terr = B.run_tests(folder, ns, out / "test")
+        errors += [f"tests: {e}" for e in terr]
+        if not terr:
+            print(f"{folder.name}: tests passed in Java, Python, C++ and JavaScript on {tested:,} inputs")
+    if a.export:
+        if "caption" not in post or "blog" not in post or not (folder / "blog.md").exists():
+            errors.append("export needs 'caption' and 'blog' in post.json and a blog.md")
+    print(f"== {folder.name}" if len(a.folders) > 1 else "", end="\n" if len(a.folders) > 1 else "")
     if errors:
         print("VALIDATION FAILED:")
         for e in errors:
             print("  -", e)
         if not a.force:
-            sys.exit(1)
+            return False
     for w in warns:
         print("WARNING:", w)
-
-    out = Path(a.out or Path.cwd() / "build" / folder.name)
     (out / "project").mkdir(parents=True, exist_ok=True)
     slides = P.build(post, ns, seq, V.stage_div(vslide["video"]) if vslide else None)
-
+    bad_layout = False
     from playwright.sync_api import sync_playwright
     with sync_playwright() as pw:
         br = pw.chromium.launch(args=["--disable-lcd-text", "--font-render-hinting=none"])
@@ -103,15 +137,17 @@ def main():
             still = page.evaluate("document.getElementById('stage').outerHTML").replace(' id="stage"', "")
             vs["player_html"] = vs["html"]
             vs["html"] = vs["html"].replace(V.stage_div(vslide["video"]), still)
-        problems = {}
         for x in slides:
             page.set_content(plain_page(x["html"]))
             page.evaluate("document.fonts.ready")
             r = page.evaluate(CHECK_JS)
             if r:
-                problems[x["n"]] = r
-        for n, r in problems.items():
-            print(f"LAYOUT slide {n:02d}:", "; ".join(r))
+                bad_layout = True
+                print(f"LAYOUT slide {x['n']:02d}:", "; ".join(r))
+        if a.export and bad_layout and not a.force:
+            print("export stopped: fix the layout problems first")
+            br.close()
+            return False
         if a.png:
             render_pngs(br, slides, out, 1 if a.png == "review" else 3)
         if a.video and vs:
@@ -129,7 +165,60 @@ def main():
               "notes": {"heading": {"x": 0, "y": -300, "text": title, "kind": "title1", "maxW": len(slides) * 1160 - 80}}}
     (out / "project" / "canvas.json").write_text(json.dumps(canvas, indent=1, ensure_ascii=False))
     (out / "summary.txt").write_text(P.summary(post, seq, vdur, warns))
+    if a.export:
+        return export(folder, post, ns, seq, slides, vs, out, tested, published)
     print(f"OK {len(slides)} slides, video {vdur:.1f}s -> {out}")
+    return True
+
+
+def export(folder, post, ns, seq, slides, vs, out, tested, published):
+    from kit import blog as B
+    import shutil
+    name = f"{post['number']:02d}-{post['slug']}"
+    pk = out / name
+    if pk.exists():
+        shutil.rmtree(pk)
+    pk.mkdir()
+    for x in slides:
+        src = out / (f"slide-{x['n']:02d}.mp4" if vs and x is vs else f"png/slide-{x['n']:02d}.png")
+        shutil.copy(src, pk / src.name)
+    # blog page: protect the kit's markers, compute {{ }} from ref.py, then fill the markers
+    body = (folder / "blog.md").read_text()
+    marks = {k: f"@@{k}@@" for k in ("PSEUDOCODE", "CODE", "TESTED")}
+    for k, m in marks.items():
+        body = body.replace("{{" + k + "}}", m)
+    errs = []
+    body = P._subst(body, ns, errs)
+    for k, m in marks.items():
+        body = body.replace(m, "{{" + k + "}}")
+    mdx = B.mdx(post, ns, seq, folder, tested, published, len(slides), vs["n"] if vs else None, body)
+    (pk / f"{name}.mdx").write_text(mdx)
+    cap, cerr = B.caption(post)
+    (pk / "caption.txt").write_text(cap)
+    (pk / "alt-text.txt").write_text(B.alt_texts(post, seq))
+    errs += cerr
+    (out / "pseudo.txt").write_text(B.pseudocode(seq) + "\n")
+    if not (KIT / "tools" / "node_modules" / "@mdx-js").exists():
+        subprocess.run("npm i --silent --no-save gray-matter@4 @mdx-js/mdx@3 remark-gfm@4 remark-frontmatter@5",
+                       shell=True, cwd=KIT / "tools", capture_output=True)
+    chk = subprocess.run(["node", str(KIT / "tools" / "check_mdx.mjs"), str(pk / f"{name}.mdx"), "--slides", str(pk),
+                          "--pseudo", str(out / "pseudo.txt")], capture_output=True, text=True)
+    report = (chk.stdout + chk.stderr).strip()
+    if chk.returncode:
+        errs.append("MDX check failed:\n" + report[-1500:])
+    elif "WARN" in report.upper():
+        print(report[-800:])
+    for f in pk.iterdir():
+        if f.stat().st_size > 25 * 1024 * 1024:
+            errs.append(f"{f.name} is over 25 MB")
+    if errs:
+        print("EXPORT FAILED:")
+        for e in errs:
+            print("  -", e)
+        return False
+    z = shutil.make_archive(str(out.parent / name), "zip", out, name)
+    print(f"OK {name}: {len(slides)} slides, posting {published}, {Path(z).stat().st_size / 1e6:.1f} MB -> {z}")
+    return True
 
 
 def render_pngs(br, slides, out, scale):

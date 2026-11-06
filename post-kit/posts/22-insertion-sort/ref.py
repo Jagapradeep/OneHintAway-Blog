@@ -66,3 +66,20 @@ def video_steps(nums=EXAMPLE):
 
 PASSES = len(EXAMPLE) - 1
 SHIFTS = shifts(EXAMPLE)
+
+
+# ---- tests for the four languages: one input per line, one answer per line ----
+import random as _r
+
+
+def test_inputs():
+    _r.seed(22)
+    cases = ["", "7", "2 1", "4 4 4", "1 2 3 4 5", "5 4 3 2 1", "2147483647 -2147483648 0", "5 2 4 1 3"]
+    cases.append(" ".join(str(_r.randint(-10**9, 10**9)) for _ in range(1000)))
+    for _ in range(1201):
+        cases.append(" ".join(str(_r.randint(-20, 20)) for _ in range(_r.randint(0, 12))))
+    return cases
+
+
+def expected(line):
+    return " ".join(map(str, sorted(int(x) for x in line.split())))

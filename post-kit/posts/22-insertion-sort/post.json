@@ -20,12 +20,29 @@
       "title": "Watch it sort",
       "lead": "Insertion sort on 5 2 4 1 3.",
       "video": {
-        "values": [5, 2, 4, 1, 3],
+        "values": [
+          5,
+          2,
+          4,
+          1,
+          3
+        ],
         "stage_label": "THE CARDS",
         "chips_label": "CARD: SHIFTS",
         "steps": "video_steps()",
-        "final": {"steel": "all", "band": [0, 4, "SORTED PART"], "eq": ["sorted:", "1 2 3 4 5"],
-                  "caption": "Sorted after {{PASSES}} passes and {{SHIFTS}} shifts."}
+        "final": {
+          "steel": "all",
+          "band": [
+            0,
+            4,
+            "SORTED PART"
+          ],
+          "eq": [
+            "sorted:",
+            "1 2 3 4 5"
+          ],
+          "caption": "Sorted after {{PASSES}} passes and {{SHIFTS}} shifts."
+        }
       }
     },
     {
@@ -34,9 +51,33 @@
       "title": "A hand of cards",
       "scene": "You pick up cards one at a time. Each new card slides left past every bigger card.",
       "blocks": [
-        {"type": "boxes", "label": "YOUR HAND", "values": [2, "", 5], "steel": [0, 2], "dash": [1],
-         "float": {"value": 4, "over": 1}, "under": {"2": "5 moved right"}},
-        {"type": "card", "text": "The cards in your hand stay sorted. That hand is the [[sorted part]], and it grows by one card each time."}
+        {
+          "type": "boxes",
+          "label": "YOUR HAND",
+          "values": [
+            2,
+            "",
+            5
+          ],
+          "steel": [
+            0,
+            2
+          ],
+          "dash": [
+            1
+          ],
+          "float": {
+            "value": 4,
+            "over": 1
+          },
+          "under": {
+            "2": "5 moved right"
+          }
+        },
+        {
+          "type": "card",
+          "text": "The cards in your hand stay sorted. That hand is the [[sorted part]], and it grows by one card each time."
+        }
       ]
     },
     {
@@ -45,17 +86,82 @@
       "title": "Watch the gap",
       "lead": "Pass 3 of the video, up close. The gap walks left until the card fits.",
       "blocks": [
-        {"type": "steps", "rows": [
-          {"label": "card = 1", "values": [2, 4, 5, "", 3], "dash": [3]},
-          {"label": "5 > 1: shift", "values": [2, 4, "", 5, 3], "dash": [2]},
-          {"label": "4 > 1: shift", "values": [2, "", 4, 5, 3], "dash": [1]},
-          {"label": "2 > 1: shift", "values": ["", 2, 4, 5, 3], "dash": [0]},
-          {"label": "front: drop 1", "values": [1, 2, 4, 5, 3], "gold": [0]}
-        ]}
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "card = 1",
+              "values": [
+                2,
+                4,
+                5,
+                "",
+                3
+              ],
+              "dash": [
+                3
+              ]
+            },
+            {
+              "label": "5 > 1: shift",
+              "values": [
+                2,
+                4,
+                "",
+                5,
+                3
+              ],
+              "dash": [
+                2
+              ]
+            },
+            {
+              "label": "4 > 1: shift",
+              "values": [
+                2,
+                "",
+                4,
+                5,
+                3
+              ],
+              "dash": [
+                1
+              ]
+            },
+            {
+              "label": "2 > 1: shift",
+              "values": [
+                "",
+                2,
+                4,
+                5,
+                3
+              ],
+              "dash": [
+                0
+              ]
+            },
+            {
+              "label": "front: drop 1",
+              "values": [
+                1,
+                2,
+                4,
+                5,
+                3
+              ],
+              "gold": [
+                0
+              ]
+            }
+          ]
+        }
       ],
-      "quickcheck": {"question": "Insertion sort on 4 3 2 1. How many shifts in total?",
-                     "answer": "Answer: {{shifts([4, 3, 2, 1])}} shifts. The 3 makes 1, the 2 makes 2, the 1 makes 3.",
-                     "check": "shifts([4, 3, 2, 1])"}
+      "quickcheck": {
+        "question": "Insertion sort on 4 3 2 1. How many shifts in total?",
+        "answer": "Answer: {{shifts([4, 3, 2, 1])}} shifts. The 3 makes 1, the 2 makes 2, the 1 makes 3.",
+        "check": "shifts([4, 3, 2, 1])"
+      }
     },
     {
       "type": "extra",
@@ -64,30 +170,59 @@
       "teaser": "The answer, and when it's fast",
       "title": "Fast when almost sorted",
       "blocks": [
-        {"type": "compare", "rows": [
-          {"main": "1 2 3 4 5", "sub": "sorted", "value": "{{plural(shifts([1,2,3,4,5]), 'shift')}}", "gold": true},
-          {"main": "1 2 4 3 5", "sub": "one pair swapped", "value": "{{plural(shifts([1,2,4,3,5]), 'shift')}}"},
-          {"main": "5 4 3 2 1", "sub": "reversed", "value": "{{plural(shifts([5,4,3,2,1]), 'shift')}}"}
-        ]},
-        {"type": "text", "style": "muted", "text": "Each shift fixes one pair that is out of order. So the work grows with how unsorted the input is."}
+        {
+          "type": "compare",
+          "rows": [
+            {
+              "main": "1 2 3 4 5",
+              "sub": "sorted",
+              "value": "{{plural(shifts([1,2,3,4,5]), 'shift')}}",
+              "gold": true
+            },
+            {
+              "main": "1 2 4 3 5",
+              "sub": "one pair swapped",
+              "value": "{{plural(shifts([1,2,4,3,5]), 'shift')}}"
+            },
+            {
+              "main": "5 4 3 2 1",
+              "sub": "reversed",
+              "value": "{{plural(shifts([5,4,3,2,1]), 'shift')}}"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "Each shift fixes one pair that is out of order. So the work grows with how unsorted the input is."
+        }
       ]
     },
     {
       "type": "template",
       "teaser": "Insertion sort in 9 lines",
       "title": "Insertion sort",
-      "code": {"lines": [
-        "function insertionSort(nums):",
-        "    for i from 1 to length(nums) - 1:",
-        "        card = nums[i]   // pick it up",
-        "        j = i - 1",
-        "        while j >= 0 and nums[j] > card:",
-        "            nums[j + 1] = nums[j]",
-        "            j = j - 1",
-        "        nums[j + 1] = card   // drop it in",
-        "    return nums"], "highlight": [5]},
+      "code": {
+        "lines": [
+          "function insertionSort(nums):",
+          "    for i from 1 to length(nums) - 1:",
+          "        card = nums[i]   // pick it up",
+          "        j = i - 1",
+          "        while j >= 0 and nums[j] > card:",
+          "            nums[j + 1] = nums[j]",
+          "            j = j - 1",
+          "        nums[j + 1] = card   // drop it in",
+          "    return nums"
+        ],
+        "highlight": [
+          5
+        ]
+      },
       "explain": "Line 5 checks the value on the left. Lines 6 and 7 shift it right; line 8 drops the card in.",
-      "example": {"call": "insertionSort([5, 2, 4, 1, 3])", "expr": "insertion_sort([5, 2, 4, 1, 3])"}
+      "example": {
+        "call": "insertionSort([5, 2, 4, 1, 3])",
+        "expr": "insertion_sort([5, 2, 4, 1, 3])"
+      }
     },
     {
       "type": "trap",
@@ -96,25 +231,103 @@
       "lead": "Skip line 3 and use nums[i] in lines 5 and 8. Line 6 writes over nums[i], so the card is lost.",
       "trap": {
         "call": "insertionSort([5, 2, 4, 1, 3])",
-        "wrong": {"code": ["nums[j] > nums[i]", "nums[j + 1] = nums[i]"], "note": "The first shift copies 5 over the 2.", "result": "{{sp(wrong_sort(EXAMPLE))}}"},
-        "right": {"code": ["nums[j] > card", "nums[j + 1] = card"], "note": "The 2 is safe in card.", "result": "{{sp(insertion_sort(EXAMPLE))}}"}
+        "wrong": {
+          "code": [
+            "nums[j] > nums[i]",
+            "nums[j + 1] = nums[i]"
+          ],
+          "note": "The first shift copies 5 over the 2.",
+          "result": "{{sp(wrong_sort(EXAMPLE))}}"
+        },
+        "right": {
+          "code": [
+            "nums[j] > card",
+            "nums[j + 1] = card"
+          ],
+          "note": "The 2 is safe in card.",
+          "result": "{{sp(insertion_sort(EXAMPLE))}}"
+        }
       },
-      "cost": {"items": [
-        {"label": "Worst case", "value": "O(n²)"},
-        {"label": "Sorted input", "value": "O(n)"},
-        {"label": "Extra space", "value": "O(1)", "gold": true}],
-        "note": "Reversed input needs n(n − 1)/2 shifts. Sorted input needs only n − 1 compares."}
+      "cost": {
+        "items": [
+          {
+            "label": "Worst case",
+            "value": "O(n²)"
+          },
+          {
+            "label": "Sorted input",
+            "value": "O(n)"
+          },
+          {
+            "label": "Extra space",
+            "value": "O(1)",
+            "gold": true
+          }
+        ],
+        "note": "Reversed input needs n(n − 1)/2 shifts. Sorted input needs only n − 1 compares."
+      }
     },
     {
       "type": "practice",
       "teaser": "Last slide: your turn",
-      "learnt": ["Sorted part grows", "Shift, then drop", "Fast if nearly sorted"],
+      "learnt": [
+        "Sorted part grows",
+        "Shift, then drop",
+        "Fast if nearly sorted"
+      ],
       "problems": [
-        {"difficulty": "Easy", "id": 1051, "title": "Height Checker", "note": "Sort a copy with insertion sort, then count the places where the two differ.",
-         "complexity": "n^2", "constraints": {"n": 100}},
-        {"difficulty": "Medium", "id": 147, "title": "Insertion Sort List", "note": "The same moves on a linked list: walk from the head to find each node's place.",
-         "complexity": "n^2", "constraints": {"n": 5000}}
+        {
+          "difficulty": "Easy",
+          "id": 1051,
+          "title": "Height Checker",
+          "note": "Sort a copy with insertion sort, then count the places where the two differ.",
+          "complexity": "n^2",
+          "constraints": {
+            "n": 100
+          },
+          "url": "https://leetcode.com/problems/height-checker/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 147,
+          "title": "Insertion Sort List",
+          "note": "The same moves on a linked list: walk from the head to find each node's place.",
+          "complexity": "n^2",
+          "constraints": {
+            "n": 5000
+          },
+          "url": "https://leetcode.com/problems/insertion-sort-list/"
+        }
       ]
     }
-  ]
+  ],
+  "blog": {
+    "pattern": "Sorting",
+    "section": "Recursion and sorting",
+    "summary": "Small or almost-sorted input: pick up each value like a card and shift bigger values right until it fits.",
+    "tags": [
+      "sorting",
+      "insertion-sort",
+      "arrays"
+    ],
+    "tested_what": "Insertion sort",
+    "tested_inputs": "hand-picked cases (empty, one value, two values, all equal, sorted, reversed, values at the 32-bit limits, and 5 2 4 1 3), one array of 1,000 random values, and random arrays of up to 12 values",
+    "tested_against": "Python's built-in sort",
+    "tested_extra": "The pass-by-pass numbers, the shift counts, the quick-check answer and the 5 5 5 5 5 trap result come from running the code."
+  },
+  "caption": {
+    "first": "Insertion sort explained like a hand of cards: shift bigger values right, drop the card in (LeetCode 147 practice).",
+    "lines": [
+      "Each new value slides left past every bigger value, so the left part is always sorted.",
+      "The trap: forget to save the card first and 5 2 4 1 3 turns into 5 5 5 5 5.",
+      "Practice: LeetCode 1051 (easy) and LeetCode 147 (medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#sorting"
+    ]
+  }
 }

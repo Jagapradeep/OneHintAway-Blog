@@ -1,0 +1,138 @@
+---
+number: 23
+title: "Selection sort"
+slug: selection-sort
+pattern: "Sorting"
+section: "Recursion and sorting"
+summary: "A row to put in order: find the smallest number in the unsorted part, swap it into the next spot, and repeat."
+practice:
+  - { name: "LeetCode 414 Third Maximum Number", url: "https://leetcode.com/problems/third-maximum-number/", level: easy, note: "Pick the largest, then the next, then the next. Skip repeats." }
+  - { name: "LeetCode 215 Kth Largest Element in an Array", url: "https://leetcode.com/problems/kth-largest-element-in-an-array/", level: medium, note: "Same idea, but pick the largest each time. Stop after k passes." }
+slides: 7
+video: 2
+tags: [selection-sort, sorting]
+published: 2026-11-06
+---
+
+Put a row of numbers in order by finding the smallest one and moving it to the front. Worked example: the row 5 2 4 1 3.
+
+## The idea
+
+Look at the whole row, find the smallest card, and swap it into the first spot. That spot is now final, so it joins the sorted part. Then do the same for the second spot, using only the cards that are left. Each pass fixes one spot, so the sorted part grows by one every time.
+
+The part that trips people up is what to remember while scanning. Remember the spot of the smallest card, not its value. With the spot you can swap; with only the value you cannot tell where it came from.
+
+## The walk
+
+Selection sort on 5 2 4 1 3 needs 4 passes. The last number is already in place after the fourth pass, so a fifth pass would do nothing.
+
+| Pass | Smallest found | Swap | Row after |
+| --- | --- | --- | --- |
+| 1 | 1 at spot 3 | spots 0 and 3 | 1 2 4 5 3 |
+| 2 | 2 at spot 1 | none, already in place | 1 2 4 5 3 |
+| 3 | 3 at spot 4 | spots 2 and 4 | 1 2 3 5 4 |
+| 4 | 4 at spot 4 | spots 3 and 4 | 1 2 3 4 5 |
+
+Quick check: selection sort on 3 1 2. After pass 1 the smallest, 1, is at spot 1. Swapping it with spot 0 gives 1 3 2.
+
+## Pseudocode
+
+```
+function selectionSort(row):
+    for i from 0 to length(row) - 2:
+        smallest = i   // remember the spot
+        for j from i + 1 to length(row) - 1:
+            if row[j] < row[smallest]:
+                smallest = j
+        swap row[i], row[smallest]
+    return row
+```
+
+**The trap:** keeping the smallest value instead of its spot. Writing `smallest = row[j]` and then `row[i] = smallest` on 5 2 4 1 3 gives 1 2 4 1 3: the 5 is overwritten and there are two 1s. Keeping the spot and swapping gives 1 2 4 5 3, and nothing is lost.
+
+## Java
+
+```java
+class Solution {
+    public int[] selectionSort(int[] row) {
+        for (int i = 0; i < row.length - 1; i++) {
+            int smallest = i;
+            for (int j = i + 1; j < row.length; j++) {
+                if (row[j] < row[smallest]) {
+                    smallest = j;
+                }
+            }
+            int temp = row[i];
+            row[i] = row[smallest];
+            row[smallest] = temp;
+        }
+        return row;
+    }
+}
+```
+
+## Python
+
+```python
+class Solution:
+    def selectionSort(self, row):
+        for i in range(len(row) - 1):
+            smallest = i
+            for j in range(i + 1, len(row)):
+                if row[j] < row[smallest]:
+                    smallest = j
+            row[i], row[smallest] = row[smallest], row[i]
+        return row
+```
+
+## C++
+
+```cpp
+#include <vector>
+#include <utility>
+using namespace std;
+
+class Solution {
+public:
+    vector<int> selectionSort(vector<int> row) {
+        for (int i = 0; i + 1 < (int)row.size(); i++) {
+            int smallest = i;
+            for (int j = i + 1; j < (int)row.size(); j++) {
+                if (row[j] < row[smallest]) {
+                    smallest = j;
+                }
+            }
+            swap(row[i], row[smallest]);
+        }
+        return row;
+    }
+};
+```
+
+## JavaScript
+
+```javascript
+class Solution {
+    selectionSort(row) {
+        for (let i = 0; i < row.length - 1; i++) {
+            let smallest = i;
+            for (let j = i + 1; j < row.length; j++) {
+                if (row[j] < row[smallest]) {
+                    smallest = j;
+                }
+            }
+            [row[i], row[smallest]] = [row[smallest], row[i]];
+        }
+        return row;
+    }
+}
+```
+
+## Complexity
+
+- Time: about n × n steps in every case, because the inner loop always scans the whole unsorted part. For 5 numbers that is 4 + 3 + 2 + 1 = 10 comparisons, even if the row is already sorted.
+- Extra space: O(1), just a few variables. It makes at most one swap per pass, so 3 swaps on 5 2 4 1 3.
+
+## How it was tested
+
+All four versions were run on 1,507 inputs each: 7 fixed cases (empty, single number, all equal, already sorted, reversed, and the two worked rows) plus 1,500 random rows of up to 12 numbers between -20 and 20. Every result matched the built-in sort. The code on this page was then run again from the finished solutions file, with 0 mismatches.

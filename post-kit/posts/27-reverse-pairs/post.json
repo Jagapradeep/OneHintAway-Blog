@@ -1,0 +1,434 @@
+{
+  "number": 27,
+  "slug": "reverse-pairs",
+  "kind": "challenge",
+  "topic": "Reverse Pairs",
+  "category": "Sorting",
+  "next_post": "Binary search basics",
+  "cover": {
+    "title": "Reverse\n**Pairs**",
+    "problem": {
+      "id": 493,
+      "title": "Reverse Pairs",
+      "difficulty": "Hard"
+    },
+    "blocks": [
+      {
+        "type": "boxes",
+        "values": [
+          6,
+          4,
+          1,
+          5,
+          2
+        ],
+        "size": "l",
+        "label": "HOW MANY PAIRS WITH LEFT > 2 × RIGHT?",
+        "label_color": "muted"
+      }
+    ],
+    "promise": "You'll solve **LeetCode 493** in O(n log n).",
+    "promise_slide": "solution"
+  },
+  "slides": [
+    {
+      "type": "story",
+      "teaser": "The problem, as a line of kids",
+      "title": "Giants in the line",
+      "scene": "This is Reverse Pairs, told as kids in a line. A kid is a giant to anyone behind them who is less than half their height.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "values": [
+            6,
+            4,
+            1,
+            5,
+            2
+          ],
+          "size": "l",
+          "gold": [
+            0
+          ],
+          "steel": [
+            2,
+            4
+          ],
+          "indexes": true,
+          "under": {
+            "2": "6 > 2 × 1",
+            "4": "6 > 2 × 2"
+          }
+        },
+        {
+          "type": "card",
+          "size": "big",
+          "text": "6 is a giant to the 1 and to the 2 behind it. How many giant pairs are there in the whole line?"
+        }
+      ]
+    },
+    {
+      "type": "problem",
+      "teaser": "The real problem",
+      "title": "LeetCode 493",
+      "lead": "Count the pairs i < j with nums[i] > 2 × nums[j].",
+      "blocks": [
+        {
+          "type": "kv",
+          "rows": [
+            [
+              "nums",
+              "[6, 4, 1, 5, 2]"
+            ],
+            [
+              "output",
+              "{{TOTAL}}",
+              "steel"
+            ]
+          ]
+        },
+        {
+          "type": "text",
+          "text": "The pairs: {{PAIRS}}."
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "Up to 50,000 values, each anywhere in the 32-bit range."
+        }
+      ]
+    },
+    {
+      "type": "pause",
+      "try_first": "Find the {{TOTAL}} pairs of [6, 4, 1, 5, 2] by hand, then ask how to skip checking all {{ALL_PAIRS}}."
+    },
+    {
+      "type": "hint",
+      "teaser": "Hint 1: every pair",
+      "title": "Check every pair",
+      "lead": "For each value, compare it with every value after it.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "card": true,
+          "label": "THE SLOW WAY, FOR 6",
+          "values": [
+            6,
+            4,
+            1,
+            5,
+            2
+          ],
+          "size": "m",
+          "gold": [
+            0
+          ],
+          "note": "Compare 6 with 4, 1, 5 and 2. Then do the same for 4, for 1, and so on.",
+          "steel": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "type": "text",
+          "text": "n(n − 1)/2 checks: over a billion at 50,000 values."
+        }
+      ]
+    },
+    {
+      "type": "hint",
+      "teaser": "Hint 2: sorted halves",
+      "title": "Sorted halves help",
+      "lead": "Split the line in two. If both halves were sorted, the pairs across them line up neatly.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "left, sorted",
+              "values": [
+                1,
+                4,
+                6
+              ],
+              "gold": [
+                2
+              ]
+            },
+            {
+              "label": "right, sorted",
+              "values": [
+                2,
+                5
+              ],
+              "steel": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "6 > 2 × 2, and any bigger left value pairs with 2 too."
+        }
+      ],
+      "quickcheck": {
+        "question": "Left half 3 7 9, right half 1 4, both sorted. How many pairs across?",
+        "answer": "Answer: {{cross([3, 7, 9], [1, 4])}}. With 1: 3, 7 and 9. With 4: only 9 > 8.",
+        "check": "cross([3, 7, 9], [1, 4])"
+      }
+    },
+    {
+      "type": "hint",
+      "teaser": "Answer + hint 3",
+      "title": "Use merge sort",
+      "lead": "Merge sort from post 25 already splits the line and hands you sorted halves before every merge.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "split",
+              "values": [
+                6,
+                4,
+                1,
+                "",
+                5,
+                2
+              ],
+              "ghost": [
+                3
+              ]
+            },
+            {
+              "label": "count inside",
+              "values": [
+                1,
+                4,
+                6,
+                "",
+                2,
+                5
+              ],
+              "ghost": [
+                3
+              ]
+            },
+            {
+              "label": "count across",
+              "values": [
+                1,
+                4,
+                6,
+                "",
+                2,
+                5
+              ],
+              "ghost": [
+                3
+              ],
+              "gold": [
+                2
+              ],
+              "steel": [
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Pairs inside each half: the same problem, smaller. Pairs across: count them, then merge."
+        }
+      ]
+    },
+    {
+      "type": "hint",
+      "teaser": "Hint 4: the walk across",
+      "title": "One walk across",
+      "lead": "For each right value r, skip left values ≤ 2 × r. Every left value after that pairs with r.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "card": true,
+          "label": "r = 2, SO SKIP LEFT VALUES ≤ 4",
+          "values": [
+            1,
+            4,
+            6
+          ],
+          "size": "m",
+          "dim": [
+            0,
+            1
+          ],
+          "gold": [
+            2
+          ],
+          "pointers": {
+            "i": 2
+          },
+          "note": "6 is left, so 2 adds 1 pair. For r = 5, 6 ≤ 10: nothing."
+        },
+        {
+          "type": "text",
+          "text": "r only grows, so i never walks back. Keep 2 × r in 64 bits."
+        }
+      ]
+    },
+    {
+      "type": "bridge"
+    },
+    {
+      "type": "video",
+      "teaser": "Watch the pairs add up",
+      "title": "Watch it count",
+      "lead": "Count across, then merge, on [6, 4, 1, 5, 2].",
+      "video": {
+        "values": [
+          6,
+          4,
+          1,
+          5,
+          2
+        ],
+        "stage_label": "THE LINE",
+        "chips_label": "PAIRS ADDED AT EACH MERGE",
+        "steps": "video_steps()",
+        "final": {
+          "steel": "all",
+          "eq": [
+            "pairs =",
+            "{{TOTAL}}"
+          ],
+          "caption": "{{TOTAL}} pairs, and the line is sorted as a bonus."
+        }
+      }
+    },
+    {
+      "type": "solution",
+      "teaser": "Part 1: split and recurse",
+      "title": "Split and recurse",
+      "lead": "Count inside each half with the same function. A single value has no pairs.",
+      "code": {
+        "lines": [
+          "function reversePairs(nums):",
+          "    n = length(nums)",
+          "    return countPairs(nums, 0, n - 1)",
+          "",
+          "function countPairs(nums, low, high):",
+          "    if low >= high:",
+          "        return 0",
+          "    mid = floor((low + high) / 2)",
+          "    left = countPairs(nums, low, mid)",
+          "    right = countPairs(nums, mid + 1, high)",
+          "    count = left + right"
+        ]
+      },
+      "after": [
+        {
+          "type": "text",
+          "text": "After the two calls, both halves come back sorted."
+        }
+      ]
+    },
+    {
+      "type": "solution",
+      "teaser": "Part 2: count across, merge",
+      "title": "Count, then merge",
+      "code": {
+        "lines": [
+          "    i = low",
+          "    for j from mid + 1 to high:",
+          "        twice = 2 * nums[j]   // 64-bit",
+          "        while i <= mid and nums[i] <= twice:",
+          "            i = i + 1",
+          "        count = count + mid - i + 1",
+          "    merge the two sorted halves   // post 25",
+          "    return count"
+        ],
+        "highlight": [
+          4
+        ]
+      },
+      "cost": {
+        "label": false,
+        "mt": 0,
+        "items": [
+          {
+            "label": "Time",
+            "value": "O(n log n)",
+            "gold": true,
+            "note": "log n levels, one O(n) walk and merge each."
+          },
+          {
+            "label": "Space",
+            "value": "O(n)",
+            "note": "The merge's buffer."
+          }
+        ]
+      }
+    },
+    {
+      "type": "closing",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Split, count inside",
+        "Sorted halves: one walk",
+        "Count before you merge"
+      ],
+      "pattern": "Merge sort that counts pairs across the halves before each merge.",
+      "problems": [
+        {
+          "difficulty": "Hard",
+          "id": 315,
+          "title": "Count of Smaller Numbers After Self",
+          "note": "Count-then-merge again, carrying each value's index.",
+          "complexity": "n*log(n)",
+          "constraints": {
+            "n": 100000
+          },
+          "url": "https://leetcode.com/problems/count-of-smaller-numbers-after-self/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Sorting",
+    "section": "Recursion and sorting",
+    "summary": "To count pairs where an earlier value breaks a size rule against a later one, count across merge sort's sorted halves before each merge.",
+    "tags": [
+      "merge-sort",
+      "divide-and-conquer",
+      "counting-pairs",
+      "hard"
+    ],
+    "worked": {
+      "name": "LeetCode 493 Reverse Pairs",
+      "url": "https://leetcode.com/problems/reverse-pairs/"
+    },
+    "tested_what": "The merge-sort count",
+    "tested_inputs": "hand-picked cases (one value, two values, the LeetCode examples, sorted, reversed, all equal, negatives, zeros, and values at both 32-bit limits where 2 × value overflows 32 bits), one array of 2,000 random 32-bit values, random arrays of up to 14 small values and random arrays of up to 30 values from the whole 32-bit range",
+    "tested_against": "a brute force that checks every pair",
+    "tested_extra": "The pair counts at each merge and the quick-check answer come from running the code."
+  },
+  "caption": {
+    "first": "LeetCode 493 Reverse Pairs solved with merge sort: count pairs across the sorted halves, then merge, in O(n log n).",
+    "lines": [
+      "Checking every pair is O(n²). Once both halves are sorted, one walk counts every pair across them.",
+      "Keep 2 × nums[j] in 64 bits: values go up to 2³¹ − 1.",
+      "Practice next: LeetCode 315, the same idea with indexes."
+    ],
+    "cta": "Which counting problem would you try this on next?",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#mergesort",
+      "#divideandconquer"
+    ]
+  }
+}

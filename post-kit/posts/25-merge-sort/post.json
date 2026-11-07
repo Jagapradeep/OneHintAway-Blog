@@ -1,0 +1,335 @@
+{
+  "number": 25,
+  "slug": "merge-sort",
+  "kind": "concept",
+  "topic": "Merge Sort",
+  "category": "Sorting",
+  "next_post": "Quick sort and quickselect",
+  "cover": {
+    "title": "Merge sort",
+    "lead": "Split the array in half, sort each half, then merge the two sorted halves.",
+    "use_it_when": "n reaches tens of thousands, where O(n²) sorts get too slow.",
+    "why_it_matters": "Merging two sorted lists is a pattern of its own: linked lists, counting pairs, big files.",
+    "promise": "You'll write the **merge** step in {lines} lines.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch the halves merge",
+      "title": "Watch it sort",
+      "lead": "Merge sort on 5 2 4 6 1 3, one merge at a time.",
+      "video": {
+        "values": [
+          5,
+          2,
+          4,
+          6,
+          1,
+          3
+        ],
+        "stage_label": "THE ARRAY",
+        "chips_label": "MERGED PIECE",
+        "steps": "video_steps()",
+        "final": {
+          "steel": "all",
+          "eq": [
+            "sorted:",
+            "{{sp(merge_sort(EXAMPLE))}}"
+          ],
+          "caption": "{{MERGES}} merges, from pieces of 2 up to all 6."
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "Two piles of test papers",
+      "title": "Two sorted piles",
+      "scene": "Two teachers each hold a pile of test papers, sorted by roll number. To make one sorted pile, you keep taking the smaller top paper.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "label": "PILE A",
+          "values": [
+            2,
+            4,
+            5
+          ],
+          "gold": [
+            0
+          ],
+          "size": "m"
+        },
+        {
+          "type": "boxes",
+          "label": "PILE B",
+          "values": [
+            1,
+            3,
+            6
+          ],
+          "steel": [
+            0
+          ],
+          "size": "m"
+        },
+        {
+          "type": "card",
+          "text": "You only ever look at the [[two tops]]. 1 is smaller than 2, so 1 goes first."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "The merge, mid-way",
+      "title": "Smaller front first",
+      "lead": "The last merge of the video, after 1 and 2 are taken. Compare the two fronts.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "left",
+              "values": [
+                2,
+                4,
+                5
+              ],
+              "dim": [
+                0
+              ],
+              "steel": [
+                1
+              ]
+            },
+            {
+              "label": "right",
+              "values": [
+                1,
+                3,
+                6
+              ],
+              "dim": [
+                0
+              ],
+              "gold": [
+                1
+              ]
+            },
+            {
+              "label": "result",
+              "values": [
+                1,
+                2,
+                "",
+                "",
+                "",
+                ""
+              ],
+              "dash": [
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "Fronts 4 and 3: 3 is smaller, so 3 goes next."
+        }
+      ],
+      "quickcheck": {
+        "question": "Merging 1 4 with 2 3. How many compares before one list runs out?",
+        "answer": "Answer: {{merge_compares([1, 4], [2, 3])}} compares: 1 vs 2, 4 vs 2, 4 vs 3. Then 4 is added without a compare.",
+        "check": "merge_compares([1, 4], [2, 3])"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "THE SPLIT",
+      "board": "Answer + the split",
+      "teaser": "The answer, and the split",
+      "title": "Split, sort, merge",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "sort each half",
+              "values": [
+                2,
+                4,
+                5,
+                "",
+                1,
+                3,
+                6
+              ],
+              "ghost": [
+                3
+              ]
+            },
+            {
+              "label": "merge",
+              "values": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ]
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "lines": [
+            "function mergeSort(nums):",
+            "    if length(nums) <= 1:",
+            "        return nums",
+            "    middle = floor(length(nums) / 2)",
+            "    left = mergeSort(nums before middle)",
+            "    right = mergeSort(the rest of nums)",
+            "    return merge(left, right)"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "The merge in 12 lines",
+      "title": "Merge",
+      "code": {
+        "lines": [
+          "function merge(left, right):",
+          "    result = empty list",
+          "    i = 0",
+          "    j = 0",
+          "    while neither list has run out:",
+          "        if left[i] <= right[j]:",
+          "            append left[i] to result",
+          "            i = i + 1",
+          "        else:",
+          "            append right[j] to result",
+          "            j = j + 1",
+          "    return result + rest of left and right"
+        ],
+        "highlight": [
+          6
+        ]
+      },
+      "explain": "Line 6 compares the two fronts. Line 12 adds what is left: one list is already empty.",
+      "example": {
+        "call": "merge([2, 4, 5], [1, 3, 6])",
+        "expr": "merge([2, 4, 5], [1, 3, 6])"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "The bug that loses the 6",
+      "title": "Keep the leftovers",
+      "lead": "The loop stops when one list runs out. Return only result and the other list's values are lost.",
+      "trap": {
+        "call": "merge([2, 4, 5], [1, 3, 6])",
+        "wrong": {
+          "code": [
+            "return result"
+          ],
+          "note": "Left ran out first, so 6 never got added.",
+          "result": "{{sp(wrong_merge([2, 4, 5], [1, 3, 6]))}}"
+        },
+        "right": {
+          "code": [
+            "return result + rest of",
+            "    left and right"
+          ],
+          "note": "The leftover 6 is already sorted.",
+          "result": "{{sp(merge([2, 4, 5], [1, 3, 6]))}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Every input",
+            "value": "O(n log n)",
+            "gold": true
+          },
+          {
+            "label": "Extra space",
+            "value": "O(n)"
+          },
+          {
+            "label": "Levels",
+            "value": "O(log n)"
+          }
+        ],
+        "note": "About log n levels; each level merges all n values."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Split in half",
+        "Take the smaller front",
+        "Keep the leftovers"
+      ],
+      "problems": [
+        {
+          "difficulty": "Easy",
+          "id": 88,
+          "title": "Merge Sorted Array",
+          "note": "The merge step, but fill nums1 from the back so nothing gets overwritten.",
+          "complexity": "n",
+          "constraints": {
+            "n": 200
+          },
+          "url": "https://leetcode.com/problems/merge-sorted-array/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 912,
+          "title": "Sort an Array",
+          "note": "Write merge sort from this post. The O(n²) sorts from posts 22 to 24 are too slow here.",
+          "complexity": "n*log(n)",
+          "constraints": {
+            "n": 50000
+          },
+          "url": "https://leetcode.com/problems/sort-an-array/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Sorting",
+    "section": "Recursion and sorting",
+    "summary": "Merge sort splits the array, sorts each half and merges them by always taking the smaller front.",
+    "tags": [
+      "sorting",
+      "merge-sort",
+      "recursion",
+      "divide-and-conquer"
+    ],
+    "tested_what": "Merge sort",
+    "tested_inputs": "hand-picked cases (empty, one value, two values, all equal, sorted, reversed, values at the 32-bit limits, repeated values, and 5 2 4 6 1 3), one array of 1,000 random values, and random arrays of up to 13 values",
+    "tested_against": "Python's built-in sort",
+    "tested_extra": "Every merge in the walk-through, the compare count in the quick check and the trap result come from running the code."
+  },
+  "caption": {
+    "first": "Merge sort explained: split the array, sort each half, merge two sorted lists (LeetCode 88 and 912 practice).",
+    "lines": [
+      "The merge only ever compares the two fronts and takes the smaller, so it is O(n) per level and O(n log n) in all.",
+      "The trap: forget the leftovers and merging 2 4 5 with 1 3 6 loses the 6.",
+      "Practice: LeetCode 88 (easy) and LeetCode 912 (medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#sorting",
+      "#recursion"
+    ]
+  }
+}

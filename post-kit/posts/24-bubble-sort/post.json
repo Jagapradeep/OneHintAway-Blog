@@ -1,0 +1,320 @@
+{
+  "number": 24,
+  "slug": "bubble-sort",
+  "kind": "concept",
+  "topic": "Bubble Sort",
+  "category": "Sorting",
+  "next_post": "Merge sort",
+  "cover": {
+    "title": "Bubble sort",
+    "lead": "Swap neighbours that are out of order. Each sweep carries the biggest value to the end.",
+    "use_it_when": "You can only swap neighbours, or you want to check if a row is already sorted in one pass.",
+    "why_it_matters": "It's the last of three basic sorts. Merge sort, the first fast one, comes next.",
+    "promise": "You'll write **bubble sort** in {lines} lines.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch the big ones bubble up",
+      "title": "Watch it sort",
+      "lead": "Bubble sort on 5 2 4 1 3, one swap at a time.",
+      "video": {
+        "values": [
+          5,
+          2,
+          4,
+          1,
+          3
+        ],
+        "stage_label": "THE LINE",
+        "chips_label": "SWEEP: SWAPS",
+        "steps": "video_steps()",
+        "final": {
+          "steel": "all",
+          "band": [
+            0,
+            4,
+            "IN PLACE"
+          ],
+          "eq": [
+            "sorted:",
+            "{{sp(bubble_sort(EXAMPLE))}}"
+          ],
+          "caption": "{{SWAPS}} swaps. Sweep {{SWEEPS}} swaps nothing, so it stops."
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "The tallest walks to the back",
+      "title": "Swap neighbours",
+      "scene": "Kids stand in a line. Walk along it: whenever a taller kid stands just before a shorter one, they swap places.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "label": "ONE WALK ALONG THE LINE",
+          "values": [
+            2,
+            4,
+            1,
+            3,
+            5
+          ],
+          "gold": [
+            4
+          ],
+          "under": {
+            "4": "tallest, at the back"
+          }
+        },
+        {
+          "type": "card",
+          "text": "After one walk the tallest kid is at the back for good. Each walk is a [[sweep]], and each sweep fixes one more spot."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "Sweep 1, up close",
+      "title": "The 5 bubbles up",
+      "lead": "Sweep 1 of the video, up close. The 5 keeps winning, so it keeps moving right.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "5 > 2: swap",
+              "values": [
+                2,
+                5,
+                4,
+                1,
+                3
+              ],
+              "gold": [
+                1
+              ]
+            },
+            {
+              "label": "5 > 4: swap",
+              "values": [
+                2,
+                4,
+                5,
+                1,
+                3
+              ],
+              "gold": [
+                2
+              ]
+            },
+            {
+              "label": "5 > 1: swap",
+              "values": [
+                2,
+                4,
+                1,
+                5,
+                3
+              ],
+              "gold": [
+                3
+              ]
+            },
+            {
+              "label": "5 > 3: swap",
+              "values": [
+                2,
+                4,
+                1,
+                3,
+                5
+              ],
+              "gold": [
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "A sweep with no swap means every pair is in order. Then you can stop early."
+        }
+      ],
+      "quickcheck": {
+        "question": "Bubble sort with the early stop on 1 2 3 5 4. How many sweeps run?",
+        "answer": "Answer: {{sweeps([1, 2, 3, 5, 4])}} sweeps. Sweep 1 swaps 5 and 4; sweep 2 swaps nothing and stops.",
+        "check": "sweeps([1, 2, 3, 5, 4])"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "HOW MANY SWEEPS",
+      "board": "Answer + hares and turtles",
+      "teaser": "The answer, then the sweeps",
+      "title": "Big ones race ahead",
+      "blocks": [
+        {
+          "type": "compare",
+          "rows": [
+            {
+              "main": "5 1 2 3 4",
+              "sub": "big value at the front",
+              "value": "{{sweeps(HARE)}} sweeps",
+              "gold": true
+            },
+            {
+              "main": "2 3 4 5 1",
+              "sub": "small value at the end",
+              "value": "{{sweeps(TURTLE)}} sweeps"
+            },
+            {
+              "main": "1 2 3 4 5",
+              "sub": "already sorted",
+              "value": "{{sweeps([1, 2, 3, 4, 5])}} sweep"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "A big value can travel to the end in one sweep. A small value moves only one step left per sweep, so it decides how long the sort runs."
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "Bubble sort in 11 lines",
+      "title": "Bubble sort",
+      "code": {
+        "lines": [
+          "function bubbleSort(nums):",
+          "    n = length(nums)",
+          "    for sweep from 1 to n - 1:",
+          "        swapped = false",
+          "        for j from 0 to n - 1 - sweep:",
+          "            if nums[j] > nums[j + 1]:",
+          "                swap nums[j], nums[j + 1]",
+          "                swapped = true",
+          "        if not swapped:",
+          "            return nums   // already sorted",
+          "    return nums"
+        ],
+        "highlight": [
+          6
+        ]
+      },
+      "example": {
+        "call": "bubbleSort([5, 2, 4, 1, 3])",
+        "expr": "bubble_sort([5, 2, 4, 1, 3])"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "The bug that gives {{sp(wrong_sort(EXAMPLE))}}",
+      "title": "Stop after a sweep",
+      "lead": "Indent the early stop one level too far and it runs after every pair.",
+      "trap": {
+        "call": "bubbleSort([5, 2, 4, 1, 3])",
+        "wrong": {
+          "code": [
+            "for j ...:",
+            "    if not swapped: return"
+          ],
+          "note": "Sweep 2 sees 2 < 4 and quits.",
+          "result": "{{sp(wrong_sort(EXAMPLE))}}"
+        },
+        "right": {
+          "code": [
+            "for j ...: ...",
+            "if not swapped: return"
+          ],
+          "note": "Quits after a quiet sweep.",
+          "result": "{{sp(bubble_sort(EXAMPLE))}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Worst case",
+            "value": "O(n²)"
+          },
+          {
+            "label": "Sorted input",
+            "value": "O(n)",
+            "gold": true
+          },
+          {
+            "label": "Extra space",
+            "value": "O(1)"
+          }
+        ],
+        "note": "Reversed input: n(n − 1)/2 swaps. Sorted input: one sweep."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Swap neighbours",
+        "Biggest goes last",
+        "No swap: stop"
+      ],
+      "problems": [
+        {
+          "difficulty": "Easy",
+          "id": 2418,
+          "title": "Sort the People",
+          "note": "Bubble the heights from tallest to shortest, and swap the names in the same move.",
+          "complexity": "n^2",
+          "constraints": {
+            "n": 1000
+          },
+          "url": "https://leetcode.com/problems/sort-the-people/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 3011,
+          "title": "Find if Array Can Be Sorted",
+          "note": "Bubble sort, but neighbours may swap only when they have the same number of 1 bits.",
+          "complexity": "n^2",
+          "constraints": {
+            "n": 100
+          },
+          "url": "https://leetcode.com/problems/find-if-array-can-be-sorted/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Sorting",
+    "section": "Recursion and sorting",
+    "summary": "Bubble sort swaps neighbours that are out of order and stops after a sweep with no swap.",
+    "tags": [
+      "sorting",
+      "bubble-sort",
+      "arrays"
+    ],
+    "tested_what": "Bubble sort with the early stop",
+    "tested_inputs": "hand-picked cases (empty, one value, two values, all equal, sorted, reversed, values at the 32-bit limits, 5 2 4 1 3 and 1 2 3 5 4), one array of 1,000 random values, and random arrays of up to 12 values",
+    "tested_against": "Python's built-in sort",
+    "tested_extra": "The swap and sweep counts, the quick-check answer and the trap result come from running the code."
+  },
+  "caption": {
+    "first": "Bubble sort explained: swap neighbours that are out of order, and stop after a sweep with no swaps (LeetCode 3011 practice).",
+    "lines": [
+      "Each sweep carries the biggest unsorted value to the end, like a bubble rising.",
+      "The trap: put the early-stop check inside the inner loop and 5 2 4 1 3 stops at {{sp(wrong_sort(EXAMPLE))}}.",
+      "Practice: LeetCode 2418 (easy) and LeetCode 3011 (medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#sorting"
+    ]
+  }
+}

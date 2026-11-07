@@ -7,6 +7,7 @@
 
 Writes to build/NN-slug/: project/ (canvas files to publish), summary.txt (the plain-text review),
 png/slide-NN.png, slide-02.mp4 (or the video's slot), and prints only errors, warnings and file paths."""
+import base64
 import argparse
 import json
 import math
@@ -19,26 +20,38 @@ KIT = Path(__file__).resolve().parent
 sys.path.insert(0, str(KIT))
 from kit import post as P, video as V  # noqa: E402
 
-os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", "/opt/pw-browsers")
+if Path("/opt/pw-browsers").exists():  # the build machine's browser; elsewhere Playwright's default is used
+    os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", "/opt/pw-browsers")
 FONTS = [("Sora", w, f"sora-latin-{w}-normal.woff2") for w in (600, 700, 800)] + \
         [("Manrope", w, f"manrope-latin-{w}-normal.woff2") for w in (500, 600, 700)] + \
         [("Geist Mono", w, f"geist-mono-latin-{w}-normal.woff2") for w in (500, 600)]
-FONT_CSS = "".join(f"@font-face{{font-family:'{f}';font-weight:{w};src:url('file://{KIT}/fonts/{fn}') format('woff2');}}" for f, w, fn in FONTS)
+# Fonts are embedded as data URIs: pages loaded with set_content run as about:blank,
+# and Chromium refuses file:// fonts from there, which silently fell back to a system font.
+FONT_CSS = "".join(
+    f"@font-face{{font-family:'{f}';font-weight:{w};font-display:block;"
+    f"src:url(data:font/woff2;base64,{base64.b64encode((KIT / 'fonts' / fn).read_bytes()).decode()}) format('woff2');}}"
+    for f, w, fn in FONTS)
 GFONTS = "https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&amp;family=Manrope:wght@500;600;700&amp;family=Geist+Mono:wght@500;600&amp;display=swap"
 
 CHECK_JS = """() => {
  const root = document.body.firstElementChild, out = [];
- const spacer = [...root.children].reverse().find(c => c.style.marginTop === 'auto');
- const end = spacer ? spacer.getBoundingClientRect().top : 0;
- if (end > 1252) out.push('content ends at ' + Math.round(end) + 'px (keep it above 1250)');
- if (spacer && spacer.getBoundingClientRect().height < 0) out.push('slide overflows');
+ const foot = root.querySelector('[data-chrome="footer"]'), space = root.querySelector('[data-chrome="footer-space"]');
+ const head = root.querySelector('[data-chrome="progress"]');
+ if (!foot || !space || !head) out.push('slide is missing the fixed header or footer');
+ const fr = foot ? foot.getBoundingClientRect() : null;
+ if (fr && (Math.abs(fr.bottom - 1286) > 1 || Math.abs(fr.left - 80) > 1 || Math.abs(fr.right - 1000) > 1)) out.push('footer is not in its fixed place');
+ if (fr && space && space.getBoundingClientRect().top - fr.top > 6) out.push('content pushes past the footer by ' + Math.round(space.getBoundingClientRect().top - fr.top) + 'px');
+ const limit = fr ? fr.top - 22 : 1250, top = head ? head.getBoundingClientRect().bottom : 0;
  for (const e of root.querySelectorAll('*')) {
-   const cs = getComputedStyle(e);
+   if (e.closest('[data-chrome]') || /560px/.test(e.style.fontSize)) continue;
+   const cs = getComputedStyle(e), r = e.getBoundingClientRect();
+   if (!r.width || !r.height || cs.visibility === 'hidden') continue;
+   if (r.bottom > limit + 6) out.push('runs into the footer (' + Math.round(r.bottom - limit) + 'px): ' + e.textContent.trim().slice(0, 40));
+   if (r.top < top - 1) out.push('runs into the header: ' + e.textContent.trim().slice(0, 40));
    if (cs.whiteSpace === 'nowrap' && e.scrollWidth > e.clientWidth + 1 && e.clientWidth > 0) out.push('text cut off: ' + e.textContent.slice(0, 40));
-   const r = e.getBoundingClientRect();
-   if (r.width && (r.right > 1081 || r.left < -1) && !/560px/.test(e.style.fontSize)) out.push('leaves the slide: ' + e.textContent.slice(0, 40));
+   if ((r.right > 1001 || r.left < 79) && e.textContent.trim()) out.push('leaves the margins: ' + e.textContent.trim().slice(0, 40));
  }
- return [...new Set(out)];
+ return [...new Set(out)].slice(0, 6);
 }"""
 
 
@@ -54,11 +67,12 @@ def plain_page(slide_html):
     return f"<!doctype html><html><head><meta charset='utf-8'><style>{FONT_CSS}body{{margin:0}}</style></head><body>{slide_html}</body></html>"
 
 
-def weekdays(start, n):
+def posting_dates(start, n, daily=False):
+    """One posting date per post: the next weekdays, or every calendar day with daily=True."""
     import datetime as dt
     d, out = dt.date.fromisoformat(start), []
     while len(out) < n:
-        if d.weekday() < 5:
+        if daily or d.weekday() < 5:
             out.append(d.isoformat())
         d += dt.timedelta(days=1)
     return out
@@ -73,13 +87,14 @@ def main():
     ap.add_argument("--test", action="store_true", help="run the four-language tests against ref.py")
     ap.add_argument("--export", action="store_true", help="final PNGs + MP4 + MDX + caption + alt text, zipped per post")
     ap.add_argument("--start", help="posting date of the first post (YYYY-MM-DD); later posts take the next weekdays")
+    ap.add_argument("--daily", action="store_true", help="with --start: later posts take the next calendar days, weekends included")
     ap.add_argument("--force", action="store_true", help="render even if validation fails")
     a = ap.parse_args()
     if a.export:
         a.png, a.video, a.test = "final", "final", True
     folders = sorted(Path(f) for f in a.folders)
     import datetime as dt
-    dates = weekdays(a.start or dt.date.today().isoformat(), len(folders))
+    dates = posting_dates(a.start or dt.date.today().isoformat(), len(folders), a.daily)
     failed = [f.name for f, d in zip(folders, dates) if not one(f, a, d)]
     if len(folders) > 1:
         print(f"\nDONE {len(folders) - len(failed)}/{len(folders)} posts" + (f"; FAILED: {', '.join(failed)}" if failed else ""))
@@ -144,8 +159,8 @@ def one(folder, a, published):
             if r:
                 bad_layout = True
                 print(f"LAYOUT slide {x['n']:02d}:", "; ".join(r))
-        if a.export and bad_layout and not a.force:
-            print("export stopped: fix the layout problems first")
+        if bad_layout and not a.force:
+            print("LAYOUT FAILED: fix the slides above first (or pass --force for a look)")
             br.close()
             return False
         if a.png:
@@ -181,7 +196,7 @@ def export(folder, post, ns, seq, slides, vs, out, tested, published):
     pk.mkdir()
     for x in slides:
         src = out / (f"slide-{x['n']:02d}.mp4" if vs and x is vs else f"png/slide-{x['n']:02d}.png")
-        shutil.copy(src, pk / src.name)
+        shutil.copyfile(src, pk / src.name)
     # blog page: protect the kit's markers, compute {{ }} from ref.py, then fill the markers
     body = (folder / "blog.md").read_text()
     marks = {k: f"@@{k}@@" for k in ("PSEUDOCODE", "CODE", "TESTED")}
@@ -235,7 +250,10 @@ def render_pngs(br, slides, out, scale):
             big = f.with_name(f.stem + "@3x.png")
             f.rename(big)
             if deband.exists():
-                subprocess.run([sys.executable, str(deband), str(big), str(f)], check=True, capture_output=True)
+                r = subprocess.run([sys.executable, str(deband), str(big), str(f)], capture_output=True, text=True)
+                if r.returncode:
+                    sys.exit(f"deband.py failed on {big.name}:\n{r.stderr.strip()}\n"
+                             "(missing packages? pip install --break-system-packages opencv-python-headless numpy scipy pillow)")
             else:
                 Image.open(big).convert("RGB").resize((1080, 1350), Image.LANCZOS).save(f)
             big.unlink()

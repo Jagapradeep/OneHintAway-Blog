@@ -14,7 +14,7 @@ GOLDTXT = ("background-image: linear-gradient(180deg, #FFF0C2 0%, #EBC566 55%, #
 GOLDGRAD = "linear-gradient(180deg, #FFF0C2 0%, #EBC566 55%, #C99A3F 100%)"
 CARD = ("background: linear-gradient(180deg, #1C1F25 0%, #15171C 100%); border: 1.5px solid #2B2F37; "
         "border-radius: 24px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 18px 40px rgba(0,0,0,0.25)")
-ROOT = ("width: 1080px; height: 1350px; box-sizing: border-box; padding: 72px 80px 64px; display: flex; "
+ROOT = ("width: 1080px; height: 1350px; box-sizing: border-box; padding: 72px 80px 64px; display: flex; text-wrap: pretty; "
         "flex-direction: column; position: relative; overflow: hidden; background-color: #08090B; "
         "background-image: radial-gradient(900px 620px at 12% -8%, #1B1E24 0%, rgba(27,30,36,0) 70%), "
         "radial-gradient(700px 500px at 100% 105%, #1B1D22 0%, rgba(27,29,34,0) 70%); color: #F5F6F8; "
@@ -39,8 +39,12 @@ ICON_LAYERS = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" strok
 ICON_CLOCK = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#A3CDF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'
 
 
+_NOBREAK = re.compile(r" ([−×÷≤≥→]) ")
+
+
 def esc(s):
-    return _html.escape(str(s), quote=False)
+    """Escape for HTML, and keep short maths like `n − 1` or `2 × r` on one line."""
+    return _NOBREAK.sub("\u00a0\\1\u00a0", _html.escape(str(s), quote=False))
 
 
 def md(s, mono_inline=True):
@@ -73,25 +77,28 @@ def title_html(s):
 
 # ---------- slide chrome ----------
 def header(n, total):
-    return (f'<div style="display: flex; justify-content: space-between; align-items: center">\n'
+    return (f'<div data-chrome="header" style="flex: none; display: flex; justify-content: space-between; align-items: center">\n'
             f'<div style="display: flex; align-items: center; gap: 14px">\n'
             f'<div style="width: 22px; height: 22px; border-radius: 6px; background-image: {GOLDGRAD}"></div>\n'
             f'<div style="font-family: {MONO}; font-size: 24px; font-weight: 600; letter-spacing: 4px; color: #D3D7DE">ONE HINT AWAY</div>\n'
             f'</div>\n'
             f'<div style="font-family: {MONO}; font-size: 24px; font-weight: 600; letter-spacing: 2px; color: #A2A8B3">{n:02d} <span style="color: #3A3F49">/</span> {total:02d}</div>\n'
             f'</div>\n'
-            + '<div style="margin-top: 20px; display: flex; gap: 8px">'
+            + '<div data-chrome="progress" style="flex: none; margin-top: 20px; display: flex; gap: 8px">'
             + "".join(f'<div style="flex: 1; height: 4px; border-radius: 2px; background: {GOLDGRAD if i < n else "#2B2F37"}"></div>' for i in range(total))
             + "</div>\n")
 
 
 def footer(teaser, last=False, spacer=True):
+    """Fixed footer: pinned 64px from the bottom on every slide, whatever the content does.
+    An invisible copy keeps its space in the flow, so bottom-anchored content stops above it."""
     pill = (f'{ICON_SAVE}Save this post' if last else f'{md(teaser, False)}{ICON_ARROW}')
+    inner = (f'<div style="font-family: {MONO}; font-size: 24px; font-weight: 500; color: #A2A8B3">@onehintaway</div>\n'
+             f'<div style="display: flex; align-items: center; gap: 10px; padding: 12px 24px; border: 1.5px solid #8A7444; border-radius: 999px; background: rgba(244,207,110,0.06); font-size: 28px; font-weight: 700; color: #F4CF6E; white-space: nowrap">{pill}</div>\n')
+    row = "display: flex; justify-content: space-between; align-items: center; padding-top: 22px; border-top: 1.5px solid #2B2F37"
     return (('<div style="margin-top: auto"></div>\n' if spacer else '') +
-            f'<div style="margin-top: 22px; padding-top: 22px; border-top: 1.5px solid #2B2F37; display: flex; justify-content: space-between; align-items: center">\n'
-            f'<div style="font-family: {MONO}; font-size: 24px; font-weight: 500; color: #A2A8B3">@onehintaway</div>\n'
-            f'<div style="display: flex; align-items: center; gap: 10px; padding: 12px 24px; border: 1.5px solid #8A7444; border-radius: 999px; background: rgba(244,207,110,0.06); font-size: 28px; font-weight: 700; color: #F4CF6E">{pill}</div>\n'
-            f'</div>\n')
+            f'<div data-chrome="footer-space" aria-hidden="true" style="margin-top: 22px; visibility: hidden; flex: none; {row}">\n{inner}</div>\n'
+            f'<div data-chrome="footer" style="position: absolute; left: 80px; right: 80px; bottom: 64px; {row}">\n{inner}</div>\n')
 
 
 def pill_label(text, color=STEEL, mt=40):
@@ -100,7 +107,7 @@ def pill_label(text, color=STEEL, mt=40):
 
 
 def h1(text, mt=22, size=92, weight=700, ls="-2.5px", lh="1.04"):
-    return (f'<h1 style="margin: {mt}px 0 0; font-family: {SORA}; font-weight: {weight}; font-size: {size}px; line-height: {lh}; letter-spacing: {ls}">{title_html(text)}</h1>\n')
+    return (f'<h1 style="margin: {mt}px 0 0; font-family: {SORA}; font-weight: {weight}; font-size: {size}px; line-height: {lh}; letter-spacing: {ls}; text-wrap: balance">{title_html(text)}</h1>\n')
 
 
 def lead(text, mt=20, size=38, lh=50):
@@ -371,3 +378,34 @@ def block(b):
     if t not in BLOCKS:
         raise ValueError(f"unknown block type '{t}'")
     return BLOCKS[t](b)
+
+# ---------- title fitting (measured with the real Sora file) ----------
+_SORA_FONTS = {}
+
+
+def text_width(text, size, weight=800, ls=-6.0):
+    """Width in px of one line of Sora at this size, letter-spacing included."""
+    import re
+    from pathlib import Path
+    from fontTools.ttLib import TTFont
+    if weight not in _SORA_FONTS:
+        f = TTFont(str(Path(__file__).resolve().parent.parent / "fonts" / f"sora-latin-{weight}-normal.woff2"))
+        _SORA_FONTS[weight] = (f.getBestCmap(), f["hmtx"], f["head"].unitsPerEm)
+    cmap, hmtx, upm = _SORA_FONTS[weight]
+    plain = re.sub(r"\*\*|\[\[|\]\]", "", text)
+    adv = sum(hmtx[cmap.get(ord(ch), cmap.get(ord("n")))][0] for ch in plain)
+    return adv * size / upm + ls * len(plain)
+
+
+def fit_title(text, size, weight=800, ls=-6.0, width=920, floor=104):
+    """Largest size <= `size` that keeps every line of the title on one line (never below `floor`).
+    Needs `pip install fonttools brotli`; without them the size is kept and the layout check still guards."""
+    lines = text.split("\n")
+    try:
+        text_width(lines[0], size, weight, ls)
+    except ImportError:
+        print("note: pip install fonttools brotli to auto-fit cover titles")
+        return size
+    while size > floor and max(text_width(l, size, weight, ls) for l in lines) > width - 4:
+        size -= 2
+    return size

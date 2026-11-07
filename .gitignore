@@ -9,3 +9,6 @@
 Thumbs.db
 .vscode/
 .idea/
+
+# post kit tools: installed with npm install
+post-kit/tools/node_modules/

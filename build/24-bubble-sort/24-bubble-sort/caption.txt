@@ -1,0 +1,11 @@
+Bubble sort explained: swap neighbours that are out of order, and stop after a sweep with no swaps (LeetCode 3011 practice).
+
+Each sweep carries the biggest unsorted value to the end, like a bubble rising.
+The trap: put the early-stop check inside the inner loop and 5 2 4 1 3 stops at 2 4 1 3 5.
+Practice: LeetCode 2418 (easy) and LeetCode 3011 (medium).
+
+Save it for revision.
+
+Full code in Java, Python, C++ and JavaScript: link in bio.
+
+#dsa #leetcode #codinginterview #sorting

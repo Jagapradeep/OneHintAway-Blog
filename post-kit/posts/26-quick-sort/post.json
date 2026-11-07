@@ -1,0 +1,357 @@
+{
+  "number": 26,
+  "slug": "quick-sort",
+  "kind": "concept",
+  "topic": "Quick Sort and Quickselect",
+  "category": "Sorting",
+  "next_post": "Reverse Pairs",
+  "cover": {
+    "title": "Quick sort",
+    "lead": "Pick a pivot and move smaller values to its left. Quickselect uses the same move.",
+    "use_it_when": "You need the k-th smallest or largest value: quickselect skips sorting the rest.",
+    "why_it_matters": "One move, partition, gives you both a fast sort and the k-th value in O(n) on average.",
+    "promise": "You'll write **partition** in {lines} lines.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch the pivots land",
+      "title": "Watch it sort",
+      "lead": "Quick sort on 5 2 4 1 3, last value as pivot.",
+      "video": {
+        "values": [
+          5,
+          2,
+          4,
+          1,
+          3
+        ],
+        "stage_label": "THE LINE",
+        "chips_label": "PIVOT LANDS",
+        "steps": "video_steps()",
+        "final": {
+          "steel": "all",
+          "eq": [
+            "sorted:",
+            "{{sp(quick_sort(EXAMPLE))}}"
+          ],
+          "caption": "Every pivot landed in its final slot."
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "The pivot kid",
+      "title": "Shorter to the left",
+      "scene": "Kids stand in a row. Pick the last kid as the pivot. Everyone shorter moves to the pivot's left, everyone taller to its right.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "label": "BEFORE",
+          "values": [
+            5,
+            2,
+            4,
+            1,
+            3
+          ],
+          "gold": [
+            4
+          ],
+          "under": {
+            "4": "pivot"
+          },
+          "size": "m"
+        },
+        {
+          "type": "card",
+          "text": "Now the pivot stands exactly where it will be in the sorted row. That move is called [[partition]]."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "One partition, up close",
+      "title": "The pivot is home",
+      "lead": "After one partition of 5 2 4 1 3. Each side is not sorted yet, but it is on the right side.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "values": [
+            2,
+            1,
+            3,
+            5,
+            4
+          ],
+          "steel": [
+            0,
+            1
+          ],
+          "gold": [
+            2
+          ],
+          "indexes": true,
+          "under": {
+            "0": "smaller",
+            "2": "pivot home",
+            "4": "bigger"
+          }
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "2 values are smaller than 3, so 3 lands in slot 2 for good."
+        }
+      ],
+      "quickcheck": {
+        "question": "Partition 3 5 1 2 4. The pivot is 4, the last value. Which slot does 4 land in?",
+        "answer": "Answer: slot {{spot_of([3, 5, 1, 2, 4])}}. Only 3, 1 and 2 are smaller.",
+        "check": "spot_of([3, 5, 1, 2, 4])"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "QUICK SORT",
+      "board": "Answer + quick sort",
+      "teaser": "The answer, then quick sort",
+      "title": "Partition both sides",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "whole row",
+              "values": [
+                2,
+                1,
+                3,
+                5,
+                4
+              ],
+              "gold": [
+                2
+              ]
+            },
+            {
+              "label": "left: 2 1",
+              "values": [
+                1,
+                2,
+                3,
+                5,
+                4
+              ],
+              "gold": [
+                0
+              ]
+            },
+            {
+              "label": "right: 5 4",
+              "values": [
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "gold": [
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "lines": [
+            "function quickSort(nums, low, high):",
+            "    if low < high:",
+            "        spot = partition(nums, low, high)",
+            "        quickSort(nums, low, spot - 1)",
+            "        quickSort(nums, spot + 1, high)"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "extra",
+      "label": "QUICKSELECT",
+      "board": "Quickselect",
+      "teaser": "Quickselect: keep one side",
+      "title": "Keep only one side",
+      "blocks": [
+        {
+          "type": "boxes",
+          "label": "WANT THE 4TH SMALLEST",
+          "values": [
+            2,
+            1,
+            3,
+            5,
+            4
+          ],
+          "dim": [
+            0,
+            1,
+            2
+          ],
+          "gold": [
+            3,
+            4
+          ],
+          "size": "m",
+          "note": "The 4th smallest belongs in slot 3: right side only."
+        },
+        {
+          "type": "code",
+          "lines": [
+            "function quickSelect(nums, k):",
+            "    low = 0",
+            "    high = length(nums) - 1",
+            "    while true:",
+            "        spot = partition(nums, low, high)",
+            "        if spot == k - 1:",
+            "            return nums[spot]",
+            "        if spot < k - 1:",
+            "            low = spot + 1",
+            "        else:",
+            "            high = spot - 1"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "Partition in 9 lines",
+      "title": "Partition",
+      "code": {
+        "lines": [
+          "function partition(nums, low, high):",
+          "    pivot = nums[high]",
+          "    wall = low   // next small slot",
+          "    for j from low to high - 1:",
+          "        if nums[j] < pivot:",
+          "            swap nums[wall], nums[j]",
+          "            wall = wall + 1",
+          "    swap nums[wall], nums[high]   // home",
+          "    return wall"
+        ],
+        "highlight": [
+          5
+        ]
+      },
+      "explain": "Everything left of wall is smaller than the pivot. Line 8 drops the pivot right after them.",
+      "example": {
+        "call": "partition([5, 2, 4, 1, 3], 0, 4)",
+        "expr": "spot_of([5, 2, 4, 1, 3])",
+        "show": "{{SPOT}}"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "The k-th largest mix-up",
+      "title": "Flip k for largest",
+      "lead": "quickSelect counts from the smallest.",
+      "trap": {
+        "call": "kthLargest([5, 2, 4, 1, 3], k = 2)",
+        "wrong": {
+          "code": [
+            "quickSelect(nums, k)"
+          ],
+          "note": "That's the 2nd smallest.",
+          "result": "{{wrong_kth_largest(EXAMPLE, 2)}}"
+        },
+        "right": {
+          "code": [
+            "quickSelect(nums, n - k + 1)"
+          ],
+          "note": "2nd largest = 4th smallest of 5.",
+          "result": "{{kth_largest(EXAMPLE, 2)}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Quick sort, average",
+            "value": "O(n log n)"
+          },
+          {
+            "label": "Quickselect, average",
+            "value": "O(n)",
+            "gold": true
+          },
+          {
+            "label": "Worst case",
+            "value": "O(n²)"
+          }
+        ],
+        "note": "Sorted input is the worst case. A random pivot avoids it."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Pivot lands home",
+        "Sort: both sides",
+        "Select: one side"
+      ],
+      "problems": [
+        {
+          "difficulty": "Easy",
+          "id": 2099,
+          "title": "Find Subsequence of Length K With the Largest Sum",
+          "note": "Quickselect the k largest, then keep them in order.",
+          "complexity": "n",
+          "constraints": {
+            "n": 1000
+          },
+          "url": "https://leetcode.com/problems/find-subsequence-of-length-k-with-the-largest-sum/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 215,
+          "title": "Kth Largest Element in an Array",
+          "note": "Ask for the (n − k + 1)-th smallest, with a random pivot.",
+          "complexity": "n",
+          "constraints": {
+            "n": 100000
+          },
+          "url": "https://leetcode.com/problems/kth-largest-element-in-an-array/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Sorting",
+    "section": "Recursion and sorting",
+    "summary": "Partition puts a pivot in its final slot, so quickselect keeps only the side that holds the k-th value.",
+    "tags": [
+      "sorting",
+      "quick-sort",
+      "quickselect",
+      "partition"
+    ],
+    "tested_what": "Quick sort and quickselect",
+    "tested_inputs": "hand-picked cases (one value, two values, all equal, sorted, reversed, values at the 32-bit limits, repeated values, and 5 2 4 1 3 with k = 3 and k = 4), one array of 1,000 random values with a random k, and random arrays of up to 12 values with a random k",
+    "tested_against": "Python's built-in sort (the sorted array, and its value at index k − 1)",
+    "tested_extra": "Every swap in the walk-through, the quick-check slot and both trap results come from running the code."
+  },
+  "caption": {
+    "first": "Quick sort and quickselect explained: partition around a pivot, then recurse on both sides or just one (LeetCode 215 practice).",
+    "lines": [
+      "After one partition the pivot is in its final slot, so quickselect only follows the side that holds slot k.",
+      "The trap: quickSelect counts from the smallest. For the 2nd largest of 5 2 4 1 3, ask for the 4th smallest.",
+      "Practice: LeetCode 2099 (easy) and LeetCode 215 (medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#sorting",
+      "#quickselect"
+    ]
+  }
+}

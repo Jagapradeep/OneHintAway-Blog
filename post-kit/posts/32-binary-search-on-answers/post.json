@@ -1,0 +1,286 @@
+{
+  "number": 32,
+  "slug": "binary-search-on-answers",
+  "kind": "concept",
+  "topic": "Binary Search on Answers",
+  "category": "Binary search",
+  "next_post": "Minimise max distance between gas stations",
+  "cover": {
+    "title": "Answer search",
+    "lead": "No sorted array? Binary search the answers when every answer past one point works.",
+    "use_it_when": "A problem asks for the smallest or largest value that still meets a limit.",
+    "why_it_matters": "It turns many hard-looking minimise or maximise problems into one yes/no check.",
+    "promise": "You'll write the **speed search** in {lines} lines.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch the speeds get tested",
+      "title": "Watch it search",
+      "lead": "Speeds 1 to 11 for piles 3 6 7 11 in 8 hours.",
+      "video": {
+        "values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "stage_label": "POSSIBLE SPEEDS",
+        "chips_label": "SPEED: HOURS",
+        "steps": "video_steps()",
+        "final": {
+          "gold": [
+            3
+          ],
+          "eq": [
+            "slowest speed =",
+            "{{ANSWER}}"
+          ],
+          "caption": "Speed {{ANSWER}} finishes in {{hours_at(PILES, ANSWER)}} hours. Speed {{ANSWER - 1}} can't."
+        },
+        "indexes": false
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "Homework against the clock",
+      "title": "Read fast enough",
+      "scene": "Four piles of homework pages: 3, 6, 7 and 11. Each hour you read from one pile only. You have 8 hours. How slowly can you read?",
+      "blocks": [
+        {
+          "type": "bars",
+          "heights": [
+            3,
+            6,
+            7,
+            11
+          ],
+          "unit": 26,
+          "label": "PAGES IN EACH PILE"
+        },
+        {
+          "type": "card",
+          "text": "There's no sorted array here. But the [[speeds]] are in order, and a faster speed never takes longer."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "Too slow, then fast enough",
+      "title": "No, no, then yes",
+      "lead": "Slow speeds fail; every faster one works.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "values": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            "…",
+            11
+          ],
+          "size": "s",
+          "dim": [
+            0,
+            1,
+            2
+          ],
+          "gold": [
+            3
+          ],
+          "under": {
+            "1": "too slow",
+            "3": "answer",
+            "6": "fast enough"
+          }
+        },
+        {
+          "type": "compare",
+          "rows": [
+            {
+              "main": "speed 3",
+              "sub": "{{' + '.join(str(-(-x // 3)) for x in PILES)}}",
+              "value": "{{hours_at(PILES, 3)}} h"
+            },
+            {
+              "main": "speed 4",
+              "sub": "{{' + '.join(map(str, PER_PILE))}}",
+              "value": "{{hours_at(PILES, 4)}} h",
+              "gold": true
+            }
+          ]
+        }
+      ],
+      "quickcheck": {
+        "question": "Piles 3 6 7 11 at speed 6: how many hours?",
+        "answer": "Answer: {{hours_at(PILES, 6)}} hours: 1 + 1 + 2 + 2.",
+        "check": "hours_at(PILES, 6)"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "THE CHECK",
+      "board": "Answer + the check",
+      "teaser": "The answer, then the check",
+      "title": "Hours at one speed",
+      "blocks": [
+        {
+          "type": "code",
+          "lines": [
+            "function hoursAt(piles, speed):",
+            "    total = 0",
+            "    for each pile in piles:",
+            "        total = total + ceil(pile / speed)",
+            "    return total"
+          ]
+        },
+        {
+          "type": "text",
+          "text": "ceil rounds up: 7 pages at speed 4 take 2 hours, because the last 3 pages still need a whole hour."
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "The search in 10 lines",
+      "title": "Slowest speed that works",
+      "code": {
+        "lines": [
+          "function minSpeed(piles, hours):",
+          "    low = 1",
+          "    high = max(piles)",
+          "    while low < high:",
+          "        speed = floor((low + high) / 2)",
+          "        if hoursAt(piles, speed) <= hours:",
+          "            high = speed   // fast enough",
+          "        else:",
+          "            low = speed + 1   // too slow",
+          "    return low"
+        ],
+        "highlight": [
+          6
+        ]
+      },
+      "explain": "Lower bound from post 29, over speeds. high = max(piles): faster than the biggest pile never helps.",
+      "example": {
+        "call": "minSpeed([3, 6, 7, 11], 8)",
+        "expr": "ANSWER",
+        "show": "{{ANSWER}}"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "Round up, not down",
+      "title": "Round up the hours",
+      "lead": "pile / speed in whole numbers rounds down. The last part-hour of each pile goes missing.",
+      "trap": {
+        "call": "minSpeed([3, 6, 7, 11], 8)",
+        "wrong": {
+          "code": [
+            "floor(pile / speed)"
+          ],
+          "note": "Speed 3 looks like {{wrong_hours_at(PILES, 3)}} hours, but it takes {{hours_at(PILES, 3)}}.",
+          "result": "{{wrong_min_speed(PILES, HOURS)}}"
+        },
+        "right": {
+          "code": [
+            "ceil(pile / speed)"
+          ],
+          "note": "A part-hour is still an hour.",
+          "result": "{{ANSWER}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Time",
+            "value": "O(n log m)",
+            "gold": true
+          },
+          {
+            "label": "Extra space",
+            "value": "O(1)"
+          },
+          {
+            "label": "Try every speed",
+            "value": "O(n · m)"
+          }
+        ],
+        "note": "n piles, m = the biggest pile. Each of the log m checks walks all n piles."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Search the answers",
+        "No, no, yes, yes",
+        "Check rounds up"
+      ],
+      "problems": [
+        {
+          "difficulty": "Easy",
+          "id": 69,
+          "title": "Sqrt(x)",
+          "note": "Search 0 to x for the last value whose square is at most x.",
+          "complexity": "log(n)",
+          "constraints": {
+            "n": 2147483647
+          },
+          "url": "https://leetcode.com/problems/sqrtx/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 875,
+          "title": "Koko Eating Bananas",
+          "note": "This post's template, with bananas and h hours.",
+          "complexity": "n*log(m)",
+          "constraints": {
+            "n": 10000,
+            "m": 1000000000
+          },
+          "url": "https://leetcode.com/problems/koko-eating-bananas/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Binary search",
+    "section": "Binary search",
+    "summary": "When every value past some point works, binary search the possible answers for the first one that does.",
+    "tags": [
+      "binary-search",
+      "binary-search-on-answer"
+    ],
+    "tested_what": "The speed search",
+    "tested_inputs": "hand-picked cases (the LeetCode 875 examples, one pile, piles at 10⁹ with tight and loose hours, all piles equal, hours equal to the number of piles), 10,000 random piles up to 10⁹, 10,000 piles of 10⁹ (where the total hours pass the 32-bit limit), and random small cases",
+    "tested_against": "a brute force that tries every speed from 1 up (and, for huge piles, a library binary search over the same check)",
+    "tested_extra": "The speeds in the walk-through, the hour counts, the quick-check answer and the trap result come from running the code."
+  },
+  "caption": {
+    "first": "Binary search on answers explained: find the slowest speed that still finishes in time (LeetCode 875 Koko Eating Bananas).",
+    "lines": [
+      "There's no sorted array, but the answers are in order: slow speeds fail, and once one works, every faster one works.",
+      "The trap: round the hours down and piles 3 6 7 11 in 8 hours give speed {{wrong_min_speed(PILES, HOURS)}} instead of {{ANSWER}}.",
+      "Practice: LeetCode 69 (easy) and LeetCode 875 (medium)."
+    ],
+    "cta": "Which problem have you seen that hides an answer to search?",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#binarysearch"
+    ]
+  }
+}

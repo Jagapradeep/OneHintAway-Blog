@@ -1,0 +1,288 @@
+{
+  "number": 29,
+  "slug": "lower-upper-bound",
+  "kind": "concept",
+  "topic": "Lower and Upper Bound",
+  "category": "Binary search",
+  "next_post": "Rotated sorted arrays",
+  "cover": {
+    "title": "Lower bound",
+    "lead": "Find the first slot whose value is at least the target. Upper bound comes free.",
+    "use_it_when": "Values repeat and you need the first one, the last one, or how many there are.",
+    "why_it_matters": "Many binary search problems ask for a first or last position, not just any match.",
+    "promise": "You'll write **lower bound** in {lines} lines.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch both ends get found",
+      "title": "Watch it search",
+      "lead": "Where do the 2s start and stop in 1 2 2 2 4 5?",
+      "video": {
+        "values": [
+          1,
+          2,
+          2,
+          2,
+          4,
+          5
+        ],
+        "stage_label": "SORTED ARRAY",
+        "chips_label": "MIDDLE VS TARGET",
+        "steps": "video_steps()",
+        "final": {
+          "gold": [
+            1,
+            2,
+            3
+          ],
+          "eq": [
+            "2s in slots",
+            "{{LOWER}} to {{UPPER - 1}}"
+          ],
+          "caption": "lowerBound(2) = {{LOWER}}, lowerBound(3) = {{UPPER}}: {{COUNT}} twos."
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "The library shelf",
+      "title": "The first copy",
+      "scene": "A library shelf is sorted by book number, with three copies of book 2. You need the first copy, and the spot just after the last one.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "values": [
+            1,
+            2,
+            2,
+            2,
+            4,
+            5
+          ],
+          "gold": [
+            1,
+            2,
+            3
+          ],
+          "indexes": true,
+          "under": {
+            "1": "first copy",
+            "4": "just after"
+          }
+        },
+        {
+          "type": "card",
+          "text": "Plain binary search stops at [[any]] copy of 2. Here we need the edges."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "Two edges, one function",
+      "title": "First slot ≥ target",
+      "lead": "lowerBound(t) is the first slot whose value is at least t. Ask for t + 1 and you get the end of the run.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "values": [
+            1,
+            2,
+            2,
+            2,
+            4,
+            5
+          ],
+          "gold": [
+            1
+          ],
+          "steel": [
+            4
+          ],
+          "indexes": true,
+          "under": {
+            "1": "lowerBound(2)",
+            "4": "lowerBound(3)"
+          }
+        },
+        {
+          "type": "equation",
+          "text": "twos = [[{{UPPER}}]] − **{{LOWER}}** = {{COUNT}}"
+        }
+      ],
+      "quickcheck": {
+        "question": "In 1 2 2 2 4 5, what is lowerBound(6)? No value is 6 or more.",
+        "answer": "Answer: {{lower_bound(EXAMPLE, 6)}}, one past the end. That's why high starts at length(nums).",
+        "check": "lower_bound(EXAMPLE, 6)"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "MISSING VALUES",
+      "board": "Answer + missing values",
+      "teaser": "The answer, then a missing value",
+      "title": "When it isn't there",
+      "blocks": [
+        {
+          "type": "compare",
+          "rows": [
+            {
+              "main": "t = 2",
+              "sub": "lowerBound(2) = {{lower_bound(EXAMPLE, 2)}}, lowerBound(3) = {{lower_bound(EXAMPLE, 3)}}",
+              "value": "{{count_of(EXAMPLE, 2)}} twos",
+              "gold": true
+            },
+            {
+              "main": "t = 3",
+              "sub": "lowerBound(3) = {{lower_bound(EXAMPLE, 3)}}, lowerBound(4) = {{lower_bound(EXAMPLE, 4)}}",
+              "value": "{{count_of(EXAMPLE, 3)}} threes"
+            },
+            {
+              "main": "t = 5",
+              "sub": "lowerBound(5) = {{lower_bound(EXAMPLE, 5)}}, lowerBound(6) = {{lower_bound(EXAMPLE, 6)}}",
+              "value": "{{count_of(EXAMPLE, 5)}} five"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "Both bounds land on the same slot when the value is missing. The count is 0, and that slot is where it would go."
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "Lower bound in 10 lines",
+      "title": "Lower bound",
+      "code": {
+        "lines": [
+          "function lowerBound(nums, target):",
+          "    low = 0",
+          "    high = length(nums)   // one past the end",
+          "    while low < high:",
+          "        middle = floor((low + high) / 2)",
+          "        if nums[middle] < target:",
+          "            low = middle + 1",
+          "        else:",
+          "            high = middle   // may be it",
+          "    return low"
+        ],
+        "highlight": [
+          9
+        ]
+      },
+      "example": {
+        "call": "lowerBound([1, 2, 2, 2, 4, 5], 2)",
+        "expr": "LOWER",
+        "show": "{{LOWER}}"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "The search that finds the wrong 2",
+      "title": "Any match isn't first",
+      "lead": "Post 28's search returns as soon as it sees a 2. That's a 2, not the first 2.",
+      "trap": {
+        "call": "first 2 in [1, 2, 2, 2, 4, 5]",
+        "wrong": {
+          "code": [
+            "if nums[middle] == target:",
+            "    return middle"
+          ],
+          "note": "It stops at the middle 2.",
+          "result": "{{first_match_search(EXAMPLE, 2)}}"
+        },
+        "right": {
+          "code": [
+            "else:",
+            "    high = middle"
+          ],
+          "note": "It keeps going left.",
+          "result": "{{LOWER}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Each bound",
+            "value": "O(log n)",
+            "gold": true
+          },
+          {
+            "label": "Count of a value",
+            "value": "O(log n)"
+          },
+          {
+            "label": "Extra space",
+            "value": "O(1)"
+          }
+        ],
+        "note": "Two bounds give the first, the last and the count."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "First slot ≥ target",
+        "high = length(nums)",
+        "Upper uses t + 1"
+      ],
+      "problems": [
+        {
+          "difficulty": "Easy",
+          "id": 35,
+          "title": "Search Insert Position",
+          "note": "It's lowerBound(nums, target).",
+          "complexity": "log(n)",
+          "constraints": {
+            "n": 10000
+          },
+          "url": "https://leetcode.com/problems/search-insert-position/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 34,
+          "title": "Find First and Last Position of Element in Sorted Array",
+          "note": "last = lowerBound(t + 1) − 1.",
+          "complexity": "log(n)",
+          "constraints": {
+            "n": 100000
+          },
+          "url": "https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Binary search",
+    "section": "Binary search",
+    "summary": "Lower bound finds the first slot whose value is at least the target, which gives the first, last and count.",
+    "tags": [
+      "binary-search",
+      "lower-bound",
+      "upper-bound"
+    ],
+    "tested_what": "Lower bound, for the target and for target + 1",
+    "tested_inputs": "hand-picked cases (empty array, one value, all equal, targets below, inside and above every value, the LeetCode 34 examples, values at the problem's limits), one sorted array of 100,000 values with many repeats, and random sorted arrays of up to 15 values with repeats",
+    "tested_against": "Python's bisect_left",
+    "tested_extra": "The steps in the walk-through, the quick-check answer and the trap result come from running the code."
+  },
+  "caption": {
+    "first": "Lower bound and upper bound explained: binary search for the first slot whose value is at least the target (LeetCode 34 and 35).",
+    "lines": [
+      "Upper bound is lower bound of target + 1, so one function gives the first slot, the last slot and the count.",
+      "The trap: post 28's search returns the first 2 it meets, slot {{first_match_search(EXAMPLE, 2)}} of 1 2 2 2 4 5, not the first 2 at slot {{LOWER}}.",
+      "Practice: LeetCode 35 (easy) and LeetCode 34 (medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#binarysearch"
+    ]
+  }
+}

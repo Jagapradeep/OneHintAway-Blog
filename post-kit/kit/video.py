@@ -5,7 +5,8 @@ Pacing follows design.md 6b: glide 1.2 s, equation fades in, ~1 s pause,
 result, chip lands; ~3.8 s per step; final answer held 4 s, then a fade."""
 import json
 
-MOVE, EQ_IN, RES_IN, CHIP_IN, STEP = 1.2, 1.0, 2.6, 3.2, 3.8
+# Caption and equation start with the movement; result and chip land as the boxes arrive.
+MOVE, EQ_IN, RES_IN, CHIP_IN, STEP = 1.2, 0.0, 1.1, 1.2, 3.8
 FINAL_IN, HOLD, FADE = 1.6, 4.0, 0.8
 
 
@@ -218,11 +219,11 @@ window.draw = function(t){
     if (a !== undefined && b !== undefined) x = lerp(slotX(a), slotX(b), e);
     d.style.left = r1(x)+'px'; d.style.opacity = r2(o*intro); sig.push(r1(x), r2(o)); }
   const same = S0 && JSON.stringify(S0.eq) === JSON.stringify(S1.eq);
-  const eqIn = S1.final ? T.FINAL_IN - 0.4 : T.EQ_IN, resIn = S1.final ? T.FINAL_IN + 0.2 : T.RES_IN;
+  const eqIn = S1.final ? 0 : T.EQ_IN, resIn = S1.final ? T.FINAL_IN - 0.1 : T.RES_IN;
   setEq(eqB, S1.eq, S1.final); setEq(eqA, S0 && S0.eq, S0 && S0.final);
-  const outA = same ? 0 : sm(u / 0.6);
+  const outA = same ? 0 : sm(u / 0.25);
   eqA.style.opacity = S0 && !same ? r2(1 - outA) : 0; eqA.style.transform = `translateY(${r1(-14*outA)}px)`;
-  const pin = same ? 1 : sm((u - eqIn) / 0.6), rin = same ? 1 : sm((u - resIn) / 0.5);
+  const pin = same ? 1 : sm((u - eqIn - 0.25) / 0.35), rin = same ? 1 : sm((u - resIn) / 0.4);
   eqB.p.style.opacity = r2(pin); eqB.r.style.opacity = r2(rin); eqB.style.transform = `translateY(${r1(14*(1-pin))}px)`;
   sig.push(r2(outA), r2(pin), r2(rin));
   TL.chips.forEach((c,i) => { const d = chips[i]; const o = c.step < k ? 1 : c.step === k ? sm((u - (S1.final ? T.FINAL_IN : T.CHIP_IN)) / 0.5) : 0;
@@ -230,7 +231,7 @@ window.draw = function(t){
   const cs = S0 && S0.caption === S1.caption;
   capA.textContent = S0 ? S0.caption : ''; capB.textContent = S1.caption;
   capB.style.color = S1.final ? '#CBE6FB' : '#F5F6F8'; capA.style.color = S0 && S0.final ? '#CBE6FB' : '#F5F6F8';
-  const cOut = cs ? 0 : sm(u/0.6), cIn = cs ? 1 : sm((u - eqIn)/0.6);
+  const cOut = cs ? 0 : sm(u/0.25), cIn = cs ? 1 : sm((u - eqIn - 0.25)/0.35);
   capA.style.opacity = S0 && !cs ? r2(1-cOut) : 0; capB.style.opacity = r2(cIn);
   capB.style.transform = `translateY(${r1(10*(1-cIn))}px)`; sig.push(r2(cOut), r2(cIn), k);
   return sig.join('|');

@@ -1,0 +1,11 @@
+function bubbleSort(nums):
+    n = length(nums)
+    for sweep from 1 to n - 1:
+        swapped = false
+        for j from 0 to n - 1 - sweep:
+            if nums[j] > nums[j + 1]:
+                swap nums[j], nums[j + 1]
+                swapped = true
+        if not swapped:
+            return nums   // already sorted
+    return nums

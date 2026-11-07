@@ -45,7 +45,7 @@ def run_tests(folder, ns, work):
         if d.exists():
             shutil.rmtree(d)
         d.mkdir()
-        shutil.copy(src, d / fn)
+        shutil.copyfile(src, d / fn)
         cmd = {"Java": f"javac -d out {fn} && java -cp out Main", "Python": f"python3 {fn}",
                "C++": f"g++ -std=c++17 -O2 {fn} -o a.out && ./a.out", "JavaScript": f"node {fn}"}[name]
         r = subprocess.run(cmd, shell=True, cwd=d, input=stdin, capture_output=True, text=True, timeout=300)

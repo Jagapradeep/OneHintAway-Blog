@@ -1,0 +1,276 @@
+{
+  "number": 30,
+  "slug": "rotated-sorted-array",
+  "kind": "concept",
+  "topic": "Rotated Sorted Arrays",
+  "category": "Binary search",
+  "next_post": "Binary search in a 2D matrix",
+  "cover": {
+    "title": "Rotated arrays",
+    "lead": "Sorted, then cut once. Compare the middle with the last value to find the drop.",
+    "use_it_when": "The array rises, drops once, then rises again, and you need the minimum or a target.",
+    "why_it_matters": "It shows binary search needs a yes/no question, not a fully sorted array.",
+    "promise": "You'll write **findMin** in {lines} lines.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch it find the drop",
+      "title": "Watch it search",
+      "lead": "Find the minimum of 4 5 6 1 2 3.",
+      "video": {
+        "values": [
+          4,
+          5,
+          6,
+          1,
+          2,
+          3
+        ],
+        "stage_label": "ROTATED ARRAY",
+        "chips_label": "MIDDLE VS LAST",
+        "steps": "video_steps()",
+        "final": {
+          "gold": [
+            3
+          ],
+          "eq": [
+            "minimum =",
+            "{{MIN}}"
+          ],
+          "caption": "low meets high at slot {{MIN_AT}}: the minimum is {{MIN}}."
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "The cut deck",
+      "title": "A cut deck",
+      "scene": "A sorted deck of cards is cut once: the top part goes to the bottom. Now it rises, drops once, and rises again.",
+      "blocks": [
+        {
+          "type": "bars",
+          "heights": [
+            4,
+            5,
+            6,
+            1,
+            2,
+            3
+          ],
+          "unit": 44,
+          "gold": [
+            3
+          ],
+          "label": "THE SMALLEST CARD SITS AT THE DROP"
+        },
+        {
+          "type": "card",
+          "text": "Find the drop and you have the smallest card. You don't need to look at every card."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "One compare picks the side",
+      "title": "Check the last value",
+      "lead": "Values before the drop beat the last one.",
+      "blocks": [
+        {
+          "type": "bars",
+          "heights": [
+            4,
+            5,
+            6,
+            1,
+            2,
+            3
+          ],
+          "unit": 36,
+          "gold": [
+            2
+          ],
+          "steel": [
+            5
+          ],
+          "indexes": true
+        },
+        {
+          "type": "equation",
+          "text": "**6** > [[3]] → the drop is right of the middle"
+        }
+      ],
+      "quickcheck": {
+        "question": "6 7 1 2 3 4 5: which slot holds its minimum?",
+        "answer": "Answer: slot {{find_min_index([6, 7, 1, 2, 3, 4, 5])}}, the 1. The drop comes after 7.",
+        "check": "find_min_index([6, 7, 1, 2, 3, 4, 5])"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "SEARCH A TARGET",
+      "board": "Answer + search a target",
+      "teaser": "The answer, then a target",
+      "title": "One half is sorted",
+      "blocks": [
+        {
+          "type": "boxes",
+          "label": "FIND 2 IN 4 5 6 1 2 3",
+          "values": [
+            4,
+            5,
+            6,
+            1,
+            2,
+            3
+          ],
+          "steel": [
+            0,
+            1,
+            2
+          ],
+          "gold": [
+            4
+          ],
+          "indexes": true,
+          "note": "4 ≤ 6, so slots 0 to 2 are sorted. 2 isn't between 4 and 6, so search the right half."
+        },
+        {
+          "type": "text",
+          "text": "Any middle splits the array into two halves, and at least one of them is sorted. Check if the target fits inside the sorted one. That's LeetCode 33."
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "Find the minimum in 10 lines",
+      "title": "Find the minimum",
+      "code": {
+        "lines": [
+          "function findMin(nums):",
+          "    low = 0",
+          "    high = length(nums) - 1",
+          "    while low < high:",
+          "        middle = floor((low + high) / 2)",
+          "        if nums[middle] > nums[high]:",
+          "            low = middle + 1",
+          "        else:",
+          "            high = middle",
+          "    return nums[low]"
+        ],
+        "highlight": [
+          6
+        ]
+      },
+      "explain": "Line 7: the drop is right of the middle. Line 9: the middle may be the minimum, so keep it.",
+      "example": {
+        "call": "findMin([4, 5, 6, 1, 2, 3])",
+        "expr": "MIN",
+        "show": "{{MIN}}"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "The compare that gives {{wrong_find_min(EXAMPLE)}}",
+      "title": "Use high, not low",
+      "lead": "Compare with nums[low] and the drop can hide.",
+      "trap": {
+        "call": "findMin([4, 5, 6, 1, 2, 3])",
+        "wrong": {
+          "code": [
+            "nums[middle] > nums[low]"
+          ],
+          "note": "2 > 1 sends it past the 1.",
+          "result": "{{wrong_find_min(EXAMPLE)}}"
+        },
+        "right": {
+          "code": [
+            "nums[middle] > nums[high]"
+          ],
+          "note": "The last value always sits after the drop.",
+          "result": "{{MIN}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Time",
+            "value": "O(log n)",
+            "gold": true
+          },
+          {
+            "label": "Extra space",
+            "value": "O(1)"
+          },
+          {
+            "label": "Scan for the min",
+            "value": "O(n)"
+          }
+        ],
+        "note": "Needs distinct values, as in LeetCode 153."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Compare with the last",
+        "Middle > last: go right",
+        "One half is sorted"
+      ],
+      "problems": [
+        {
+          "difficulty": "Medium",
+          "id": 153,
+          "title": "Find Minimum in Rotated Sorted Array",
+          "note": "This post's template, as it is.",
+          "complexity": "log(n)",
+          "constraints": {
+            "n": 5000
+          },
+          "url": "https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 33,
+          "title": "Search in Rotated Sorted Array",
+          "note": "Find the sorted half, then check if the target fits in it.",
+          "complexity": "log(n)",
+          "constraints": {
+            "n": 5000
+          },
+          "url": "https://leetcode.com/problems/search-in-rotated-sorted-array/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Binary search",
+    "section": "Binary search",
+    "summary": "In a sorted array cut once, compare the middle with the last value to know which side the drop is on.",
+    "tags": [
+      "binary-search",
+      "rotated-array"
+    ],
+    "tested_what": "Find the minimum",
+    "tested_inputs": "hand-picked cases (one value, two values both ways, the LeetCode 153 examples, no rotation, rotation by one at each end, values at the problem's limits), one rotated array of 5,000 values, and random rotated arrays of up to 15 distinct values",
+    "tested_against": "Python's min",
+    "tested_extra": "The steps in the walk-through, the quick-check slot and the trap result come from running the code."
+  },
+  "caption": {
+    "first": "Binary search on a rotated sorted array: find the minimum by comparing the middle with the last value (LeetCode 153 and 33).",
+    "lines": [
+      "Before the drop every value is bigger than the last one, after it none is. One compare picks the side.",
+      "The trap: compare with nums[low] instead and 4 5 6 1 2 3 returns {{wrong_find_min(EXAMPLE)}}, not {{MIN}}.",
+      "Practice: LeetCode 153 and LeetCode 33 (both medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#binarysearch"
+    ]
+  }
+}

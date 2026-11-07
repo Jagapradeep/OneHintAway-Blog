@@ -1,0 +1,331 @@
+{
+  "number": 23,
+  "slug": "selection-sort",
+  "kind": "concept",
+  "topic": "Selection Sort",
+  "category": "Sorting",
+  "next_post": "Bubble sort",
+  "cover": {
+    "title": "Selection sort",
+    "lead": "Find the smallest value, swap it to the front, then repeat on the rest.",
+    "use_it_when": "Writes are costly: selection sort makes at most n − 1 swaps.",
+    "why_it_matters": "It's the second of three basic sorts, after insertion sort in post 22.",
+    "promise": "You'll write **selection sort** in {lines} lines.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch the smallest move up",
+      "title": "Watch it sort",
+      "lead": "Selection sort on 5 2 4 1 3.",
+      "video": {
+        "values": [
+          5,
+          2,
+          4,
+          1,
+          3
+        ],
+        "stage_label": "THE ROW",
+        "chips_label": "SMALLEST: MOVE",
+        "steps": "video_steps()",
+        "final": {
+          "steel": "all",
+          "band": [
+            0,
+            4,
+            "SORTED PART"
+          ],
+          "eq": [
+            "sorted:",
+            "{{sp(selection_sort(EXAMPLE))}}"
+          ],
+          "caption": "Sorted after {{PASSES}} passes and only {{SWAPS}} swaps."
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "The line-up idea",
+      "title": "Picking a line-up",
+      "scene": "Kids wait in a row. Each round you call the shortest one still waiting, and they swap into the next spot at the front.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "label": "ROUND 1",
+          "values": [
+            5,
+            2,
+            4,
+            1,
+            3
+          ],
+          "gold": [
+            3
+          ],
+          "under": {
+            "3": "shortest"
+          },
+          "indexes": true
+        },
+        {
+          "type": "card",
+          "text": "The front of the row is the [[sorted part]]. It grows by one spot each round, and nobody in it moves again."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "Pass 3, up close",
+      "title": "Track the smallest",
+      "lead": "Pass 3 of the video, up close. Remember where the smallest sits, then swap once.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "smallest = 4",
+              "values": [
+                1,
+                2,
+                4,
+                5,
+                3
+              ],
+              "gold": [
+                2
+              ],
+              "steel": [
+                0,
+                1
+              ]
+            },
+            {
+              "label": "5 < 4? no",
+              "values": [
+                1,
+                2,
+                4,
+                5,
+                3
+              ],
+              "gold": [
+                2
+              ],
+              "dim": [
+                0,
+                1
+              ]
+            },
+            {
+              "label": "3 < 4? yes",
+              "values": [
+                1,
+                2,
+                4,
+                5,
+                3
+              ],
+              "gold": [
+                4
+              ],
+              "dim": [
+                0,
+                1
+              ]
+            },
+            {
+              "label": "swap once",
+              "values": [
+                1,
+                2,
+                3,
+                5,
+                4
+              ],
+              "gold": [
+                2
+              ],
+              "steel": [
+                0,
+                1
+              ]
+            }
+          ]
+        }
+      ],
+      "quickcheck": {
+        "question": "Selection sort on 4 3 2 1. How many swaps really move a value?",
+        "answer": "Answer: {{swaps([4, 3, 2, 1])}} swaps. 1 trades with 4, 2 trades with 3, and 3 is already home.",
+        "check": "swaps([4, 3, 2, 1])"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "WHEN TO PICK IT",
+      "board": "Answer + few swaps",
+      "teaser": "The answer, then the trade-off",
+      "title": "Fewest swaps",
+      "blocks": [
+        {
+          "type": "compare",
+          "rows": [
+            {
+              "main": "5 2 4 1 3",
+              "sub": "selection sort: swaps",
+              "value": "{{SWAPS}}",
+              "gold": true
+            },
+            {
+              "main": "5 2 4 1 3",
+              "sub": "insertion sort: shifts",
+              "value": "{{insertion_shifts(EXAMPLE)}}"
+            },
+            {
+              "main": "1 2 3 4 5",
+              "sub": "selection sort still compares",
+              "value": "{{compares(SORTED)}}"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "Selection sort always scans the rest. Pick it when moving a value costs more than looking."
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "Selection sort in 9 lines",
+      "title": "Selection sort",
+      "code": {
+        "lines": [
+          "function selectionSort(nums):",
+          "    n = length(nums)",
+          "    for i from 0 to n - 2:",
+          "        smallest = i   // an index",
+          "        for j from i + 1 to n - 1:",
+          "            if nums[j] < nums[smallest]:",
+          "                smallest = j",
+          "        swap nums[i], nums[smallest]",
+          "    return nums"
+        ],
+        "highlight": [
+          6
+        ]
+      },
+      "explain": "Lines 5 to 7 find the smallest. Line 8 swaps it into slot i.",
+      "example": {
+        "call": "selectionSort([5, 2, 4, 1, 3])",
+        "expr": "selection_sort([5, 2, 4, 1, 3])"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "The bug that gives {{sp(wrong_sort(EXAMPLE))}}",
+      "title": "Keep the index",
+      "lead": "Keep the smallest value, not its index, and the old nums[i] is lost.",
+      "trap": {
+        "call": "selectionSort([5, 2, 4, 1, 3])",
+        "wrong": {
+          "code": [
+            "smallest = nums[j]",
+            "nums[i] = smallest"
+          ],
+          "note": "The 5 is lost; 1 gets copied.",
+          "result": "{{sp(wrong_sort(EXAMPLE))}}"
+        },
+        "right": {
+          "code": [
+            "smallest = j",
+            "swap nums[i], nums[smallest]"
+          ],
+          "note": "The swap keeps every value.",
+          "result": "{{sp(selection_sort(EXAMPLE))}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Every input",
+            "value": "O(n²)"
+          },
+          {
+            "label": "Swaps",
+            "value": "O(n)",
+            "gold": true
+          },
+          {
+            "label": "Extra space",
+            "value": "O(1)"
+          }
+        ],
+        "note": "n(n − 1)/2 compares every time, but at most n − 1 swaps."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Find the smallest",
+        "Swap it once",
+        "At most n − 1 swaps"
+      ],
+      "problems": [
+        {
+          "difficulty": "Easy",
+          "id": 414,
+          "title": "Third Maximum Number",
+          "note": "Three selection passes for the biggest, skipping values you already picked.",
+          "complexity": "n",
+          "constraints": {
+            "n": 10000
+          },
+          "url": "https://leetcode.com/problems/third-maximum-number/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 969,
+          "title": "Pancake Sorting",
+          "note": "Each round, find the biggest pancake and flip it to the bottom: selection sort with flips.",
+          "complexity": "n^2",
+          "constraints": {
+            "n": 100
+          },
+          "url": "https://leetcode.com/problems/pancake-sorting/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Sorting",
+    "section": "Recursion and sorting",
+    "summary": "Selection sort finds the smallest value in the unsorted part and swaps it to the front, once per pass.",
+    "tags": [
+      "sorting",
+      "selection-sort",
+      "arrays"
+    ],
+    "tested_what": "Selection sort",
+    "tested_inputs": "hand-picked cases (empty, one value, two values, all equal, sorted, reversed, values at the 32-bit limits, repeated values, and 5 2 4 1 3), one array of 1,000 random values, and random arrays of up to 12 values",
+    "tested_against": "Python's built-in sort",
+    "tested_extra": "The pass-by-pass numbers, the swap counts, the quick-check answer and the trap result come from running the code."
+  },
+  "caption": {
+    "first": "Selection sort explained: find the smallest value, swap it to the front, repeat (LeetCode 969 practice).",
+    "lines": [
+      "Each pass scans the unsorted part for the smallest value and makes one swap, so it never needs more than n − 1 swaps.",
+      "The trap: remember the smallest value instead of its index and 5 2 4 1 3 turns into {{sp(wrong_sort(EXAMPLE))}}.",
+      "Practice: LeetCode 414 (easy) and LeetCode 969 (medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#sorting"
+    ]
+  }
+}

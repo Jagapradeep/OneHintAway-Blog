@@ -1,0 +1,8 @@
+Slide 1: Cover: Bubble sort. Swap neighbours that are out of order. Each sweep carries the biggest value to the end.
+Slide 2: Video: Watch it sort. Bubble sort on 5 2 4 1 3, one swap at a time. 7 swaps. Sweep 4 swaps nothing, so it stops.
+Slide 3: Swap neighbours. Kids stand in a line. Walk along it: whenever a taller kid stands just before a shorter one, they swap places. Boxes: 2, 4, 1, 3, 5.
+Slide 4: The 5 bubbles up. Sweep 1 of the video, up close. The 5 keeps winning, so it keeps moving right. Quick check: Bubble sort with the early stop on 1 2 3 5 4. How many sweeps run?
+Slide 5: Big ones race ahead.
+Slide 6: Bubble sort. Pseudocode, 11 lines.
+Slide 7: Stop after a sweep. Indent the early stop one level too far and it runs after every pair.
+Slide 8: Your turn: Swap neighbours, Biggest goes last, No swap: stop. Practice: LeetCode 2418 Sort the People; LeetCode 3011 Find if Array Can Be Sorted.

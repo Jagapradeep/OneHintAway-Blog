@@ -1,0 +1,318 @@
+{
+  "number": 28,
+  "slug": "binary-search",
+  "kind": "concept",
+  "topic": "Binary Search",
+  "category": "Binary search",
+  "next_post": "Lower and upper bound",
+  "cover": {
+    "title": "Binary search",
+    "lead": "In a sorted array, check the middle and throw away the half that can't hold the target.",
+    "use_it_when": "The array is sorted and you need to find a value faster than one by one.",
+    "why_it_matters": "Halving is the base of this whole block: bounds, rotated arrays, grids, answers.",
+    "promise": "You'll write **binary search** in {lines} lines.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch the range shrink",
+      "title": "Watch it search",
+      "lead": "Find 7 in 1 3 5 7 9 11.",
+      "video": {
+        "values": [
+          1,
+          3,
+          5,
+          7,
+          9,
+          11
+        ],
+        "stage_label": "SORTED ARRAY",
+        "chips_label": "MIDDLE VS TARGET",
+        "steps": "video_steps()",
+        "final": {
+          "gold": [
+            3
+          ],
+          "eq": [
+            "index of 7 =",
+            "{{FOUND}}"
+          ],
+          "caption": "Found after {{CHECKS}} checks. One by one takes {{FOUND + 1}}."
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "The guessing game",
+      "title": "Higher or lower",
+      "scene": "A friend picks a number from 1 to 100 and says higher or lower after each guess. Guess the middle, and half the numbers are gone.",
+      "blocks": [
+        {
+          "type": "compare",
+          "rows": [
+            {
+              "main": "guess 50",
+              "sub": "higher",
+              "value": "51 to 100 left"
+            },
+            {
+              "main": "guess 75",
+              "sub": "lower",
+              "value": "51 to 74 left"
+            },
+            {
+              "main": "guess 62",
+              "sub": "higher",
+              "value": "63 to 74 left",
+              "gold": true
+            }
+          ]
+        },
+        {
+          "type": "card",
+          "text": "Each guess halves what's left. That only works because the numbers are [[in order]]."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "The search, step by step",
+      "title": "Half goes each time",
+      "lead": "low and high fence the part that can still hold 7. The middle decides which half goes.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "5 < 7: go right",
+              "values": [
+                1,
+                3,
+                5,
+                7,
+                9,
+                11
+              ],
+              "gold": [
+                2
+              ]
+            },
+            {
+              "label": "9 > 7: go left",
+              "values": [
+                1,
+                3,
+                5,
+                7,
+                9,
+                11
+              ],
+              "gold": [
+                4
+              ],
+              "dim": [
+                0,
+                1,
+                2
+              ]
+            },
+            {
+              "label": "7: found",
+              "values": [
+                1,
+                3,
+                5,
+                7,
+                9,
+                11
+              ],
+              "gold": [
+                3
+              ],
+              "dim": [
+                0,
+                1,
+                2,
+                4,
+                5
+              ]
+            }
+          ]
+        }
+      ],
+      "quickcheck": {
+        "question": "Search 1 3 5 7 9 11 for 4. How many middles are checked before it returns -1?",
+        "answer": "Answer: {{checks(EXAMPLE, 4)}}. 5 is too big, 1 too small, 3 too small, then low passes high.",
+        "check": "checks(EXAMPLE, 4)"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "WHY IT'S FAST",
+      "board": "Answer + halving",
+      "teaser": "The answer, then why it's fast",
+      "title": "Each check halves it",
+      "blocks": [
+        {
+          "type": "compare",
+          "rows": [
+            {
+              "main": "6 values",
+              "sub": "this post's array",
+              "value": "{{max_checks(6)}} checks",
+              "gold": true
+            },
+            {
+              "main": "1,000 values",
+              "sub": "",
+              "value": "{{max_checks(1000)}} checks"
+            },
+            {
+              "main": "1,000,000 values",
+              "sub": "",
+              "value": "{{max_checks(10**6)}} checks"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "Doubling the array adds just one check. That's O(log n)."
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "Binary search in 12 lines",
+      "title": "Binary search",
+      "code": {
+        "lines": [
+          "function search(nums, target):",
+          "    low = 0",
+          "    high = length(nums) - 1",
+          "    while low <= high:",
+          "        middle = floor((low + high) / 2)",
+          "        if nums[middle] == target:",
+          "            return middle",
+          "        else if nums[middle] < target:",
+          "            low = middle + 1",
+          "        else:",
+          "            high = middle - 1",
+          "    return -1"
+        ],
+        "highlight": [
+          8
+        ]
+      },
+      "example": {
+        "call": "search([1, 3, 5, 7, 9, 11], 7)",
+        "expr": "FOUND",
+        "show": "{{FOUND}}"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "The bug that misses the 11",
+      "title": "Keep low <= high",
+      "lead": "With low < high the loop stops when one value is left, without checking it.",
+      "trap": {
+        "call": "search([1, 3, 5, 7, 9, 11], 11)",
+        "wrong": {
+          "code": [
+            "while low < high:"
+          ],
+          "note": "low and high meet on the 11, and the loop quits.",
+          "result": "{{wrong_search(EXAMPLE, 11)}}"
+        },
+        "right": {
+          "code": [
+            "while low <= high:"
+          ],
+          "note": "The last value gets its check.",
+          "result": "{{binary_search(EXAMPLE, 11)}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Time",
+            "value": "O(log n)",
+            "gold": true
+          },
+          {
+            "label": "Extra space",
+            "value": "O(1)"
+          },
+          {
+            "label": "One by one",
+            "value": "O(n)"
+          }
+        ],
+        "note": "1,000,000 sorted values need at most {{MAX_CHECKS}} checks."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Check the middle",
+        "Drop half each time",
+        "low <= high"
+      ],
+      "problems": [
+        {
+          "difficulty": "Easy",
+          "id": 704,
+          "title": "Binary Search",
+          "note": "The template from this post, as it is.",
+          "complexity": "log(n)",
+          "constraints": {
+            "n": 10000
+          },
+          "url": "https://leetcode.com/problems/binary-search/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 2300,
+          "title": "Successful Pairs of Spells and Potions",
+          "note": "Sort potions; binary search each spell's first strong one.",
+          "complexity": "n*log(n)",
+          "constraints": {
+            "n": 100000
+          },
+          "url": "https://leetcode.com/problems/successful-pairs-of-spells-and-potions/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Binary search",
+    "section": "Binary search",
+    "summary": "In a sorted array, check the middle and drop the half that can't hold the target, for O(log n).",
+    "tags": [
+      "binary-search",
+      "arrays"
+    ],
+    "tested_what": "Binary search",
+    "tested_inputs": "hand-picked cases (one value, target present and absent, first and last index, targets below and above every value, values at the problem's limits), one array of 10,000 values with a target inside and one outside, and random sorted arrays of up to 15 distinct values",
+    "tested_against": "a one-by-one scan",
+    "tested_extra": "The checks in the walk-through, the quick-check count and the trap result come from running the code."
+  },
+  "caption": {
+    "first": "Binary search explained on a sorted array: check the middle, drop half, repeat (LeetCode 704).",
+    "lines": [
+      "Each check halves the range, so 1,000,000 values need at most {{MAX_CHECKS}} checks.",
+      "The trap: loop while low < high and the last value is never checked. Searching 1 3 5 7 9 11 for 11 returns -1.",
+      "Practice: LeetCode 704 (easy) and LeetCode 2300 (medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#binarysearch"
+    ]
+  }
+}

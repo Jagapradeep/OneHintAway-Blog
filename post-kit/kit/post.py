@@ -89,6 +89,19 @@ def complexity_ok(expr, constraints):
         return False
 
 
+def _box_rows(o, kind="boxes"):
+    """Every boxes/steps row anywhere inside a slide: yields (block type, row dict with 'values')."""
+    if isinstance(o, dict):
+        t = o.get("type", kind)
+        if "values" in o and isinstance(o["values"], list):
+            yield t, o
+        for k, v in o.items():
+            yield from _box_rows(v, "steps" if k == "rows" else t)
+    elif isinstance(o, list):
+        for v in o:
+            yield from _box_rows(v, kind)
+
+
 def validate(post, ns, seq):
     errs, warns = [], []
     kind = post["kind"]
@@ -103,6 +116,12 @@ def validate(post, ns, seq):
             errs.append(f"{where}: needs a 'teaser' (shown on the previous slide's footer)")
         if s.get("teaser") and len(s["teaser"]) > 34:
             errs.append(f"{where}: teaser over 34 characters")
+        # "dash" draws an empty dashed slot (a gap) with no number: it must never sit on a real value
+        for b, row in _box_rows(s):
+            hidden = [str(row["values"][i]) for i in row.get("dash", []) if i < len(row["values"]) and str(row["values"][i]) != ""]
+            if hidden:
+                errs.append(f"{where}: 'dash' hides {', '.join(hidden)} in a {b} block. 'dash' is for empty slots "
+                            f"(value \"\"); mark a value with gold (current pick), steel (done) or dim (out of play)")
         if t == "story" and not s.get("scene"):
             errs.append(f"{where}: story needs 'scene', an everyday situation in plain words")
         qc = s.get("quickcheck")
@@ -256,7 +275,7 @@ def cover(post, c, n, total, promise_n):
              f'letter-spacing: -30px; color: transparent; -webkit-text-stroke: 2px rgba(220,225,232,0.05)">{num}</div>\n')
     if post["kind"] == "concept":
         inner += ui.pill_label(f"POST {num} · {post['category'].upper()}", STEEL, 48)
-        inner += ui.h1(c["title"], 28, 140, 800, "-6px", "0.98")
+        inner += ui.h1(c["title"], 28, ui.fit_title(c["title"], 140), 800, "-6px", "0.98")
         inner += ui.lead(c["lead"], 24, 40, 54)
         cards = ""
         for lab, key in (("USE IT WHEN", "use_it_when"), ("WHY IT MATTERS", "why_it_matters")):
@@ -267,7 +286,7 @@ def cover(post, c, n, total, promise_n):
         p = c["problem"]
         inner += (f'<div style="margin-top: 48px; display: flex; gap: 12px">{ui.pill_label(f"POST {num} · CHALLENGE", STEEL, 0)}'
                   f'<div style="display: flex; align-items: center; padding: 8px 18px; border: 1.5px solid #8A7444; border-radius: 999px; font-family: {MONO}; font-size: 24px; font-weight: 600; letter-spacing: 3px; color: #F4CF6E">{esc(p.get("platform", "LeetCode").upper())} {p["id"]} · {esc(p["difficulty"].upper())}</div></div>\n')
-        inner += ui.h1(c["title"], 22, 150, 800, "-6px", "0.98")
+        inner += ui.h1(c["title"], 22, ui.fit_title(c["title"], 150), 800, "-6px", "0.98")
         inner += ui.lead("Can you crack it with hints?", 16, 40, 54)
         for b in c.get("blocks", []):
             inner += ui.block(b)

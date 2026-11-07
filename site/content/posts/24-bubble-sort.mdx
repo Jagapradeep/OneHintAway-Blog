@@ -1,0 +1,158 @@
+---
+number: 24
+title: "Bubble sort"
+slug: bubble-sort
+pattern: "Sorting"
+section: "Recursion and sorting"
+summary: "Bubble sort swaps neighbours that are out of order and stops after a sweep with no swap."
+practice:
+  - { name: "LeetCode 2418 Sort the People", url: "https://leetcode.com/problems/sort-the-people/", level: easy, note: "Bubble the heights from tallest to shortest, and swap the names in the same move." }
+  - { name: "LeetCode 3011 Find if Array Can Be Sorted", url: "https://leetcode.com/problems/find-if-array-can-be-sorted/", level: medium, note: "Bubble sort, but neighbours may swap only when they have the same number of 1 bits." }
+slides: 8
+video: 2
+tags: [sorting, bubble-sort, arrays]
+published: 2026-11-09
+---
+
+Only allowed to swap neighbours? Sweep the row and swap every pair that is out of order. Worked example: bubble sort on **5 2 4 1 3**.
+
+## The idea
+
+Kids stand in a line. Walk along it: whenever a taller kid stands just before a shorter one, they swap places. After one walk the tallest kid is at the back for good. Each walk is a sweep, and each sweep fixes one more spot at the end.
+
+So sweep 1 compares every pair, sweep 2 can skip the last slot, sweep 3 the last two, and so on. If a whole sweep makes no swap, every pair is already in order and the sort can stop early.
+
+## The walk
+
+Bubble sort on 5 2 4 1 3:
+
+| Sweep | Swaps in this sweep | Array after |
+| --- | --- | --- |
+| start | | 5 2 4 1 3 |
+| 1 | 5↔2, 5↔4, 5↔1, 5↔3 | 2 4 1 3 5 |
+| 2 | 4↔1, 4↔3 | 2 1 3 4 5 |
+| 3 | 2↔1 | 1 2 3 4 5 |
+| 4 | none, so it stops | 1 2 3 4 5 |
+
+4 sweeps and 7 swaps in all.
+
+Quick check: on 1 2 3 5 4, bubble sort with the early stop runs **2 sweeps**. Sweep 1 swaps 5 and 4; sweep 2 swaps nothing and stops.
+
+## Pseudocode
+
+```
+function bubbleSort(nums):
+    n = length(nums)
+    for sweep from 1 to n - 1:
+        swapped = false
+        for j from 0 to n - 1 - sweep:
+            if nums[j] > nums[j + 1]:
+                swap nums[j], nums[j + 1]
+                swapped = true
+        if not swapped:
+            return nums   // already sorted
+    return nums
+```
+
+**The trap:** indent the `if not swapped` check one level too far, inside the `for j` loop, and it runs after every pair instead of after the whole sweep. Sweep 2 sees 2 and 4 in order first and quits, so 5 2 4 1 3 comes out as 2 4 1 3 5. With the check after the sweep, it comes out as 1 2 3 4 5.
+
+## Java
+
+```java
+class Solution {
+    public int[] bubbleSort(int[] nums) {
+        int n = nums.length;
+        for (int sweep = 1; sweep <= n - 1; sweep++) {
+            boolean swapped = false;
+            for (int j = 0; j <= n - 1 - sweep; j++) {
+                if (nums[j] > nums[j + 1]) {
+                    int temp = nums[j];
+                    nums[j] = nums[j + 1];
+                    nums[j + 1] = temp;
+                    swapped = true;
+                }
+            }
+            if (!swapped) {
+                return nums; // already sorted
+            }
+        }
+        return nums;
+    }
+}
+```
+
+## Python
+
+```python
+def bubble_sort(nums):
+    n = len(nums)
+    for sweep in range(1, n):
+        swapped = False
+        for j in range(0, n - sweep):
+            if nums[j] > nums[j + 1]:
+                nums[j], nums[j + 1] = nums[j + 1], nums[j]
+                swapped = True
+        if not swapped:
+            return nums  # already sorted
+    return nums
+```
+
+## C++
+
+```cpp
+#include <vector>
+#include <utility>
+using namespace std;
+
+vector<int> bubbleSort(vector<int> nums) {
+    int n = nums.size();
+    for (int sweep = 1; sweep <= n - 1; sweep++) {
+        bool swapped = false;
+        for (int j = 0; j <= n - 1 - sweep; j++) {
+            if (nums[j] > nums[j + 1]) {
+                swap(nums[j], nums[j + 1]);
+                swapped = true;
+            }
+        }
+        if (!swapped) {
+            return nums; // already sorted
+        }
+    }
+    return nums;
+}
+```
+
+## JavaScript
+
+```javascript
+function bubbleSort(nums) {
+    const n = nums.length;
+    for (let sweep = 1; sweep <= n - 1; sweep++) {
+        let swapped = false;
+        for (let j = 0; j <= n - 1 - sweep; j++) {
+            if (nums[j] > nums[j + 1]) {
+                [nums[j], nums[j + 1]] = [nums[j + 1], nums[j]];
+                swapped = true;
+            }
+        }
+        if (!swapped) {
+            return nums; // already sorted
+        }
+    }
+    return nums;
+}
+```
+
+## Complexity
+
+| | Time | Why |
+| --- | --- | --- |
+| Worst case (reversed) | O(n²) | n(n − 1)/2 swaps, one per out-of-order pair |
+| Sorted input | O(n) | One sweep with no swap, then it stops |
+| Extra space | O(1) | It sorts inside the array |
+
+Bubble sort makes as many swaps as insertion sort ([post 22](/posts/insertion-sort/)) makes shifts: one per pair that is out of order.
+
+## How it was tested
+
+Bubble sort with the early stop was run in Java, Python, C++ and JavaScript on 1,211 inputs: hand-picked cases (empty, one value, two values, all equal, sorted, reversed, values at the 32-bit limits, 5 2 4 1 3 and 1 2 3 5 4), one array of 1,000 random values, and random arrays of up to 12 values. Every output matched Python's built-in sort. The swap and sweep counts, the quick-check answer and the trap result come from running the code.

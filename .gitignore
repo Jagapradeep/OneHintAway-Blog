@@ -12,3 +12,6 @@ Thumbs.db
 
 # post kit tools: installed with npm install
 post-kit/tools/node_modules/
+
+# build artifacts
+build/

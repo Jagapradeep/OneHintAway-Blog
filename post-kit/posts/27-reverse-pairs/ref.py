@@ -59,17 +59,19 @@ RIGHT_HALF = sorted(EXAMPLE[3:])
 
 def video_steps(nums=EXAMPLE):
     reverse_pairs(nums)
-    a = list(nums)
+    n = len(nums)
     sp = lambda x: " ".join(map(str, x))
-    steps = [{"eq": ["pairs =", "0"], "caption": "Split until each piece is one value. Then count and merge on the way back up."}]
+    cuts = set(range(n - 1))
+    steps = [{"eq": ["pairs =", "0"], "caption": "Split until each piece is one value."},
+             {"cuts": sorted(cuts), "eq": ["pairs =", "0"], "caption": "Now count and merge on the way up."}]
     total = 0
     for low, high, L, R, c in reverse_pairs.events:
         total += c
         merged = sorted(L + R)
-        st = {"frame": [low, high], "set": {str(low + t): v for t, v in enumerate(merged)},
-              "eq": [f"{sp(L)} | {sp(R)} → +{c}", f"{total}"], "chip": f"+{c}", "chip_hl": c > 0,
-              "caption": (f"{c} pair{'s' if c != 1 else ''} across {sp(L)} and {sp(R)}." if c else f"No pair across {sp(L)} and {sp(R)}.") + " Then merge."}
-        steps.append(st)
+        cuts -= set(range(low, high))
+        steps.append({"frame": [low, high], "set": {str(low + t): v for t, v in enumerate(merged)}, "cuts": sorted(cuts),
+                      "eq": [f"{sp(L)} | {sp(R)} → +{c}", f"{total}"], "chip": f"+{c}", "chip_hl": c > 0,
+                      "caption": f"{c} pair{'s' if c != 1 else ''} across, then merge." if c else "No pair across, then merge."})
     return steps
 
 

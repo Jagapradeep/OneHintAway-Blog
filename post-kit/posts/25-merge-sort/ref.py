@@ -81,10 +81,16 @@ LEVELS = 3
 
 
 def video_steps(nums=EXAMPLE):
-    steps = [{"eq": ["merges so far:", "0"], "caption": "Split into halves until each piece is one value. One value is sorted."}]
+    n = len(nums)
+    half = (n - 1) // 2
+    cuts = set(range(n - 1))
+    steps = [{"eq": ["pieces:", "1"], "caption": "One unsorted array of 6 values."},
+             {"cuts": [half], "eq": ["pieces:", "2"], "caption": "Split it into two halves."},
+             {"cuts": sorted(cuts), "eq": ["pieces:", str(n)], "caption": "Keep splitting. One value is sorted."}]
     for k, (lo, hi, left, right, merged) in enumerate(merge_events(nums), 1):
         sp = lambda x: " ".join(map(str, x))
-        steps.append({"frame": [lo, hi], "set": {str(lo + t): v for t, v in enumerate(merged)},
+        cuts -= set(range(lo, hi))
+        steps.append({"frame": [lo, hi], "set": {str(lo + t): v for t, v in enumerate(merged)}, "cuts": sorted(cuts),
                       "eq": [f"{sp(left)} + {sp(right)} →", sp(merged)],
                       "chip": f"size {hi - lo + 1}", "chip_hl": hi - lo + 1 == len(nums),
                       "caption": f"Merge {sp(left)} with {sp(right)}."})

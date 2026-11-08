@@ -41,7 +41,7 @@ MIN_AT = find_min_index(EXAMPLE)
 def video_steps(nums=EXAMPLE):
     low, high = 0, len(nums) - 1
     steps = [{"frame": [low, high], "steel": [high], "eq": ["compare middle with", f"last = {nums[high]}"],
-              "caption": "The minimum is where the order breaks. Compare the middle with the last value."}]
+              "caption": "Find the drop: compare middle with last."}]
     while low < high:
         m = (low + high) // 2
         st = {"frame": [low, high], "gold": [m], "steel": [high]}
@@ -55,6 +55,32 @@ def video_steps(nums=EXAMPLE):
             high = m
         steps.append(st)
     return steps
+
+
+# ---- video dressing: LOW / MID / HIGH labels, discarded side dimmed ----
+def _dress(steps, n):
+    for st in steps:
+        fr = st.get("frame")
+        if not fr:
+            continue
+        lo, hi = fr
+        out = [i for i in range(n) if i < lo or i > hi]
+        if out:
+            st["dim"] = sorted(set(st.get("dim", []) + out))
+        old = st.get("ptr") or {}
+        ptr = {"low": old.get("low", lo)}
+        if st.get("gold"):
+            ptr["mid"] = st["gold"][0]
+        ptr["high"] = old.get("high", hi)
+        st["ptr"] = ptr
+    return steps
+
+
+_raw_video_steps = video_steps
+
+
+def video_steps(*args, **kw):
+    return _dress(_raw_video_steps(*args, **kw), len(EXAMPLE))
 
 
 # ---- tests for the four languages: one input per line, one answer per line ----

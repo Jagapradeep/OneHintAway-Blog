@@ -148,6 +148,17 @@ def one(folder, a, published):
         if vs:
             page.set_content(V.player_page(vs["html"], tl, FONT_CSS))
             page.evaluate("document.fonts.ready")
+            n_st = len(tl["states"])
+            for k in range(n_st):
+                times = [k * V.STEP + V.STEP - 0.05] if k < n_st - 1 else [tl["duration"] - V.FADE - 0.05]
+                times.insert(0, k * V.STEP + 0.6)
+                seen = []
+                for j, t in enumerate(times):
+                    page.evaluate(f"window.draw({t})")
+                    seen += [i for i in page.evaluate(f"window.check({'true' if j else 'false'})") if i not in seen]
+                for issue in seen:
+                    bad_layout = True
+                    print(f"LAYOUT slide {vs['n']:02d} (video, step {k + 1} of {n_st}):", issue)
             page.evaluate(f"window.draw({tl['duration'] - V.FADE - 0.01})")
             still = page.evaluate("document.getElementById('stage').outerHTML").replace(' id="stage"', "")
             vs["player_html"] = vs["html"]

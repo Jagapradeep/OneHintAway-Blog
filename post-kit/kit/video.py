@@ -46,6 +46,7 @@ def resolve(v):
             "slots": list(slots), "vals": {str(i): str(x) for i, x in idval.items()},
             "st": {str(slots[i]): st[i] for i in range(n)}, "arc": arc,
             "frame": s.get("frame"), "band": s.get("band"), "ptr": s.get("ptr") or {},
+            "cuts": sorted(set(int(c) for c in (s.get("cuts") or []))),
             "water": {str(k2): v2 for k2, v2 in (s.get("water") or {}).items()},
             "eq": ({"left": eq[0], "result": eq[1] if len(eq) > 1 else ""} if eq else None),
             "caption": s.get("caption", ""), "final": bool(s.get("final")),
@@ -56,14 +57,23 @@ def resolve(v):
 def layout(v):
     n = len(v["values"])
     bars = v.get("mode") == "bars"
-    w = min(150, (920 - (n - 1) * 26) // n)
-    gap = 26
+    allsteps = v["steps"] + [v["final"]]
+    max_cuts = max(len(set(s.get("cuts") or [])) for s in allsteps)
+    cut_gap = 30 if max_cuts else 0
+    gap = 26 if n <= 8 else 14
+    w = min(150, (920 - (n - 1) * gap - max_cuts * cut_gap) // n)
     left0 = (920 - (n * w + (n - 1) * gap)) // 2
     L = {"n": n, "w": w, "gap": gap, "left0": left0, "bars": bars, "label": v.get("stage_label", ""),
-         "chipsLabel": v.get("chips_label", ""), "indexes": v.get("indexes", True)}
-    allsteps = v["steps"] + [v["final"]]
+         "chipsLabel": v.get("chips_label", ""), "indexes": v.get("indexes", True), "cutGap": cut_gap}
     lift = any("move" in s for s in v["steps"])
     has_ptr = any(s.get("ptr") for s in v["steps"])
+    stack = 1
+    for s in allsteps:
+        at = {}
+        for name, i in (s.get("ptr") or {}).items():
+            at[i] = at.get(i, 0) + 1
+        stack = max([stack] + list(at.values()))
+    L["ptrRows"] = stack if has_ptr else 0
     has_band = any(s.get("band") for s in allsteps)
     has_chips = any(s.get("chip") is not None for s in allsteps)
     maxh = max(1, max(int(x) for x in v["values"])) if bars else 0
@@ -76,7 +86,7 @@ def layout(v):
     else:
         L["boxH"] = 130 if w >= 120 else 110
         picture = L["boxH"]
-    picture += (12 + 28 if L["indexes"] else 0) + (32 if has_ptr else 0) + (14 + 42 if has_band else 0)
+    picture += (12 + 28 if L["indexes"] else 0) + (6 + 30 * L["ptrRows"] if has_ptr else 0) + (14 + 42 if has_band else 0)
     eq_h, chips_h, cap_h = 80, (36 + 56 if has_chips else 0), 48
     TARGET = 730
     gaps = 3 if has_chips else 2
@@ -95,8 +105,8 @@ def layout(v):
     if L["indexes"]:
         L["idxTop"] = y + 12
         y += 40
-    L["ptrTop"] = y
-    y += 32 if has_ptr else 0
+    L["ptrTop"] = y + 6
+    y += 6 + 30 * L["ptrRows"] if has_ptr else 0
     L["bandTop"] = y + 14
     y += 56 if has_band else 0
     y += g
@@ -134,12 +144,15 @@ const sm = x => { x = Math.min(1, Math.max(0, x)); return x*x*x*(x*(x*6-15)+10);
 const lerp = (a,b,e) => a + (b-a)*e;
 const mix = (a,b,e) => a.map((v,i)=> i<3 ? Math.round(lerp(v,b[i],e)) : +lerp(v,b[i],e).toFixed(3));
 const rgb = c => `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
-const slotX = i => L.left0 + i*(L.w+L.gap);
+const slotXc = (i, cuts) => { const c = cuts || [], before = c.filter(x => x < i).length;
+  return L.left0 + i*(L.w+L.gap) + L.cutGap*(before - c.length/2); };
+let CUT0 = [], CUT1 = [], EE = 1;
+const slotX = i => lerp(slotXc(i, CUT0), slotXc(i, CUT1), EE);
 function el(css, text){ const d=document.createElement('div'); d.style.cssText='position:absolute;'+css; if(text!==undefined) d.textContent=text; stage.appendChild(d); return d; }
 if (L.label) el(`left:0;top:0;font-family:${MONO};font-size:24px;font-weight:600;letter-spacing:3px;color:#A2A8B3;`+NOLIG, L.label);
 const n = L.n, ids = Object.keys(S[0].vals);
 const idx = [];
-if (L.indexes) for (let i=0;i<n;i++) idx.push(el(`left:${slotX(i)}px;width:${L.w}px;top:${L.idxTop}px;text-align:center;font-family:${MONO};font-size:24px;font-weight:600;color:#A2A8B3;`+NOLIG, String(i)));
+if (L.indexes) for (let i=0;i<n;i++) idx.push(el(`left:0px;width:${L.w}px;top:${L.idxTop}px;text-align:center;font-family:${MONO};font-size:24px;font-weight:600;color:#A2A8B3;`+NOLIG, String(i)));
 const water = [];
 if (L.bars) { el(`left:${L.left0-10}px;top:${L.base}px;width:${n*(L.w+L.gap)-L.gap+20}px;height:2px;background:#3A3F49;`); }
 const boxes = {}, vlab = {};
@@ -151,7 +164,9 @@ if (L.bars) for (let i=0;i<n;i++) water.push(el(`left:${slotX(i)+6}px;width:${L.
 const frame = el(`box-sizing:border-box;border:3px solid #F4CF6E;border-radius:24px;box-shadow:0 0 0 6px rgba(244,207,110,0.10);`);
 const band = el(`top:${L.bandTop}px;height:4px;border-radius:2px;background:#A3CDF2;box-shadow:rgba(163,205,242,0.45) 0 0 10px;`);
 const bandLab = el(`top:${L.bandTop+14}px;font-family:${MONO};font-size:24px;font-weight:600;letter-spacing:3px;color:#A3CDF2;white-space:nowrap;`+NOLIG);
-const ptrNames = [...new Set(S.flatMap(s => Object.keys(s.ptr)))];
+const ORDER = ['low', 'left', 'slow', 'i', 'mid', 'middle', 'j', 'k', 'fast', 'high', 'right'];
+const rank = p => { const r = ORDER.indexOf(p.toLowerCase()); return r < 0 ? 50 : r; };
+const ptrNames = [...new Set(S.flatMap(s => Object.keys(s.ptr)))].sort((a, b) => rank(a) - rank(b));
 const ptr = {}; for (const p of ptrNames) ptr[p] = el(`top:${L.ptrTop}px;width:${L.w}px;text-align:center;font-family:${MONO};font-size:24px;font-weight:600;letter-spacing:2px;color:#CBE6FB;white-space:nowrap;`+NOLIG, p.toUpperCase());
 function eqLayer(){ const d = el(`left:0;right:0;top:${L.eqTop}px;height:80px;display:flex;justify-content:center;align-items:center;font-family:${MONO};font-size:64px;font-weight:600;white-space:nowrap;`+NOLIG);
   d.p = document.createElement('span'); d.p.style.color='#D3D7DE'; d.r = document.createElement('span'); d.r.style.marginLeft='0.35em'; d.append(d.p, d.r); return d; }
@@ -160,6 +175,7 @@ if (L.chipsLabel) el(`left:0;top:${L.chipsLabelTop}px;font-family:${MONO};font-s
 const NC = TL.chips.length, cw = NC ? Math.min(212, Math.floor((920-(NC-1)*16)/NC)) : 0;
 const chips = TL.chips.map((c,i) => el(`top:${L.chipsTop}px;left:${i*(cw+16)}px;width:${cw}px;height:56px;box-sizing:border-box;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:${MONO};font-size:${cw>=180?28:24}px;font-weight:600;white-space:nowrap;`+NOLIG+(c.hl?'background:linear-gradient(180deg,#4A3B1C 0%,#261E0E 100%);border:1.5px solid #DDB25A;color:#FFE3A0;':'background:linear-gradient(180deg,#1A1C21 0%,#111317 100%);border:1.5px solid #3D424C;color:#E6E8EC;'), c.text));
 function capLayer(){ return el(`left:0;right:0;top:${L.capTop}px;font-family:Manrope,sans-serif;font-size:38px;line-height:48px;font-weight:700;white-space:nowrap;`); }
+const capFit = d => { let f = 38; d.style.fontSize = f+'px'; while (d.scrollWidth > 920 && f > 32) { f -= 1; d.style.fontSize = f+'px'; } };
 const capA = capLayer(), capB = capLayer();
 const fit = d => { let f = 64; d.style.fontSize = f+'px'; while (d.scrollWidth > 920 && f > 36) { f -= 2; d.style.fontSize = f+'px'; } };
 function setEq(d, eq, final){ const key = eq ? eq.left+'|'+eq.result+'|'+final : ''; if (d.key === key) return; d.key = key;
@@ -177,17 +193,19 @@ window.draw = function(t){
   const S1 = S[k], S0 = k ? S[k-1] : null;
   const moveDur = S1.final ? T.FINAL_IN : T.MOVE;
   const e = sm(u / moveDur);
+  CUT0 = S0 ? S0.cuts : S1.cuts; CUT1 = S1.cuts; EE = e;
   const intro = k === 0 ? sm(u / 0.8) : 1;
   const fade = 1 - sm((t - (TL.duration - T.FADE)) / T.FADE);
   stage.style.opacity = r2(fade); sig.push(r2(fade));
   for (const id of ids) {
     const s1 = S1.slots.indexOf(+id), s0 = S0 ? S0.slots.indexOf(+id) : s1;
-    const x = lerp(slotX(s0), slotX(s1), e);
+    const x = lerp(slotXc(s0, CUT0), slotXc(s1, CUT1), e);
+    const dimA = S0 && S0.st[id]==='dim' ? 1 : 0, dimB = S1.st[id]==='dim' ? 1 : 0, dimE = S0 ? lerp(dimA, dimB, e) : dimB;
     const lift = (S1.arc === +id) ? Math.sin(Math.PI*e) * 70 : 0;
     const a = C[S0 ? S0.st[id] : S1.st[id]], b = C[S1.st[id]];
     const top = mix(a.t,b.t,e), bot = mix(a.b,b.b,e), br = mix(a.br,b.br,e), tx = mix(a.tx,b.tx,e), h = mix(a.h,b.h,e);
     const ghostA = S0 && S0.st[id]==='ghost' ? 0 : 1, ghostB = S1.st[id]==='ghost' ? 0 : 1;
-    const op = lerp(S0 ? ghostA : ghostB, ghostB, e) * intro;
+    const op = lerp(S0 ? ghostA : ghostB, ghostB, e) * intro * (1 - 0.45*dimE);
     const bx = boxes[id];
     bx.style.left = r1(x)+'px'; bx.style.opacity = r2(op);
     bx.style.background = `linear-gradient(${rgb(top)} 0%, ${rgb(bot)} 100%)`; bx.style.borderColor = rgb(br); bx.style.borderStyle='solid'; bx.style.borderWidth='2px';
@@ -195,10 +213,10 @@ window.draw = function(t){
     const val = (e < 0.5 && S0) ? S0.vals[id] : S1.vals[id];
     if (L.bars) { const hv = +val, hh = hv*L.unit; bx.style.top = (L.base - hh)+'px'; bx.style.height = hh+'px'; bx.style.display = hv ? 'block':'none';
       const v = vlab[id]; v.textContent = val; v.style.left = r1(x)+'px'; v.style.color = rgb(tx); v.style.opacity = r2(intro); }
-    else { bx.style.top = r1(L.boxTop - lift)+'px'; bx.style.color = rgb(tx); bx.textContent = val; }
-    sig.push(r1(x), r1(lift), r2(op), top.join(), br.join(), h.join(), val);
+    else { bx.style.top = r1(L.boxTop - lift + 14*dimE)+'px'; bx.style.transform = `scale(${r2(1 - 0.08*dimE)})`; bx.style.color = rgb(tx); bx.textContent = val; }
+    sig.push(r1(x), r1(lift), r2(op), r2(dimE), top.join(), br.join(), h.join(), val);
   }
-  for (const d of idx) d.style.opacity = r2(intro);
+  idx.forEach((d, i) => { d.style.left = r1(slotX(i))+'px'; d.style.opacity = r2(intro); sig.push(r1(slotX(i))); });
   if (L.bars) for (let i=0;i<n;i++) { const w0 = S0 ? (S0.water[i]||0) : 0, w1 = S1.water[i]||0; const lv = lerp(w0,w1,e); const slotId = S1.slots[i]; const hv = +S1.vals[slotId];
     const d = water[i]; d.style.top = (L.base - (hv+lv)*L.unit + 4)+'px'; d.style.height = Math.max(0, lv*L.unit - 8)+'px'; d.style.opacity = lv > 0.05 ? r2(intro) : 0; sig.push(r2(lv)); }
   const span = (f) => f ? [slotX(f[0]) - 12, slotX(f[1]) + L.w + 12] : null;
@@ -214,10 +232,13 @@ window.draw = function(t){
   if (b0 && b1) { const p = bs(b0), q = bs(b1); bb = [lerp(p[0],q[0],e), lerp(p[1],q[1],e)]; }
   if (bb) { band.style.left = r1(bb[0])+'px'; band.style.width = r1(bb[1]-bb[0])+'px'; bandLab.style.left = r1(bb[0])+'px'; bandLab.textContent = (b1||b0)[2] || ''; }
   band.style.opacity = bandLab.style.opacity = r2(bop*intro); sig.push(bb ? bb.map(r1).join() : '', r2(bop));
+  const row = (st, p) => { if (!st || st.ptr[p] === undefined) return 0; return ptrNames.filter(q => st.ptr[q] === st.ptr[p]).indexOf(p); };
   for (const p of ptrNames) { const a = S0 ? S0.ptr[p] : undefined, b = S1.ptr[p]; const d = ptr[p];
-    let x = b !== undefined ? slotX(b) : (a !== undefined ? slotX(a) : 0), o = b !== undefined ? (a !== undefined ? 1 : e) : (a !== undefined ? 1-e : 0);
-    if (a !== undefined && b !== undefined) x = lerp(slotX(a), slotX(b), e);
-    d.style.left = r1(x)+'px'; d.style.opacity = r2(o*intro); sig.push(r1(x), r2(o)); }
+    const xa = a !== undefined ? slotXc(a, CUT0) : null, xb = b !== undefined ? slotXc(b, CUT1) : null;
+    let x = xb !== null ? xb : (xa !== null ? xa : 0), o = b !== undefined ? (a !== undefined ? 1 : e) : (a !== undefined ? 1-e : 0);
+    if (xa !== null && xb !== null) x = lerp(xa, xb, e);
+    const ry = lerp(S0 && a !== undefined ? row(S0, p) : row(S1, p), b !== undefined ? row(S1, p) : row(S0, p), e);
+    d.style.left = r1(x)+'px'; d.style.top = r1(L.ptrTop + 30*ry)+'px'; d.style.opacity = r2(o*intro); sig.push(r1(x), r1(ry), r2(o)); }
   const same = S0 && JSON.stringify(S0.eq) === JSON.stringify(S1.eq);
   const eqIn = S1.final ? 0 : T.EQ_IN, resIn = S1.final ? T.FINAL_IN - 0.1 : T.RES_IN;
   setEq(eqB, S1.eq, S1.final); setEq(eqA, S0 && S0.eq, S0 && S0.final);
@@ -229,12 +250,25 @@ window.draw = function(t){
   TL.chips.forEach((c,i) => { const d = chips[i]; const o = c.step < k ? 1 : c.step === k ? sm((u - (S1.final ? T.FINAL_IN : T.CHIP_IN)) / 0.5) : 0;
     d.style.opacity = r2(o*intro); d.style.transform = `translateY(${r1(12*(1-o))}px)`; sig.push(r2(o)); });
   const cs = S0 && S0.caption === S1.caption;
-  capA.textContent = S0 ? S0.caption : ''; capB.textContent = S1.caption;
+  if (capA.textContent !== (S0 ? S0.caption : '')) { capA.textContent = S0 ? S0.caption : ''; capFit(capA); }
+  if (capB.textContent !== S1.caption) { capB.textContent = S1.caption; capFit(capB); }
   capB.style.color = S1.final ? '#CBE6FB' : '#F5F6F8'; capA.style.color = S0 && S0.final ? '#CBE6FB' : '#F5F6F8';
   const cOut = cs ? 0 : sm(u/0.25), cIn = cs ? 1 : sm((u - eqIn - 0.25)/0.35);
   capA.style.opacity = S0 && !cs ? r2(1-cOut) : 0; capB.style.opacity = r2(cIn);
   capB.style.transform = `translateY(${r1(10*(1-cIn))}px)`; sig.push(r2(cOut), r2(cIn), k);
   return sig.join('|');
+};
+window.check = function(settled){
+  const out = [], sr = stage.getBoundingClientRect();
+  const vis = d => +getComputedStyle(d).opacity > 0.05 && d.textContent.trim() !== '';
+  for (const d of [capA, capB, eqA, eqB]) if (vis(d) && d.scrollWidth > 921) out.push('text too long for one line: "' + d.textContent.slice(0, 50) + '"');
+  for (const d of stage.querySelectorAll('div')) { if (!vis(d)) continue; const r = d.getBoundingClientRect();
+    if (r.width && (r.right > sr.right + 2 || r.left < sr.left - 2)) out.push('runs off the side: "' + d.textContent.slice(0, 40) + '"'); }
+  const P = !settled ? [] : ptrNames.map(p => ptr[p]).filter(vis).map(d => [d, d.getBoundingClientRect(), d.textContent]);
+  for (let i = 0; i < P.length; i++) for (let j = i+1; j < P.length; j++) { const a = P[i][1], b = P[j][1];
+    const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left), oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+    if (ox > 4 && oy > 4) out.push(`labels ${P[i][2]} and ${P[j][2]} overlap`); }
+  return [...new Set(out)];
 };
 window.draw(TL.duration - T.FADE - 0.01);
 })();

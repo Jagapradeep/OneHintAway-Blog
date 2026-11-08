@@ -65,7 +65,7 @@ def video_steps(grid=GRID, target=TARGET):
     flat = [v for row in grid for v in row]
     low, high = 0, len(flat) - 1
     steps = [{"frame": [low, high], "eq": ["target =", str(target)],
-              "caption": "Read the grid as one sorted row of 6 cells. Search it like post 28."}]
+              "caption": "Read the grid as one sorted row of 6 cells."}]
     while low <= high:
         m = (low + high) // 2
         v = flat[m]
@@ -82,6 +82,32 @@ def video_steps(grid=GRID, target=TARGET):
             high = m - 1
         steps.append(st)
     return steps
+
+
+# ---- video dressing: LOW / MID / HIGH labels, discarded side dimmed ----
+def _dress(steps, n):
+    for st in steps:
+        fr = st.get("frame")
+        if not fr:
+            continue
+        lo, hi = fr
+        out = [i for i in range(n) if i < lo or i > hi]
+        if out:
+            st["dim"] = sorted(set(st.get("dim", []) + out))
+        old = st.get("ptr") or {}
+        ptr = {"low": old.get("low", lo)}
+        if st.get("gold"):
+            ptr["mid"] = st["gold"][0]
+        ptr["high"] = old.get("high", hi)
+        st["ptr"] = ptr
+    return steps
+
+
+_raw_video_steps = video_steps
+
+
+def video_steps(*args, **kw):
+    return _dress(_raw_video_steps(*args, **kw), len(GRID) * len(GRID[0]))
 
 
 # ---- tests for the four languages: one input per line, one answer per line ----

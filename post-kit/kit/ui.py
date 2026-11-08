@@ -404,8 +404,23 @@ def fit_title(text, size, weight=800, ls=-6.0, width=920, floor=104):
     try:
         text_width(lines[0], size, weight, ls)
     except ImportError:
-        print("note: pip install fonttools brotli to auto-fit cover titles")
-        return size
+        # a fresh workspace lacks them: install once, quietly, then measure
+        import subprocess
+        import sys
+        subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--break-system-packages", "fonttools", "brotli"],
+                       capture_output=True)
+        _SORA_FONTS.clear()
+        import importlib
+        try:
+            import fontTools.ttLib.woff2 as _w2
+            importlib.reload(_w2)  # it remembers a failed brotli import from earlier in this run
+        except ImportError:
+            pass
+        try:
+            text_width(lines[0], size, weight, ls)
+        except ImportError:
+            print("note: could not install fonttools/brotli; cover title not auto-fitted")
+            return size
     while size > floor and max(text_width(l, size, weight, ls) for l in lines) > width - 4:
         size -= 2
     return size

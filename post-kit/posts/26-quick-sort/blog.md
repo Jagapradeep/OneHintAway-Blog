@@ -29,7 +29,7 @@ Quick check: partitioning 3 5 1 2 4 (pivot 4) puts 4 in **slot {{spot_of([3, 5, 
 
 ## Pseudocode
 
-Partition, as on the slides. `quickSort` calls it while `low < high`, then sorts `low` to `spot - 1` and `spot + 1` to `high`. `quickSelect` calls it in a loop: it returns `nums[spot]` when `spot == k - 1`, moves `low` past the spot when the spot is too small, and `high` below it otherwise. Both are in full in the code below.
+One program in three parts, as on the slides. `partition` puts one pivot in its final slot and returns that slot as `spot`. Then you call **one** of the other two, never both: `quickSort(nums, 0, length(nums) - 1)` when you need the whole row sorted, or `quickSelect(nums, k)` when you only need the k-th smallest. Both call `partition`; quick sort keeps both sides, quickselect keeps one.
 
 {{PSEUDOCODE}}
 

@@ -237,7 +237,7 @@ def build(post, ns, seq, video_still=None):
                 inner += ui.block(b)
             if s.get("code"):
                 c = s["code"]
-                start = sol_start if t == "solution" else 1
+                start = sol_start if t == "solution" else c.get("start", 1)
                 inner += ui.code_block(c["lines"], start, c.get("highlight", []), c.get("mt", 24))
                 if t == "solution":
                     sol_start += len(c["lines"])

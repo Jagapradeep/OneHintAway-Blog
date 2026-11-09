@@ -68,6 +68,14 @@ def pseudocode(seq):
     for t, s in seq:
         if t in ("template", "solution") and s.get("code"):
             lines += s["code"]["lines"]
+    # A template numbered after earlier code blocks ("start") is one program split
+    # across slides: the blog shows every block, in slide order.
+    tmpl = next((s for t, s in seq if t == "template" and s.get("code")), None)
+    if tmpl and tmpl["code"].get("start", 1) > 1:
+        parts = [b["lines"] for t, s in seq if t == "extra"
+                 for b in s.get("blocks", []) if b.get("type") == "code"]
+        parts.append(tmpl["code"]["lines"])
+        return "\n\n".join("\n".join(p) for p in parts)
     return "\n".join(lines)
 
 

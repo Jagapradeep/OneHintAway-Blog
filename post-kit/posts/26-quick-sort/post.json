@@ -10,7 +10,7 @@
     "lead": "Pick a pivot and move smaller values to its left. Quickselect uses the same move.",
     "use_it_when": "You need the k-th smallest or largest value: quickselect skips sorting the rest.",
     "why_it_matters": "One move, partition, gives you both a fast sort and the k-th value in O(n) on average.",
-    "promise": "You'll write **partition** in {lines} lines.",
+    "promise": "You'll write **quickselect** in {lines} lines.",
     "promise_slide": "template"
   },
   "slides": [
@@ -113,9 +113,43 @@
     },
     {
       "type": "extra",
+      "label": "THE MOVE",
+      "board": "Answer + partition",
+      "teaser": "The answer, then partition",
+      "title": "Partition",
+      "blocks": [
+        {
+          "type": "code",
+          "lines": [
+            "function partition(nums, low, high):",
+            "    pivot = nums[high]",
+            "    wall = low   // next small slot",
+            "    for j from low to high - 1:",
+            "        if nums[j] < pivot:",
+            "            swap nums[wall], nums[j]",
+            "            wall = wall + 1",
+            "    swap nums[wall], nums[high]   // home",
+            "    return wall"
+          ],
+          "highlight": [
+            5
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Everything left of wall is smaller than the pivot. Line 8 drops the pivot right after them."
+        },
+        {
+          "type": "text",
+          "text": "partition([5, 2, 4, 1, 3], 0, 4) returns **{{spot_of(EXAMPLE)}}**."
+        }
+      ]
+    },
+    {
+      "type": "extra",
       "label": "QUICK SORT",
-      "board": "Answer + quick sort",
-      "teaser": "The answer, then quick sort",
+      "board": "Quick sort",
+      "teaser": "Quick sort: both sides",
       "title": "Partition both sides",
       "blocks": [
         {
@@ -165,87 +199,46 @@
         {
           "type": "code",
           "lines": [
+            "// use 1: sort the whole row",
             "function quickSort(nums, low, high):",
             "    if low < high:",
             "        spot = partition(nums, low, high)",
             "        quickSort(nums, low, spot - 1)",
             "        quickSort(nums, spot + 1, high)"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "extra",
-      "label": "QUICKSELECT",
-      "board": "Quickselect",
-      "teaser": "Quickselect: keep one side",
-      "title": "Keep only one side",
-      "blocks": [
-        {
-          "type": "boxes",
-          "label": "WANT THE 4TH SMALLEST",
-          "values": [
-            2,
-            1,
-            3,
-            5,
-            4
           ],
-          "dim": [
-            0,
-            1,
-            2
-          ],
-          "gold": [
-            3,
-            4
-          ],
-          "size": "m",
-          "note": "The 4th smallest belongs in slot 3: right side only."
-        },
-        {
-          "type": "code",
-          "lines": [
-            "function quickSelect(nums, k):",
-            "    low = 0",
-            "    high = length(nums) - 1",
-            "    while true:",
-            "        spot = partition(nums, low, high)",
-            "        if spot == k - 1:",
-            "            return nums[spot]",
-            "        if spot < k - 1:",
-            "            low = spot + 1",
-            "        else:",
-            "            high = spot - 1"
-          ]
+          "start": 10
         }
       ]
     },
     {
       "type": "template",
-      "teaser": "Partition in 9 lines",
-      "title": "Partition",
+      "teaser": "Quickselect: keep one side",
+      "title": "Keep only one side",
       "code": {
         "lines": [
-          "function partition(nums, low, high):",
-          "    pivot = nums[high]",
-          "    wall = low   // next small slot",
-          "    for j from low to high - 1:",
-          "        if nums[j] < pivot:",
-          "            swap nums[wall], nums[j]",
-          "            wall = wall + 1",
-          "    swap nums[wall], nums[high]   // home",
-          "    return wall"
+          "// use 2: only the k-th smallest",
+          "function quickSelect(nums, k):",
+          "    low = 0",
+          "    high = length(nums) - 1",
+          "    while true:",
+          "        spot = partition(nums, low, high)",
+          "        if spot == k - 1:",
+          "            return nums[spot]",
+          "        if spot < k - 1:",
+          "            low = spot + 1",
+          "        else:",
+          "            high = spot - 1"
         ],
         "highlight": [
-          5
-        ]
+          24
+        ],
+        "start": 16
       },
-      "explain": "Everything left of wall is smaller than the pivot. Line 8 drops the pivot right after them.",
+      "explain": "Call one, not both: quickSort to sort the whole row, quickSelect for one value. Both use partition.",
       "example": {
-        "call": "partition([5, 2, 4, 1, 3], 0, 4)",
-        "expr": "spot_of([5, 2, 4, 1, 3])",
-        "show": "{{SPOT}}"
+        "call": "quickSelect([5, 2, 4, 1, 3], 4)",
+        "expr": "quick_select(EXAMPLE, 4)",
+        "show": "{{quick_select(EXAMPLE, 4)}}"
       }
     },
     {

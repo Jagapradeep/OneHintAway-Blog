@@ -1,0 +1,268 @@
+---
+number: 26
+title: "Quick sort"
+slug: quick-sort
+pattern: "Sorting"
+section: "Recursion and sorting"
+summary: "Partition puts a pivot in its final slot, so quickselect keeps only the side that holds the k-th value."
+practice:
+  - { name: "LeetCode 2099 Find Subsequence of Length K With the Largest Sum", url: "https://leetcode.com/problems/find-subsequence-of-length-k-with-the-largest-sum/", level: easy, note: "Quickselect the k largest, then keep them in order." }
+  - { name: "LeetCode 215 Kth Largest Element in an Array", url: "https://leetcode.com/problems/kth-largest-element-in-an-array/", level: medium, note: "Ask for the (n − k + 1)-th smallest, with a random pivot." }
+slides: 9
+video: 2
+tags: [sorting, quick-sort, quickselect, partition]
+published: 2026-11-09
+---
+
+Need the k-th smallest or largest value? Partition around a pivot and keep only the side that holds it. Worked example: quick sort and quickselect on **5 2 4 1 3**.
+
+## The idea
+
+Kids stand in a row. Pick the last kid as the pivot. Everyone shorter moves to the pivot's left, everyone taller to its right. Now the pivot stands exactly where it will be in the sorted row, even though neither side is sorted yet. That move is called partition.
+
+In the array, a `wall` starts at the left end. Every value smaller than the pivot is swapped to the wall, and the wall moves one step right. At the end, the pivot swaps into the wall's slot: everything left of it is smaller, everything right of it is not.
+
+- **Quick sort** partitions, then does the same on the left side and on the right side.
+- **Quickselect** wants only the k-th smallest, which belongs in slot k − 1. After one partition it knows which side holds that slot, and it throws the other side away.
+
+## The walk
+
+Partition of 5 2 4 1 3 with pivot 3:
+
+| j | Value | Smaller than 3? | Move | Array after | Wall |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 5 | no | | 5 2 4 1 3 | 0 |
+| 1 | 2 | yes | swap slots 0 and 1 | 2 5 4 1 3 | 1 |
+| 2 | 4 | no | | 2 5 4 1 3 | 1 |
+| 3 | 1 | yes | swap slots 1 and 3 | 2 1 4 5 3 | 2 |
+| end | | | pivot into slot 2 | 2 1 3 5 4 | |
+
+3 is home in slot 2. Quick sort then partitions 2 1 (1 lands in slot 0) and 5 4 (4 lands in slot 3), and the row is 1 2 3 4 5.
+
+Quickselect for the 4th smallest: after the first partition the pivot is in slot 2, but the answer belongs in slot 3, so only 5 4 is kept. Partitioning 5 4 puts 4 in slot 3: the answer is 4, after 2 partitions.
+
+Quick check: partitioning 3 5 1 2 4 (pivot 4) puts 4 in **slot 3**, because three values are smaller than it.
+
+## Pseudocode
+
+One program in three parts, as on the slides. `partition` puts one pivot in its final slot and returns that slot as `spot`. Then you call **one** of the other two, never both: `quickSort(nums, 0, length(nums) - 1)` when you need the whole row sorted, or `quickSelect(nums, k)` when you only need the k-th smallest. Both call `partition`; quick sort keeps both sides, quickselect keeps one.
+
+```
+function partition(nums, low, high):
+    pivot = nums[high]
+    wall = low   // next small slot
+    for j from low to high - 1:
+        if nums[j] < pivot:
+            swap nums[wall], nums[j]
+            wall = wall + 1
+    swap nums[wall], nums[high]   // home
+    return wall
+
+// use 1: sort the whole row
+function quickSort(nums, low, high):
+    if low < high:
+        spot = partition(nums, low, high)
+        quickSort(nums, low, spot - 1)
+        quickSort(nums, spot + 1, high)
+
+// use 2: only the k-th smallest
+function quickSelect(nums, k):
+    low = 0
+    high = length(nums) - 1
+    while true:
+        spot = partition(nums, low, high)
+        if spot == k - 1:
+            return nums[spot]
+        if spot < k - 1:
+            low = spot + 1
+        else:
+            high = spot - 1
+```
+
+**The trap:** `quickSelect` counts from the smallest. For the k-th largest, passing k straight in gives the k-th smallest: the 2nd largest of 5 2 4 1 3 comes out as 2. Ask for the (n − k + 1)-th smallest instead, the 4th smallest here, and it comes out as 4.
+
+## Java
+
+```java
+class Solution {
+    public void quickSort(int[] nums, int low, int high) {
+        if (low < high) {
+            int spot = partition(nums, low, high);
+            quickSort(nums, low, spot - 1);
+            quickSort(nums, spot + 1, high);
+        }
+    }
+
+    // k-th smallest, k from 1
+    public int quickSelect(int[] nums, int k) {
+        int low = 0;
+        int high = nums.length - 1;
+        while (true) {
+            int spot = partition(nums, low, high);
+            if (spot == k - 1) {
+                return nums[spot];
+            }
+            if (spot < k - 1) {
+                low = spot + 1; // answer is right
+            } else {
+                high = spot - 1; // answer is left
+            }
+        }
+    }
+
+    private int partition(int[] nums, int low, int high) {
+        int pivot = nums[high];
+        int wall = low; // next slot for a small value
+        for (int j = low; j <= high - 1; j++) {
+            if (nums[j] < pivot) {
+                swap(nums, wall, j);
+                wall++;
+            }
+        }
+        swap(nums, wall, high);
+        return wall;
+    }
+
+    private void swap(int[] nums, int a, int b) {
+        int temp = nums[a];
+        nums[a] = nums[b];
+        nums[b] = temp;
+    }
+}
+```
+
+## Python
+
+```python
+def partition(nums, low, high):
+    pivot = nums[high]
+    wall = low  # next slot for a small value
+    for j in range(low, high):
+        if nums[j] < pivot:
+            nums[wall], nums[j] = nums[j], nums[wall]
+            wall += 1
+    nums[wall], nums[high] = nums[high], nums[wall]
+    return wall
+
+
+def quick_sort(nums, low, high):
+    if low < high:
+        spot = partition(nums, low, high)
+        quick_sort(nums, low, spot - 1)
+        quick_sort(nums, spot + 1, high)
+
+
+def quick_select(nums, k):  # k-th smallest, k from 1
+    low = 0
+    high = len(nums) - 1
+    while True:
+        spot = partition(nums, low, high)
+        if spot == k - 1:
+            return nums[spot]
+        if spot < k - 1:
+            low = spot + 1  # answer is right
+        else:
+            high = spot - 1  # answer is left
+```
+
+## C++
+
+```cpp
+#include <vector>
+#include <utility>
+using namespace std;
+
+int partition(vector<int>& nums, int low, int high) {
+    int pivot = nums[high];
+    int wall = low; // next slot for a small value
+    for (int j = low; j <= high - 1; j++) {
+        if (nums[j] < pivot) {
+            swap(nums[wall], nums[j]);
+            wall++;
+        }
+    }
+    swap(nums[wall], nums[high]);
+    return wall;
+}
+
+void quickSort(vector<int>& nums, int low, int high) {
+    if (low < high) {
+        int spot = partition(nums, low, high);
+        quickSort(nums, low, spot - 1);
+        quickSort(nums, spot + 1, high);
+    }
+}
+
+// k-th smallest, k from 1
+int quickSelect(vector<int>& nums, int k) {
+    int low = 0;
+    int high = nums.size() - 1;
+    while (true) {
+        int spot = partition(nums, low, high);
+        if (spot == k - 1) {
+            return nums[spot];
+        }
+        if (spot < k - 1) {
+            low = spot + 1; // answer is right
+        } else {
+            high = spot - 1; // answer is left
+        }
+    }
+}
+```
+
+## JavaScript
+
+```javascript
+function partition(nums, low, high) {
+    const pivot = nums[high];
+    let wall = low; // next slot for a small value
+    for (let j = low; j <= high - 1; j++) {
+        if (nums[j] < pivot) {
+            [nums[wall], nums[j]] = [nums[j], nums[wall]];
+            wall++;
+        }
+    }
+    [nums[wall], nums[high]] = [nums[high], nums[wall]];
+    return wall;
+}
+
+function quickSort(nums, low, high) {
+    if (low < high) {
+        const spot = partition(nums, low, high);
+        quickSort(nums, low, spot - 1);
+        quickSort(nums, spot + 1, high);
+    }
+}
+
+// k-th smallest, k from 1
+function quickSelect(nums, k) {
+    let low = 0;
+    let high = nums.length - 1;
+    while (true) {
+        const spot = partition(nums, low, high);
+        if (spot === k - 1) {
+            return nums[spot];
+        }
+        if (spot < k - 1) {
+            low = spot + 1; // answer is right
+        } else {
+            high = spot - 1; // answer is left
+        }
+    }
+}
+```
+
+## Complexity
+
+| | Average | Worst case |
+| --- | --- | --- |
+| Quick sort | O(n log n) | O(n²) |
+| Quickselect | O(n) | O(n²) |
+| Extra space | O(log n) call stack on average | O(n) |
+
+The worst case comes from bad pivots, such as sorted input with the last value as pivot. Swapping a random value to the end before each partition makes that very unlikely. Many equal values are a second weak spot for this partition; the three-way split from post 13 handles them.
+
+## How it was tested
+
+Quick sort and quickselect was run in Java, Python, C++ and JavaScript on 1,211 inputs: hand-picked cases (one value, two values, all equal, sorted, reversed, values at the 32-bit limits, repeated values, and 5 2 4 1 3 with k = 3 and k = 4), one array of 1,000 random values with a random k, and random arrays of up to 12 values with a random k. Every output matched Python's built-in sort (the sorted array, and its value at index k − 1). Every swap in the walk-through, the quick-check slot and both trap results come from running the code.

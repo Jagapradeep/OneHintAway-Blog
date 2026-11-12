@@ -5,9 +5,12 @@
 // Motion is CSS transforms only, driven by the difference between two steps.
 // Layout is a fixed workbench: input on top, picture and controls on the left,
 // pseudocode on the right scrolling inside its own box, so one screen holds it all.
-import { use, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { use, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { loadPattern } from "@/visualizer/loaders.ts";
-import { arrayOf, checkLimits, stackOf, traceOf, type Field, type Input, type Pattern, type StackItem } from "@/visualizer/schema.ts";
+import { arrayOf, checkLimits, stackOf, traceOf, type Field, type Input, type Pattern } from "@/visualizer/schema.ts";
+import { ArrayView } from "./views/ArrayView.tsx";
+import { StackView } from "./views/StackView.tsx";
+import { vars } from "./views/vars.ts";
 
 const SPEEDS = [0.5, 1, 2];
 const STEP_MS = 1600;
@@ -46,7 +49,6 @@ function parseInput(p: Pattern, texts: Texts): Input | Problem {
   return bad ? { msg: bad } : input;
 }
 
-const vars = (o: Record<string, string | number>) => o as CSSProperties;
 
 // Each pattern is its own chunk, fetched the first time a player asks for it.
 export default function VisualizerPlayer(props: Props) {
@@ -69,21 +71,24 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
   const step = trace.steps[Math.min(pos.i, last)];
   const before = trace.steps[Math.min(pos.prev, last)];
   const playing = wantPlay && pos.i < last;
-  const arr = arrayOf(step);
-  const cells = arr?.cells ?? [];
-  const pointers = arr?.pointers ?? [];
-  const n = Math.max(1, cells.length);
+  const n = Math.max(1, arrayOf(step)?.cells.length ?? 0);
   // What the stage needs room for is decided once per trace, so stepping never changes the layout.
-  const shape = useMemo(
-    () => ({
-      // Pointers alternate below and above the cells, in the order they first appear, and keep their side.
-      top: [...new Set(trace.steps.flatMap((s) => (arrayOf(s)?.pointers ?? []).map((q) => q.id)))].filter((_, k) => k % 2 === 1),
-      stack: trace.steps.some((s) => stackOf(s)),
-      window: trace.steps.some((s) => arrayOf(s)?.window),
-      vars: trace.steps[0].vars?.map((v) => v.name) ?? [],
-    }),
-    [trace],
-  );
+  const shape = useMemo(() => {
+    const seen: Record<string, string[]> = {}; // pointer ids per array view, in the order they first appear
+    const window: string[] = []; // array views that show a window on some step
+    for (const s of trace.steps) {
+      for (const v of s.views) {
+        if (v.kind !== "array") continue;
+        const ids = (seen[v.id] ??= []);
+        for (const q of v.pointers) if (!ids.includes(q.id)) ids.push(q.id);
+        if (v.window && !window.includes(v.id)) window.push(v.id);
+      }
+    }
+    // Pointers alternate below and above the cells and keep their side.
+    const top: Record<string, string[]> = {};
+    for (const id of Object.keys(seen)) top[id] = seen[id].filter((_, k) => k % 2 === 1);
+    return { top, window, vars: trace.steps[0].vars?.map((v) => v.name) ?? [] };
+  }, [trace]);
 
   useEffect(() => {
     if (!playing) return;
@@ -136,15 +141,6 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
     e.preventDefault();
   };
 
-  const stack = stackOf(step)?.items ?? [];
-  const leaving: { item: StackItem; at: number }[] = [];
-  if (pos.prev !== pos.i) {
-    (stackOf(before)?.items ?? []).forEach((item, at) => {
-      if (!stack.some((s) => s.id === item.id)) leaving.push({ item, at });
-    });
-  }
-  const win = arr?.window;
-  const winLen = win ? win.hi - win.lo + 1 : 0;
   const done = pos.i >= last;
 
   return (
@@ -206,59 +202,12 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
       <div className="vz-left">
         <div className="vz-stage" aria-hidden="true">
           <div className="vz-grid">
-            {shape.top.length > 0 && (
-              <div className="vz-ptrs vz-ptrs-top">
-                {pointers.map((ptr) =>
-                  shape.top.includes(ptr.id) ? (
-                    <div key={ptr.id} className="vz-ptr" style={vars({ "--at": ptr.at })}>
-                      <span>{ptr.label}</span>
-                      <i />
-                    </div>
-                  ) : null,
-                )}
-              </div>
-            )}
-            <div className="vz-cells">
-              {shape.window && (
-                <div className={`vz-win${win && winLen > 0 ? "" : " vz-win-empty"}`} style={vars({ "--lo": win?.lo ?? 0, "--len": Math.max(winLen, 0) })} />
-              )}
-              {cells.map((c, i) => (
-                <div key={i} className={`vz-cell vz-${c.state}`}>
-                  <span>{c.v}</span>
-                </div>
-              ))}
-            </div>
-            <div className="vz-idx">
-              {cells.map((_, i) => (
-                <span key={i}>{i}</span>
-              ))}
-            </div>
-            <div className="vz-ptrs vz-ptrs-bottom">
-              {pointers.map((ptr) =>
-                !shape.top.includes(ptr.id) ? (
-                  <div key={ptr.id} className="vz-ptr" style={vars({ "--at": ptr.at })}>
-                    <i />
-                    <span>{ptr.label}</span>
-                  </div>
-                ) : null,
-              )}
-            </div>
-            {shape.stack && (
-              <>
-                <div className="vz-stack-label">Stack · top on the right</div>
-                <div className="vz-stack">
-                  {stack.map((item, at) => (
-                    <div key={item.id} className="vz-item" style={vars({ "--at": at })}>
-                      <span>{item.v}</span>
-                    </div>
-                  ))}
-                  {leaving.map(({ item, at }) => (
-                    <div key={item.id} className="vz-item vz-item-out" style={vars({ "--at": at })}>
-                      <span>{item.v}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
+            {step.views.map((v) =>
+              v.kind === "array" ? (
+                <ArrayView key={v.id} view={v} top={shape.top[v.id] ?? []} hasWindow={shape.window.includes(v.id)} />
+              ) : (
+                <StackView key={v.id} view={v} before={pos.prev !== pos.i ? stackOf(before, v.id) : undefined} />
+              ),
             )}
           </div>
           {shape.vars.length > 0 && (

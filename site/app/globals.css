@@ -792,7 +792,13 @@ pre.shiki { background: var(--code-bg) !important; }
 .vz-stage { container-type: inline-size; padding: 4px 0; }
 .vz-grid { width: min(100%, calc(var(--n) * 56px)); margin: 0 auto; }
 .vz-cells { position: relative; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
-.vz-cell { aspect-ratio: 1; padding: 3px; }
+/* Every cell sits in the first column and is moved to its position, so a cell
+   that changes position (a swap) slides there. The DOM order never changes. */
+.vz-cell {
+  grid-row: 1; grid-column: 1; aspect-ratio: 1; padding: 3px;
+  transform: translateX(calc(var(--at) * 100%));
+  transition: transform var(--vz-dur) var(--vz-ease);
+}
 .vz-cell span {
   display: grid; place-items: center; width: 100%; height: 100%;
   border: 1.5px solid var(--num-border); border-radius: 22%;

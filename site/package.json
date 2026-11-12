@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-posts.mjs",
+    "prebuild": "npm run check-posts && npm run check-viz",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "check-posts": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-posts.mjs",
+    "check-viz": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning --experimental-strip-types scripts/check-visualizer.mjs",
+    "viz-fixtures": "python ../post-kit/tools/viz_fixtures.py",
     "add-post": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/add-post.mjs"
   },
   "dependencies": {

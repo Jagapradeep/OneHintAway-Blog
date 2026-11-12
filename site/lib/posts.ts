@@ -21,6 +21,7 @@ export type PostMeta = {
   practice: PracticeLink[];
   slides: number;
   video?: number;
+  visualizer?: string; // id of a pattern in visualizer/registry.ts; the page shows its player
   tags: string[];
   published: string;
   file: string; // file name without .mdx, e.g. "00-start-here"

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Label } from "@/components/PostList";
 import { SlideGallery } from "@/components/SlideGallery";
+import { Visualizer } from "@/components/Visualizer";
 import { getAllPosts, getNeighbours, getPost } from "@/lib/posts";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -88,6 +89,14 @@ export default async function PostPage({ params }: Props) {
       <div className="post-body">
         <Body />
       </div>
+
+      {/* The pattern on the reader's own input (frontmatter: visualizer) */}
+      {post.visualizer && (
+        <section className="post-body post-visualizer">
+          <h2>Try it on your own input</h2>
+          <Visualizer pattern={post.visualizer} />
+        </section>
+      )}
 
       {/* 6. Practice */}
       {(post.worked || post.practice.length > 0) && (

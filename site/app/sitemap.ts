@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getAllPosts } from "@/lib/posts";
 import { SITE_URL } from "@/lib/site";
+import { patterns } from "@/visualizer/registry.ts";
 
 // Written to out/sitemap.xml at build time (static export).
 export const dynamic = "force-static";
@@ -8,7 +9,7 @@ export const dynamic = "force-static";
 export default function sitemap(): MetadataRoute.Sitemap {
   const built = new Date();
   // Top-level pages. "Start here" is a post, so it comes in with the posts below.
-  const pages = ["/", "/patterns/", "/about/"].map((path) => ({
+  const pages = ["/", "/patterns/", "/visualize/", ...patterns.map((p) => `/visualize/${p.id}/`), "/about/"].map((path) => ({
     url: `${SITE_URL}${path}`,
     lastModified: built,
   }));

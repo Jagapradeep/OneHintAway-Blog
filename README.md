@@ -165,11 +165,12 @@ OneHintAway-Blog/
 │   │   ├── code/                 Main.java · main.py · main.cpp · main.js
 │   │   └── blog.md               the blog page body
 │   ├── used_problems.json        practice problems already used, so none repeat
+│   ├── viz/<pattern>/ref.py      reference code for the website's visualizer (brute force, 1,000+ inputs)
 │   └── README.md                 step-by-step guide to running the kit
 │
 └── site/                         🌐  onehintaway.com
-    ├── app/                      pages: home, posts/[slug], patterns, about, sitemap, robots
-    ├── components/               SlideGallery, CodeTabs, PostList, PatternNav, ThemeToggle …
+    ├── app/                      pages: home, posts/[slug], patterns, visualize, about, sitemap, robots
+    ├── components/               SlideGallery, CodeTabs, Visualizer, PostList, PatternNav, ThemeToggle …
     ├── content/posts/            one .mdx per post
     ├── public/posts/NN/          each post's slides and video
     ├── lib/
@@ -177,9 +178,16 @@ OneHintAway-Blog/
     │   ├── sections.ts           roadmap sections, in reading order
     │   ├── remark-code-tabs.mjs  turns four language sections into one tabbed block
     │   └── shiki/                IntelliJ Light theme + a grammar for the pseudocode
+    ├── visualizer/               the interactive pattern player's engine
+    │   ├── schema.ts             the step format (v1) and the rules every step must obey
+    │   ├── patterns/             one pure TypeScript generator per pattern, no DOM
+    │   ├── registry.ts           the list the build checks · loaders.ts: one browser chunk per pattern
+    │   ├── access.ts             free and paid tiers (the paywall switch, off for now)
+    │   └── fixtures/             test inputs and brute-force answers, written by the post kit
     ├── scripts/
     │   ├── add-post.mjs          adds a finished post: MDX in, slides and video in, checked
-    │   └── check-posts.mjs       runs before every build; a drifting post fails the build
+    │   ├── check-posts.mjs       runs before every build; a drifting post fails the build
+    │   └── check-visualizer.mjs  runs before every build; one wrong step fails the build
     └── wrangler.jsonc            Cloudflare: serve out/ as static files
 ```
 
@@ -236,6 +244,8 @@ A fully static site: Next.js builds plain HTML, CSS and JS into `out/`, and Clou
 | Syntax colours with zero client JS | Shiki at build time: VS Code Dark+ for dark mode, IntelliJ Light for light mode |
 | Pseudocode highlighted too | A custom TextMate grammar (`lib/shiki/pseudo.tmLanguage.json`) for the series' pseudocode style |
 | Slides and video on every post | `SlideGallery` with full-screen view |
+| Step through a pattern on your own input | `/visualize/` and a player on matching posts: play, step, scrub, speed, the running pseudocode line, keyboard and screen-reader support. Algorithms run in the reader's browser; no server, no AI |
+| A visualizer step can't be wrong | `scripts/check-visualizer.mjs` runs as `prebuild`: every pattern must agree with a Python brute force on 1,000+ inputs, and every step of every input is checked |
 | Browse by roadmap or pattern | `lib/sections.ts` order and a patterns index |
 | Light and dark themes | `ThemeToggle`, no flash on load |
 | SEO | Generated `sitemap.xml` and `robots.txt` |
@@ -247,8 +257,23 @@ npm install
 npm run dev                                   # http://localhost:3000
 
 npm run add-post -- 24-bubble-sort/24-bubble-sort.mdx 24-bubble-sort/
-npm run build                                 # runs check-posts first, then builds out/
+npm run build                                 # runs check-posts and check-viz first, then builds out/
+npm run check-viz -- --sample 50              # quick visualizer check while working
+npm run viz-fixtures                          # after changing post-kit/viz/*/ref.py (needs Python)
 ```
+
+### The pattern visualizer
+
+Readers step through an algorithm on their own numbers at [`/visualize/`](https://onehintaway.com/visualize/): a gallery with one page per pattern, and the same player on any post whose frontmatter says `visualizer: <pattern>`.
+
+| Piece | What it does |
+| --- | --- |
+| `visualizer/patterns/<id>.ts` | The algorithm as a generator that yields one step at a time: array, pointers, window, stack, named values, one sentence of narration and the pseudocode line. No DOM. |
+| `components/VisualizerPlayer.tsx` | Draws any pattern's steps. Motion is CSS transforms only. One-screen layout: input on top, picture left, pseudocode right scrolling in its own box; tabs on phones. |
+| `post-kit/viz/<id>/ref.py` | The same algorithm in Python with a brute force and 1,000+ test inputs. `npm run viz-fixtures` saves its answers, so the cloud build never needs Python. |
+| `scripts/check-visualizer.mjs` | Fails the build unless TypeScript and Python agree on every input, every step obeys the schema and the pattern's own rules, the example's trace matches step for step, and the pseudocode equals the post's. |
+
+Each pattern ships as its own small chunk (about 2 KB gzipped) beside the player (about 4 KB), loaded only on pages that show one. Patterns today: two pointers, sliding window, monotonic stack. Adding one is two files and two list entries: see [`post-kit/README.md`](post-kit/README.md#website-visualizer-step-by-step).
 
 **Deploy:** a push to `main` triggers **Cloudflare Workers Builds** (root directory `site`), which builds and publishes `out/` to [onehintaway.com](https://onehintaway.com).
 
@@ -346,6 +371,9 @@ Slides are 1080 × 1350 (Instagram 4:5) with 80 px side margins.
 - [x] Post kit: content in, finished post out, tested in four languages
 - [x] Blog live at [onehintaway.com](https://onehintaway.com) on Cloudflare Workers static assets
 - [x] Posts 00–24 on the blog; batches of ten drafted ahead
+- [x] Interactive pattern visualizer: three patterns, checked against a brute force on every build
+- [ ] Visualizer: more kinds of picture (decision tree for binary search, moving cells for sorting, grid, linked list, call stack, heap, graph)
+- [ ] Post kit: studio-quality pass on slides and video, with the video drawn from the visualizer's step format
 - [ ] **API**: Spring Boot 3 (Java 21) + PostgreSQL 16 for search, view counts and sign-ups
 - [ ] **Cluster**: k3s with Traefik, cert-manager, Umami analytics, Prometheus and Grafana
 - [ ] **CI/CD**: GitHub Actions to test the API, build the image, push to GHCR and roll out

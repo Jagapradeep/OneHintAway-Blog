@@ -108,6 +108,12 @@ def mdx(post, ns, seq, folder, tested_count, published, n_slides, video_slot, bo
     fm.append(f"slides: {n_slides}")
     if video_slot:
         fm.append(f"video: {video_slot}")
+    # Optional "visualizer" in post.json's blog block: the blog shows that pattern's interactive player.
+    if b.get("visualizer"):
+        known = sorted(p.parent.name for p in (Path(__file__).resolve().parents[1] / "viz").glob("*/ref.py"))
+        if b["visualizer"] not in known:
+            raise SystemExit(f'VALIDATION FAILED: blog.visualizer "{b["visualizer"]}" is not a pattern in post-kit/viz ({", ".join(known)})')
+        fm.append(f"visualizer: {b['visualizer']}")
     fm += [f"tags: [{', '.join(b['tags'])}]", f"published: {published}", "---", ""]
     body = body if body is not None else (Path(folder) / "blog.md").read_text()
     code = []

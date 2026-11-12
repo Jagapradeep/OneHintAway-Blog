@@ -15,7 +15,7 @@ const SECTIONS = ["Start here", "Foundations", "Arrays and hashing", "Maths", "R
   "Heaps", "Graphs", "Dynamic programming", "Tries and strings", "Advanced (optional)"];
 const PATTERNS = ["Roadmap", "Foundations", "Hashing", "Two pointers", "Sliding window", "Prefix sum", "Kadane's algorithm",
   "Three-way partition", "Moore's voting", "Cyclic sort", "Merge intervals", "Next permutation", "Number theory"];
-const FIELDS = ["number", "title", "slug", "pattern", "section", "summary", "worked", "practice", "slides", "video", "tags", "published"];
+const FIELDS = ["number", "title", "slug", "pattern", "section", "summary", "worked", "practice", "slides", "video", "visualizer", "tags", "published"];
 const LANGS = [["Java", "java"], ["Python", "python"], ["C++", "cpp"], ["JavaScript", "javascript"]];
 const HEAD_ORDER = ["The idea", "The walk", "Pseudocode", "Java", "Python", "C++", "JavaScript", "Complexity", "How it was tested"];
 const MAX_FILE = 25 * 1024 * 1024;
@@ -84,6 +84,7 @@ const d = new Date(published + "T00:00:00Z");
 if (!/^\d{4}-\d{2}-\d{2}$/.test(published) || Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== published) err(`published must be a real date YYYY-MM-DD (got "${published}")`);
 if (!Number.isInteger(fm.slides) || fm.slides < 1 || fm.slides > 20) err(`slides must be a whole number from 1 to 20`);
 if (fm.video !== undefined && (!Number.isInteger(fm.video) || fm.video < 1 || fm.video > fm.slides)) err(`video must be the MP4's slide number (1 to slides)`);
+if (fm.visualizer !== undefined && (typeof fm.visualizer !== "string" || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(fm.visualizer))) err(`visualizer must be a pattern id such as two-pointers (the blog build checks it exists)`);
 
 // ---------- slides export
 const slidesArg = opt("--slides");

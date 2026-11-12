@@ -766,3 +766,234 @@ pre.shiki { background: var(--code-bg) !important; }
 /* 404 page: it has its own "All posts" button. */
 .site-main:has(.not-found) .back-button { display: none; }
 .not-found { padding-top: 48px; }
+
+/* ---- Visualizer (components/VisualizerPlayer.tsx) ----
+   Gold = the current focus, steel = done or compared, dim = out of play.
+   Everything that moves is a transform or an opacity, so stepping never
+   changes the layout. --n is the number of cells; one cell is 100% / n wide. */
+.vz {
+  --vz-dur: 520ms;
+  --vz-ease: cubic-bezier(0.3, 1.25, 0.5, 1);
+  margin: 24px 0; padding: 16px;
+  border: 1.5px solid var(--border); border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--card-top), var(--card-bottom));
+  box-shadow: var(--card-shadow);
+}
+.vz:focus-visible { outline-offset: 2px; border-radius: var(--radius); }
+.vz-loading { min-height: 420px; display: grid; place-items: center; color: var(--muted); }
+.vz p { margin: 0; }
+.vz .vz-problem { margin-bottom: 14px; color: var(--text); font-size: 0.95rem; }
+.vz-main { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+.vz-left { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.vz-visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+
+.vz-stage { container-type: inline-size; padding: 4px 0; }
+.vz-grid { width: min(100%, calc(var(--n) * 56px)); margin: 0 auto; }
+.vz-cells { position: relative; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
+.vz-cell { aspect-ratio: 1; padding: 3px; }
+.vz-cell span {
+  display: grid; place-items: center; width: 100%; height: 100%;
+  border: 1.5px solid var(--num-border); border-radius: 22%;
+  background: var(--num-bg); color: var(--num-text);
+  font-family: var(--mono); font-weight: 600; letter-spacing: -0.04em;
+  font-size: clamp(11px, calc(100cqw / var(--n) * 0.34), 21px);
+  font-variant-numeric: tabular-nums;
+  transition: color var(--vz-dur), border-color var(--vz-dur), background-color var(--vz-dur),
+    box-shadow var(--vz-dur), transform var(--vz-dur) var(--vz-ease), opacity var(--vz-dur);
+}
+.vz-gold span {
+  border-color: var(--gold); color: var(--gold); background: var(--active-bg);
+  box-shadow: 0 0 0 3px var(--glow-gold); transform: scale(1.06);
+}
+.vz-steel span { border-color: var(--steel); color: var(--steel); background: var(--glow-steel); }
+.vz-dim span { border-color: var(--border); border-style: dashed; background: none; color: var(--muted); transform: scale(0.92); }
+.vz-ghost span { border-color: transparent; background: none; color: transparent; }
+.vz-dash span { border-style: dashed; border-color: var(--border-strong); background: none; }
+
+.vz-idx { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
+.vz-idx span { text-align: center; font-family: var(--mono); font-size: 10px; line-height: 14px; color: var(--muted); }
+
+.vz-ptrs { position: relative; height: 30px; }
+.vz-ptr {
+  position: absolute; top: 0; left: 0; width: calc(100% / var(--n)); height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  transform: translateX(calc(var(--at) * 100%));
+  transition: transform var(--vz-dur) var(--vz-ease);
+  will-change: transform;
+}
+.vz-ptr span {
+  font-family: var(--mono); font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--gold); white-space: nowrap;
+}
+.vz-ptr i { width: 0; height: 0; border: 6px solid transparent; }
+.vz-ptrs-bottom .vz-ptr i { border-bottom-color: var(--gold); border-top-width: 0; margin-top: 3px; }
+.vz-ptrs-top .vz-ptr i { border-top-color: var(--gold); border-bottom-width: 0; margin-bottom: 3px; }
+
+/* The window is one rounded frame around its cells. Only this small, out-of-flow box
+   changes size, so nothing else on the page is laid out again. */
+.vz-cells { contain: layout; }
+.vz-win {
+  position: absolute; top: -2px; bottom: -2px; pointer-events: none; box-sizing: border-box;
+  left: calc(var(--lo) * 100% / var(--n)); width: calc(var(--len) * 100% / var(--n));
+  border: 2px solid var(--steel); border-radius: 14px;
+  box-shadow: 0 0 0 4px var(--glow-steel);
+  transition: left var(--vz-dur) cubic-bezier(0.22, 1, 0.36, 1), width var(--vz-dur) cubic-bezier(0.22, 1, 0.36, 1), opacity var(--vz-dur);
+}
+.vz-win-empty { opacity: 0; }
+
+.vz-stack-label { margin-top: 8px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.vz-stack { position: relative; height: 0; padding-bottom: calc(100% / var(--n)); border-bottom: 2px solid var(--border-strong); }
+.vz-item {
+  position: absolute; top: 0; left: 0; width: calc(100% / var(--n)); aspect-ratio: 1; padding: 3px;
+  transform: translateX(calc(var(--at) * 100%)); transition: transform var(--vz-dur) var(--vz-ease);
+}
+.vz-item span {
+  display: grid; place-items: center; width: 100%; height: 100%;
+  border: 1.5px solid var(--steel); border-radius: 22%; background: var(--glow-steel); color: var(--steel);
+  font-family: var(--mono); font-weight: 600; letter-spacing: -0.04em;
+  font-size: clamp(11px, calc(100cqw / var(--n) * 0.34), 21px);
+  animation: vz-push var(--vz-dur) var(--vz-ease) both;
+}
+.vz-item-out span { animation: vz-pop var(--vz-dur) ease-in both; }
+@keyframes vz-push { from { opacity: 0; transform: translateY(-70%); } }
+@keyframes vz-pop { to { opacity: 0; transform: translateY(-70%) scale(0.8); } }
+
+.vz-vars { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px; }
+.vz-var {
+  display: flex; align-items: baseline; gap: 8px; padding: 4px 10px; min-width: 96px; justify-content: space-between;
+  border: 1px solid var(--border); border-radius: 8px; font-family: var(--mono); font-size: 12px;
+}
+.vz-var span { color: var(--muted); }
+.vz-var b { color: var(--text); font-variant-numeric: tabular-nums; white-space: pre; }
+
+.vz-say { min-height: 5.6em; }
+.vz .vz-say p { font-size: 0.98rem; line-height: 1.45; color: var(--text); }
+.vz .vz-say .vz-answer { margin-top: 4px; font-weight: 700; color: var(--gold); opacity: 0; transition: opacity var(--vz-dur); }
+.vz .vz-say .vz-answer-on { opacity: 1; }
+
+.vz-scrub { width: 100%; height: 28px; margin: 0; accent-color: var(--gold); cursor: pointer; }
+.vz-buttons { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.vz-btn {
+  display: inline-grid; place-items: center; min-width: 44px; height: 44px; padding: 0;
+  border: 1.5px solid var(--border-strong); border-radius: 12px;
+  background: var(--num-bg); color: var(--text); font: inherit; cursor: pointer;
+}
+.vz-btn:hover:not(:disabled) { border-color: var(--accent-border); }
+.vz-btn:disabled { opacity: 0.45; cursor: default; }
+.vz-btn svg { width: 20px; height: 20px; fill: currentColor; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.vz-play, .vz-go { background: var(--button-bg); color: var(--button-text); border-color: var(--copy-border); }
+.vz-play { min-width: 56px; }
+.vz-count { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vz-speed select {
+  height: 44px; padding: 0 8px; border: 1.5px solid var(--border-strong); border-radius: 12px;
+  background: var(--card-top); color: var(--text); font: inherit; font-size: 0.9rem; cursor: pointer;
+}
+
+.vz .vz-code { margin: 0; align-self: start; min-width: 0; }
+.vz-code-body { position: relative; }
+.vz-code-mark {
+  position: absolute; left: 0; right: 0; top: 12px; height: 22px;
+  background: var(--active-bg); box-shadow: inset 3px 0 0 var(--gold);
+  transform: translateY(calc(var(--line) * 22px)); transition: transform var(--vz-dur) cubic-bezier(0.22, 1, 0.36, 1);
+}
+.vz .vz-code pre.shiki {
+  position: relative; margin: 0; padding: 12px 0 12px 12px; border: 0; border-radius: 0;
+  background: none !important; font-size: 12.5px; line-height: 22px;
+}
+.vz .vz-code .shiki .line::before { margin-right: 1em; }
+
+/* Workbench layout. Phone: picture and controls, then tabs for pseudocode or input.
+   From 760px: input along the top, picture left, pseudocode right. The pseudocode box
+   never grows the player: it takes the left column's height and scrolls inside. */
+.vz { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "left" "tabs" "panel"; }
+.vz-loading { display: grid; }
+.vz-left { grid-area: left; }
+.vz-tabs { grid-area: tabs; display: flex; gap: 8px; }
+.vz-tab {
+  flex: 1; height: 40px; border: 1.5px solid var(--border-strong); border-radius: 10px;
+  background: none; color: var(--muted); font: inherit; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+}
+.vz-tab[aria-selected="true"] { color: var(--text); border-color: var(--accent-border); background: var(--active-bg); }
+.vz-code-slot, .vz-inputs { grid-area: panel; min-width: 0; }
+.vz[data-panel="code"] .vz-inputs, .vz[data-panel="input"] .vz-code-slot { display: none; }
+.vz-code-scroll { max-height: 38svh; overflow-y: auto; scroll-behavior: smooth; }
+
+.vz-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.vz-field { flex: 1 1 100%; display: grid; gap: 4px; min-width: 0; font-size: 0.82rem; font-weight: 600; color: var(--text); }
+.vz-field small { font-weight: 500; color: var(--muted); }
+.vz-field input {
+  width: 100%; min-width: 0; height: 40px; padding: 0 12px;
+  border: 1.5px solid var(--border-strong); border-radius: 10px;
+  background: var(--inline-code-bg); color: var(--text); font-family: var(--mono); font-size: 16px;
+}
+.vz-field input[aria-invalid="true"] { border-color: var(--gold); }
+.vz-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.vz-actions .vz-btn { height: 40px; }
+.vz-text-btn { padding: 0 14px; font-size: 0.88rem; font-weight: 600; }
+.vz-status { min-height: 1.5em; margin-top: 8px; font-size: 0.88rem; line-height: 1.5; }
+.vz .vz-error { font-weight: 600; color: var(--gold); }
+.vz .vz-hint, .vz .vz-lock { color: var(--muted); }
+.vz .vz-lock { font-size: 0.92rem; }
+
+/* /visualize gallery and the one-pattern pages */
+.vz-cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); margin: 12px 0 8px; }
+.prose a.vz-card {
+  display: flex; flex-direction: column; gap: 6px; padding: 16px;
+  border: 1.5px solid var(--border); border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--card-top), var(--card-bottom)); box-shadow: var(--card-shadow);
+  color: var(--text); text-decoration: none;
+}
+.prose a.vz-card:hover { border-color: var(--accent-border); }
+.vz-card strong { font-family: var(--title); font-size: 1.05rem; }
+.vz-card span { font-size: 0.9rem; line-height: 1.45; color: var(--muted); }
+.vz-badge {
+  align-self: flex-start; margin-top: 4px; padding: 2px 8px; border: 1px solid var(--easy-border); border-radius: 999px;
+  font-family: var(--mono); font-size: 10px; font-style: normal; letter-spacing: 0.12em; text-transform: uppercase; color: var(--steel);
+}
+.vz-one .vz-crumb { margin: 0 0 4px; font-size: 0.88rem; color: var(--muted); }
+.vz-one h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 3.4vw, 2rem); }
+.vz-one .vz { margin: 12px 0 0; }
+
+@media (min-width: 760px) {
+  .vz {
+    padding: 16px 20px; column-gap: 20px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr); grid-template-areas: "inputs inputs" "left code";
+  }
+  .vz-tabs { display: none; }
+  .vz-inputs { grid-area: inputs; }
+  .vz-code-slot { grid-area: code; position: relative; min-height: 220px; }
+  .vz[data-panel] .vz-inputs, .vz[data-panel] .vz-code-slot { display: block; }
+  .vz .vz-code { position: absolute; inset: 0 0 auto 0; max-height: 100%; display: flex; flex-direction: column; }
+  .vz-code-scroll { flex: 1 1 auto; min-height: 0; max-height: none; }
+  .vz-form { flex-wrap: nowrap; }
+  .vz-field-ints { flex: 3 1 0; }
+  .vz-field-int { flex: 1 1 0; }
+  .vz-actions { flex: none; flex-wrap: nowrap; }
+  .vz-say { min-height: 4.4em; }
+}
+@media (max-width: 480px) {
+  .vz .vz-code pre.shiki { font-size: 11px; padding-left: 8px; }
+  .vz .vz-code .shiki .line::before { margin-right: 0.8em; }
+}
+@media (max-width: 380px) {
+  .vz { padding: 12px; }
+  .vz-buttons { gap: 6px; }
+  .vz-btn { min-width: 38px; }
+  .vz-play { min-width: 46px; }
+  .vz-text-btn { padding: 0 10px; }
+  .vz-speed select { padding: 0 2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vz *, .vz *::before { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+
+/* One-pattern pages keep the player on the first screen: the crumb replaces the Back
+   button, and the title shares its line. */
+body:has(.vz-one) .back-button { display: none; }
+.vz-one { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 16px; }
+.vz-one h1 { order: -1; font-size: clamp(1.3rem, 3vw, 1.6rem); }
+.vz-one > :not(h1):not(.vz-crumb) { flex: 1 1 100%; min-width: 0; }
+.prose .vz-crumb a { text-decoration: none; }
+.prose .vz-crumb a:hover { text-decoration: underline; }

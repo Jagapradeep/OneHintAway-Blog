@@ -13,7 +13,7 @@ import json
 import sys
 from pathlib import Path
 
-SCHEMA = 1
+SCHEMA = 2
 ROOT = Path(__file__).resolve().parents[2]
 VIZ = ROOT / "post-kit" / "viz"
 OUT = ROOT / "site" / "visualizer" / "fixtures"

@@ -1,5 +1,5 @@
 """Monotonic stack: the next greater number to the right of each number.
-Reference for the website visualizer. viz_steps() emits step schema v1 and must
+Reference for the website visualizer. viz_steps() emits step schema v2 and must
 match site/visualizer/patterns/monotonic-stack.ts step for step."""
 import random as _r
 
@@ -59,9 +59,12 @@ def viz_steps(inp=EXAMPLE):
 
     def snap(line, say):
         steps.append({"line": line, "say": say,
-                      "cells": [{"v": v, "state": _state(i, at, answer, line)} for i, v in enumerate(nums)],
-                      "pointers": [] if line == L_DONE or at < 0 else [{"id": "i", "label": "i", "at": at}],
-                      "stack": [{"id": f"s{j}", "v": nums[j], "from": j} for j in stack],
+                      "views": [
+                          {"kind": "array", "id": "nums",
+                           "cells": [{"id": f"c{i}", "v": v, "state": _state(i, at, answer, line)} for i, v in enumerate(nums)],
+                           "pointers": [] if line == L_DONE or at < 0 else [{"id": "i", "label": "i", "at": at}]},
+                          {"kind": "stack", "id": "stack",
+                           "items": [{"id": f"s{j}", "v": nums[j], "from": {"view": "nums", "at": j}} for j in stack]}],
                       "vars": [{"name": "answer", "value": _show(answer)}]})
 
     if not nums:

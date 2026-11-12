@@ -1,7 +1,7 @@
 // Two pointers on a sorted array: find the pair that adds up to the target
 // (LeetCode 167). Mirrors post-kit/viz/two-pointers/ref.py step for step.
 import type { Answer, Cell, Input, Pattern, Step } from "../schema.ts";
-import { pointerAt, strayNumber, varOf } from "../schema.ts";
+import { arrayOf, pointerAt, strayNumber, varOf } from "../schema.ts";
 
 const pseudocode = [
   "function twoSum(numbers, target):",
@@ -22,6 +22,7 @@ const L_START = 2, L_TOTAL = 4, L_FOUND = 6, L_LEFT = 8, L_RIGHT = 10, L_NONE = 
 
 function cellsFor(nums: number[], left: number, right: number, found: boolean): Cell[] {
   return nums.map((v, i) => ({
+    id: `c${i}`,
     v,
     state: i === left || i === right ? "gold" : i < left || i > right || found ? "dim" : "plain",
   }));
@@ -35,11 +36,15 @@ function* run(input: Input): Generator<Step, Answer, void> {
   const snap = (line: number, say: string, total: number | string): Step => ({
     line,
     say,
-    cells: cellsFor(nums, left, right, line === L_FOUND),
-    pointers: nums.length === 0 ? [] : [
-      { id: "left", label: "left", at: left },
-      { id: "right", label: "right", at: right },
-    ],
+    views: [{
+      kind: "array",
+      id: "numbers",
+      cells: cellsFor(nums, left, right, line === L_FOUND),
+      pointers: nums.length === 0 ? [] : [
+        { id: "left", label: "left", at: left },
+        { id: "right", label: "right", at: right },
+      ],
+    }],
     vars: [{ name: "target", value: target }, { name: "total", value: total }],
   });
 
@@ -69,16 +74,19 @@ function* run(input: Input): Generator<Step, Answer, void> {
 function check(input: Input, step: Step, prev: Step | null, isLast: boolean): string | null {
   const nums = input.numbers as number[];
   const target = input.target as number;
+  const arr = arrayOf(step, "numbers");
+  if (!arr || step.views.length !== 1) return "needs exactly the array view numbers";
   if (varOf(step, "target") !== target) return "target changed";
   const total = varOf(step, "total");
-  if (nums.length === 0) return step.pointers.length === 0 && step.line === L_NONE ? null : "an empty array must go straight to 'return none'";
+  if (nums.length === 0) return arr.pointers.length === 0 && step.line === L_NONE ? null : "an empty array must go straight to 'return none'";
 
   const l = pointerAt(step, "left");
   const r = pointerAt(step, "right");
-  if (l === undefined || r === undefined || step.pointers.length !== 2) return "needs exactly the pointers left and right";
+  if (l === undefined || r === undefined || arr.pointers.length !== 2) return "needs exactly the pointers left and right";
   if (l > r) return `left (${l}) has passed right (${r})`;
   const want = cellsFor(nums, l, r, step.line === L_FOUND);
-  for (const [i, c] of step.cells.entries()) {
+  for (const [i, c] of arr.cells.entries()) {
+    if (c.id !== `c${i}`) return `cell ${i} has id ${c.id}: cells never move here`;
     if (c.v !== nums[i]) return `cell ${i} shows ${c.v}, the input has ${nums[i]}`;
     if (c.state !== want[i].state) return `cell ${i} is ${c.state}, expected ${want[i].state}`;
   }

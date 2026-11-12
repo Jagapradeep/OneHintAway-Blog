@@ -1,7 +1,7 @@
 // Sliding window of any size: the longest run of numbers whose total stays
 // within the budget (post 08). Mirrors post-kit/viz/sliding-window/ref.py.
 import type { Answer, CellState, Input, Pattern, Step } from "../schema.ts";
-import { pointerAt, strayNumber, varOf } from "../schema.ts";
+import { arrayOf, pointerAt, strayNumber, varOf } from "../schema.ts";
 
 const pseudocode = [
   "function longestWithin(nums, budget):",
@@ -47,9 +47,13 @@ function* run(input: Input): Generator<Step, Answer, void> {
     return {
       line,
       say,
-      cells: nums.map((v, i) => ({ v, state: stateFor(i, lo, hi, line) })),
-      pointers,
-      window: { lo, hi },
+      views: [{
+        kind: "array",
+        id: "nums",
+        cells: nums.map((v, i) => ({ id: `c${i}`, v, state: stateFor(i, lo, hi, line) })),
+        pointers,
+        window: { lo, hi },
+      }],
       vars: [{ name: "budget", value: budget }, { name: "total", value: shown }, { name: "best", value: best }],
     };
   };
@@ -86,7 +90,9 @@ function check(input: Input, step: Step, prev: Step | null, isLast: boolean): st
   const nums = input.nums as number[];
   const budget = input.budget as number;
   const n = nums.length;
-  const w = step.window;
+  const arr = arrayOf(step, "nums");
+  if (!arr || step.views.length !== 1) return "needs exactly the array view nums";
+  const w = arr.window;
   if (!w) return "no window";
   const { lo, hi } = w;
   const len = hi - lo + 1;
@@ -97,20 +103,22 @@ function check(input: Input, step: Step, prev: Step | null, isLast: boolean): st
   let sum = 0;
   for (let i = lo; i <= hi; i++) sum += nums[i];
   if (sum !== total) return `total says ${total}, the window ${lo}..${hi} adds up to ${sum}`;
-  for (const [i, c] of step.cells.entries()) {
+  for (const [i, c] of arr.cells.entries()) {
+    if (c.id !== `c${i}`) return `cell ${i} has id ${c.id}: cells never move here`;
     if (c.v !== nums[i]) return `cell ${i} shows ${c.v}, the input has ${nums[i]}`;
     const want = stateFor(i, lo, hi, step.line);
     if (c.state !== want) return `cell ${i} is ${c.state}, expected ${want}`;
   }
   const pBest = prev ? (varOf(prev, "best") as number) : 0;
   const pTotal = prev ? (varOf(prev, "total") as number) : 0;
-  const pLo = prev?.window ? prev.window.lo : 0;
-  const pHi = prev?.window ? prev.window.hi : -1;
+  const pWin = prev ? arrayOf(prev, "nums")?.window : undefined;
+  const pLo = pWin ? pWin.lo : 0;
+  const pHi = pWin ? pWin.hi : -1;
   const facts = [budget, total, best, len, 0];
 
   if (step.line === L_DONE) {
     if (!isLast) return "steps continue after 'return best'";
-    if (step.pointers.length) return "the last step shows no pointers";
+    if (arr.pointers.length) return "the last step shows no pointers";
     if (len !== best || best !== pBest) return `the last step must show the best window (length ${pBest})`;
     if (total > budget && len > 0) return "the best window is over the budget";
     if (prev && pHi !== n - 1) return "'return best' before right reached the end";
@@ -119,7 +127,7 @@ function check(input: Input, step: Step, prev: Step | null, isLast: boolean): st
   if (isLast) return "the trace stops before 'return best'";
   if (pointerAt(step, "left") !== (lo < n ? lo : undefined)) return "the left pointer is not on the window's first cell";
   if (pointerAt(step, "right") !== (hi >= 0 ? hi : undefined)) return "the right pointer is not on the window's last cell";
-  if (step.pointers.length !== (lo < n ? 1 : 0) + (hi >= 0 ? 1 : 0)) return "only left and right may be shown";
+  if (arr.pointers.length !== (lo < n ? 1 : 0) + (hi >= 0 ? 1 : 0)) return "only left and right may be shown";
   switch (step.line) {
     case L_START:
       if (prev || lo !== 0 || hi !== -1 || best !== 0) return "the first step must be an empty window";

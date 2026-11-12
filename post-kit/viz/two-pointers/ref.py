@@ -1,5 +1,5 @@
 """Two pointers on a sorted array (LeetCode 167): the reference for the website
-visualizer. viz_steps() emits step schema v1 and must match
+visualizer. viz_steps() emits step schema v2 and must match
 site/visualizer/patterns/two-pointers.ts step for step."""
 import random as _r
 
@@ -62,10 +62,11 @@ def viz_steps(inp=EXAMPLE):
 
     def snap(line, say, total):
         found = line == L_FOUND
-        cells = [{"v": v, "state": "gold" if i in (left, right) else "dim" if i < left or i > right or found else "plain"}
+        cells = [{"id": f"c{i}", "v": v, "state": "gold" if i in (left, right) else "dim" if i < left or i > right or found else "plain"}
                  for i, v in enumerate(nums)]
         pointers = [{"id": "left", "label": "left", "at": left}, {"id": "right", "label": "right", "at": right}] if nums else []
-        steps.append({"line": line, "say": say, "cells": cells, "pointers": pointers,
+        steps.append({"line": line, "say": say,
+                      "views": [{"kind": "array", "id": "numbers", "cells": cells, "pointers": pointers}],
                       "vars": [{"name": "target", "value": target}, {"name": "total", "value": total}]})
 
     if not nums:

@@ -1,7 +1,7 @@
 // Monotonic stack: the next greater number to the right of each number.
 // Mirrors post-kit/viz/monotonic-stack/ref.py step for step.
 import type { Answer, CellState, Input, Pattern, StackItem, Step } from "../schema.ts";
-import { pointerAt, strayNumber, varOf } from "../schema.ts";
+import { arrayOf, pointerAt, stackOf, strayNumber, varOf } from "../schema.ts";
 
 const pseudocode = [
   "function nextGreater(nums):",
@@ -37,9 +37,15 @@ function* run(input: Input): Generator<Step, Answer, void> {
   const snap = (line: number, say: string): Step => ({
     line,
     say,
-    cells: nums.map((v, i) => ({ v, state: stateFor(i, at, answer, line) })),
-    pointers: line === L_DONE || at < 0 ? [] : [{ id: "i", label: "i", at }],
-    stack: stack.map((j) => ({ id: `s${j}`, v: nums[j], from: j })),
+    views: [
+      {
+        kind: "array",
+        id: "nums",
+        cells: nums.map((v, i) => ({ id: `c${i}`, v, state: stateFor(i, at, answer, line) })),
+        pointers: line === L_DONE || at < 0 ? [] : [{ id: "i", label: "i", at }],
+      },
+      { kind: "stack", id: "stack", items: stack.map((j) => ({ id: `s${j}`, v: nums[j], from: { view: "nums", at: j } })) },
+    ],
     vars: [{ name: "answer", value: show(answer) }],
   });
 
@@ -68,8 +74,10 @@ function* run(input: Input): Generator<Step, Answer, void> {
 function check(input: Input, step: Step, prev: Step | null, isLast: boolean): string | null {
   const nums = input.nums as number[];
   const n = nums.length;
-  const stack = step.stack;
-  if (!stack) return "no stack";
+  const arr = arrayOf(step, "nums");
+  const stack = stackOf(step, "stack")?.items;
+  if (!arr || !stack || step.views.length !== 2) return "needs exactly the array view nums and the stack view stack";
+  const fromOf = (it: StackItem) => (it.from?.view === "nums" ? it.from.at : -1);
   const shown = varOf(step, "answer");
   if (typeof shown !== "string") return "the answer must be shown";
   const answer = n === 0 ? [] : shown.split(",").map((s) => Number(s.trim()));
@@ -77,9 +85,10 @@ function check(input: Input, step: Step, prev: Step | null, isLast: boolean): st
 
   // The stack really is monotonic: indexes climb, values never climb.
   for (const [k, it] of stack.entries()) {
-    if (it.from === undefined || it.id !== `s${it.from}` || it.v !== nums[it.from]) return `stack item ${k} does not match its cell`;
-    if (answer[it.from] !== -1) return `${it.v} is on the stack but already has an answer`;
-    if (k > 0 && (stack[k - 1].from! >= it.from || (stack[k - 1].v as number) < (it.v as number))) return `the stack is not monotonic: ${stack[k - 1].v} sits under ${it.v}`;
+    const from = fromOf(it);
+    if (from < 0 || it.id !== `s${from}` || it.v !== nums[from]) return `stack item ${k} does not match its cell`;
+    if (answer[from] !== -1) return `${it.v} is on the stack but already has an answer`;
+    if (k > 0 && (fromOf(stack[k - 1]) >= from ||(stack[k - 1].v as number) < (it.v as number))) return `the stack is not monotonic: ${stack[k - 1].v} sits under ${it.v}`;
   }
   const at = pointerAt(step, "i");
   // Every answer shown is right: a bigger number, with nothing bigger in between.
@@ -89,36 +98,37 @@ function check(input: Input, step: Step, prev: Step | null, isLast: boolean): st
     while (k < n && nums[k] <= nums[j]) k++;
     if (k >= n || nums[k] !== answer[j] || (at !== undefined && k > at)) return `answer[${j}] = ${answer[j]} is not the next greater number seen so far`;
   }
-  for (const [i, c] of step.cells.entries()) {
+  for (const [i, c] of arr.cells.entries()) {
+    if (c.id !== `c${i}`) return `cell ${i} has id ${c.id}: cells never move here`;
     if (c.v !== nums[i]) return `cell ${i} shows ${c.v}, the input has ${nums[i]}`;
     const want = stateFor(i, at ?? -1, answer, step.line);
     if (c.state !== want) return `cell ${i} is ${c.state}, expected ${want}`;
   }
-  const pStack: StackItem[] = prev?.stack ?? [];
+  const pStack: StackItem[] = (prev && stackOf(prev, "stack")?.items) || [];
   const pAt = prev ? pointerAt(prev, "i") ?? -1 : -1;
   const pShown = prev ? varOf(prev, "answer") : show(nums.map(() => -1));
   const ids = (s: StackItem[]) => s.map((x) => x.id).join(" ");
   const facts = [-1];
 
   if (step.line === L_DONE) {
-    if (!isLast || step.pointers.length) return "'return answer' must be the last step, with no pointer";
+    if (!isLast || arr.pointers.length) return "'return answer' must be the last step, with no pointer";
     if (prev && (pAt !== n - 1 || prev.line !== L_PUSH)) return "'return answer' before the last number was pushed";
     if (ids(stack) !== ids(pStack) || shown !== pShown) return "the last step changed the stack or the answer";
     return strayNumber(step.say, facts);
   }
   if (isLast) return "the trace stops before 'return answer'";
   if (step.line === L_START) {
-    if (prev || stack.length || step.pointers.length || answer.some((v) => v !== -1)) return "the first step must be an empty stack and all -1";
+    if (prev || stack.length || arr.pointers.length || answer.some((v) => v !== -1)) return "the first step must be an empty stack and all -1";
     return strayNumber(step.say, facts);
   }
-  if (at === undefined || step.pointers.length !== 1) return "needs exactly the pointer i";
+  if (at === undefined || arr.pointers.length !== 1) return "needs exactly the pointer i";
   const fresh = prev!.line === L_START || prev!.line === L_PUSH;
   if (at !== (fresh ? pAt + 1 : pAt)) return "i may only step forward by one, after a push";
   if (step.line === L_POP) {
     const top = pStack[pStack.length - 1];
     if (!top || ids(stack) !== ids(pStack.slice(0, -1))) return "a pop must remove exactly the top of the stack";
     if (!((top.v as number) < nums[at])) return `${top.v} was popped although ${nums[at]} is not bigger`;
-    if (answer[top.from!] !== nums[at]) return "the popped number did not get its answer";
+    if (answer[fromOf(top)] !== nums[at]) return "the popped number did not get its answer";
     facts.push(top.v as number, nums[at]);
   } else if (step.line === L_PUSH) {
     const top = pStack[pStack.length - 1];

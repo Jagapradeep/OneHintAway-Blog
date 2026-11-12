@@ -1,4 +1,6 @@
-// One Hint Away step schema, version 1.
+// One Hint Away step schema, version 2: a step is a list of typed views.
+// Each view kind (array, stack; later tree, grid, …) has its own shape, its own
+// stable ids, its own generic check below and its own drawing component.
 // The same JSON is produced by the TypeScript patterns in ./patterns (for the
 // website player) and by viz_steps() in post-kit/viz/<pattern>/ref.py (for the
 // video). Every step is a full state, never a delta: any step can be drawn on
@@ -8,7 +10,7 @@
 // by stripping types (no enums, no parameter properties): the build check
 // imports it directly.
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /** gold = the current focus, steel = done or compared, dim = out of play,
  *  ghost = a gap between groups, dash = an empty slot (v must be ""). */
@@ -16,6 +18,9 @@ export type CellState = "plain" | "gold" | "steel" | "dim" | "ghost" | "dash";
 export const CELL_STATES: readonly string[] = ["plain", "gold", "steel", "dim", "ghost", "dash"];
 
 export interface Cell {
+  /** Stable across steps and unique in its view: the cell keeps its id when
+   *  it changes position, so a swap can slide. */
+  id: string;
   v: number | string;
   state: CellState;
 }
@@ -39,9 +44,29 @@ export interface StackItem {
   /** Stable across steps, so pushes and pops can animate. */
   id: string;
   v: number | string;
-  /** The cell index this item came from, if any. */
-  from?: number;
+  /** The array view and cell index this item came from, if any. */
+  from?: { view: string; at: number };
 }
+
+export interface ArrayView {
+  kind: "array";
+  /** Stable across steps and unique in the step. */
+  id: string;
+  label?: string;
+  cells: Cell[];
+  pointers: Pointer[];
+  window?: Win;
+}
+
+export interface StackView {
+  kind: "stack";
+  id: string;
+  label?: string;
+  /** Bottom of the stack first. */
+  items: StackItem[];
+}
+
+export type View = ArrayView | StackView;
 
 export interface Var {
   name: string;
@@ -54,11 +79,8 @@ export interface Step {
   line: number;
   /** One plain-English sentence for this step. */
   say: string;
-  cells: Cell[];
-  pointers: Pointer[];
-  window?: Win;
-  /** Bottom of the stack first. */
-  stack?: StackItem[];
+  /** The same views, in the same order, on every step of a trace. */
+  views: View[];
   vars?: Var[];
 }
 
@@ -155,40 +177,74 @@ export function checkLimits(fields: Field[], input: Input): string | null {
 
 const isVal = (v: unknown) => typeof v === "string" || (typeof v === "number" && Number.isFinite(v));
 
-/** Rules every step of every pattern must obey. Returns the broken rule, or null. */
-export function checkStep(trace: Trace, i: number): string | null {
-  const s = trace.steps[i];
-  const n = trace.steps[0].cells.length;
-  if (!Number.isInteger(s.line) || s.line < 0 || s.line >= trace.pseudocode.length) return `line ${s.line} is not a pseudocode line`;
-  if (typeof s.say !== "string" || s.say.trim().length < 3) return "narration is empty";
-  if (s.say.length > 110) return `narration is ${s.say.length} characters (limit 110)`;
-  if (/\s\s|^\s|\s$/.test(s.say)) return "narration has stray spaces";
-  if (!Array.isArray(s.cells) || s.cells.length !== n) return `cell count changed from ${n} to ${s.cells?.length}`;
-  for (const [k, c] of s.cells.entries()) {
+/** Rules every array view must obey. `first` is the same view on step 1. */
+function checkArray(v: ArrayView, first: ArrayView): string | null {
+  const n = first.cells.length;
+  if (!Array.isArray(v.cells) || v.cells.length !== n) return `cell count changed from ${n} to ${v.cells?.length}`;
+  const cellIds = new Set<string>();
+  for (const [k, c] of v.cells.entries()) {
+    if (!c.id || cellIds.has(c.id)) return `cell ${k}: id "${c.id}" is missing or repeated`;
+    cellIds.add(c.id);
     if (!CELL_STATES.includes(c.state)) return `cell ${k} has unknown state "${c.state}"`;
     if (!isVal(c.v)) return `cell ${k} has no value`;
     if ((c.state === "dash") !== (c.v === "")) return `cell ${k}: "dash" and an empty value must go together`;
   }
+  // Cells may change places, but never appear or disappear.
+  for (const c of first.cells) if (!cellIds.has(c.id)) return `cell "${c.id}" disappeared`;
+  if (!Array.isArray(v.pointers)) return "no pointer list";
   const ids = new Set<string>();
-  for (const p of s.pointers) {
+  for (const p of v.pointers) {
     if (!p.id || !p.label) return "a pointer has no id or label";
     if (ids.has(p.id)) return `pointer id "${p.id}" appears twice`;
     ids.add(p.id);
     if (!Number.isInteger(p.at) || p.at < 0 || p.at >= n) return `pointer "${p.id}" is at ${p.at}, outside 0..${n - 1}`;
   }
-  if (s.window) {
-    const { lo, hi } = s.window;
+  if (v.window) {
+    const { lo, hi } = v.window;
     if (!Number.isInteger(lo) || !Number.isInteger(hi)) return "window bounds are not whole numbers";
     if (lo < 0 || hi >= n || lo > hi + 1) return `window ${lo}..${hi} is not inside 0..${n - 1}`;
   }
-  if (s.stack) {
-    const sid = new Set<string>();
-    for (const it of s.stack) {
-      if (!it.id || sid.has(it.id)) return `stack item id "${it.id}" is missing or repeated`;
-      sid.add(it.id);
-      if (!isVal(it.v)) return `stack item "${it.id}" has no value`;
-      if (it.from !== undefined && (!Number.isInteger(it.from) || it.from < 0 || it.from >= n)) return `stack item "${it.id}" points at cell ${it.from}`;
+  return null;
+}
+
+/** Rules every stack view must obey. */
+function checkStack(v: StackView, step: Step): string | null {
+  if (!Array.isArray(v.items)) return "no item list";
+  const ids = new Set<string>();
+  for (const it of v.items) {
+    if (!it.id || ids.has(it.id)) return `item id "${it.id}" is missing or repeated`;
+    ids.add(it.id);
+    if (!isVal(it.v)) return `item "${it.id}" has no value`;
+    if (it.from !== undefined) {
+      const src = arrayOf(step, it.from.view);
+      if (!src) return `item "${it.id}" comes from "${it.from.view}", which is not an array view`;
+      if (!Number.isInteger(it.from.at) || it.from.at < 0 || it.from.at >= src.cells.length) return `item "${it.id}" points at cell ${it.from.at}`;
     }
+  }
+  return null;
+}
+
+/** Rules every step of every pattern must obey. Returns the broken rule, or null. */
+export function checkStep(trace: Trace, i: number): string | null {
+  const s = trace.steps[i];
+  const first = trace.steps[0];
+  if (!Number.isInteger(s.line) || s.line < 0 || s.line >= trace.pseudocode.length) return `line ${s.line} is not a pseudocode line`;
+  if (typeof s.say !== "string" || s.say.trim().length < 3) return "narration is empty";
+  if (s.say.length > 110) return `narration is ${s.say.length} characters (limit 110)`;
+  if (/\s\s|^\s|\s$/.test(s.say)) return "narration has stray spaces";
+  if (!Array.isArray(s.views) || s.views.length === 0) return "a step needs at least one view";
+  if (s.views.length !== first.views.length) return `view count changed from ${first.views.length} to ${s.views.length}`;
+  const viewIds = new Set<string>();
+  for (const [k, v] of s.views.entries()) {
+    const f = first.views[k];
+    if (!v.id || viewIds.has(v.id)) return `view id "${v.id}" is missing or repeated`;
+    viewIds.add(v.id);
+    if (v.kind !== f.kind || v.id !== f.id) return `view ${k} changed from ${f.kind} "${f.id}" to ${v.kind} "${v.id}"`;
+    let why: string | null;
+    if (v.kind === "array") why = checkArray(v, f as ArrayView);
+    else if (v.kind === "stack") why = checkStack(v, s);
+    else why = "unknown kind of view";
+    if (why) return `${(v as View).kind} "${(v as View).id}": ${why}`;
   }
   if (s.vars) {
     const names = new Set<string>();
@@ -217,6 +273,17 @@ export function varOf(step: Step, name: string): number | string | undefined {
   return step.vars?.find((v) => v.name === name)?.value;
 }
 
+/** The step's array view with this id, or its first array view. */
+export function arrayOf(step: Step, id?: string): ArrayView | undefined {
+  return step.views.find((v): v is ArrayView => v.kind === "array" && (id === undefined || v.id === id));
+}
+
+/** The step's stack view with this id, or its first stack view. */
+export function stackOf(step: Step, id?: string): StackView | undefined {
+  return step.views.find((v): v is StackView => v.kind === "stack" && (id === undefined || v.id === id));
+}
+
+/** Where a pointer of the first array view stands. */
 export function pointerAt(step: Step, id: string): number | undefined {
-  return step.pointers.find((p) => p.id === id)?.at;
+  return arrayOf(step)?.pointers.find((p) => p.id === id)?.at;
 }

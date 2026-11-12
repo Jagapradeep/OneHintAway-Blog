@@ -1,6 +1,6 @@
 """Sliding window of any size (post 08): the longest run whose total stays within
 the budget. Reference for the website visualizer. viz_steps() emits step schema
-v1 and must match site/visualizer/patterns/sliding-window.ts step for step."""
+v2 and must match site/visualizer/patterns/sliding-window.ts step for step."""
 import random as _r
 
 PATTERN = "sliding-window"
@@ -73,8 +73,9 @@ def viz_steps(inp=EXAMPLE):
         if not done and right >= 0:
             pointers.append({"id": "right", "label": "right", "at": right})
         steps.append({"line": line, "say": say,
-                      "cells": [{"v": v, "state": _state(i, lo, hi, line)} for i, v in enumerate(nums)],
-                      "pointers": pointers, "window": {"lo": lo, "hi": hi},
+                      "views": [{"kind": "array", "id": "nums",
+                                 "cells": [{"id": f"c{i}", "v": v, "state": _state(i, lo, hi, line)} for i, v in enumerate(nums)],
+                                 "pointers": pointers, "window": {"lo": lo, "hi": hi}}],
                       "vars": [{"name": "budget", "value": budget}, {"name": "total", "value": shown}, {"name": "best", "value": best}]})
 
     if not nums:

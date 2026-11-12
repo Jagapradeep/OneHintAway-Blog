@@ -7,7 +7,7 @@
 // pseudocode on the right scrolling inside its own box, so one screen holds it all.
 import { use, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { loadPattern } from "@/visualizer/loaders.ts";
-import { checkLimits, traceOf, type Field, type Input, type Pattern, type StackItem } from "@/visualizer/schema.ts";
+import { arrayOf, checkLimits, stackOf, traceOf, type Field, type Input, type Pattern, type StackItem } from "@/visualizer/schema.ts";
 
 const SPEEDS = [0.5, 1, 2];
 const STEP_MS = 1600;
@@ -69,14 +69,17 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
   const step = trace.steps[Math.min(pos.i, last)];
   const before = trace.steps[Math.min(pos.prev, last)];
   const playing = wantPlay && pos.i < last;
-  const n = Math.max(1, step.cells.length);
+  const arr = arrayOf(step);
+  const cells = arr?.cells ?? [];
+  const pointers = arr?.pointers ?? [];
+  const n = Math.max(1, cells.length);
   // What the stage needs room for is decided once per trace, so stepping never changes the layout.
   const shape = useMemo(
     () => ({
       // Pointers alternate below and above the cells, in the order they first appear, and keep their side.
-      top: [...new Set(trace.steps.flatMap((s) => s.pointers.map((q) => q.id)))].filter((_, k) => k % 2 === 1),
-      stack: trace.steps.some((s) => s.stack),
-      window: trace.steps.some((s) => s.window),
+      top: [...new Set(trace.steps.flatMap((s) => (arrayOf(s)?.pointers ?? []).map((q) => q.id)))].filter((_, k) => k % 2 === 1),
+      stack: trace.steps.some((s) => stackOf(s)),
+      window: trace.steps.some((s) => arrayOf(s)?.window),
       vars: trace.steps[0].vars?.map((v) => v.name) ?? [],
     }),
     [trace],
@@ -133,14 +136,14 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
     e.preventDefault();
   };
 
-  const stack = step.stack ?? [];
+  const stack = stackOf(step)?.items ?? [];
   const leaving: { item: StackItem; at: number }[] = [];
   if (pos.prev !== pos.i) {
-    (before.stack ?? []).forEach((item, at) => {
+    (stackOf(before)?.items ?? []).forEach((item, at) => {
       if (!stack.some((s) => s.id === item.id)) leaving.push({ item, at });
     });
   }
-  const win = step.window;
+  const win = arr?.window;
   const winLen = win ? win.hi - win.lo + 1 : 0;
   const done = pos.i >= last;
 
@@ -205,7 +208,7 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
           <div className="vz-grid">
             {shape.top.length > 0 && (
               <div className="vz-ptrs vz-ptrs-top">
-                {step.pointers.map((ptr) =>
+                {pointers.map((ptr) =>
                   shape.top.includes(ptr.id) ? (
                     <div key={ptr.id} className="vz-ptr" style={vars({ "--at": ptr.at })}>
                       <span>{ptr.label}</span>
@@ -219,19 +222,19 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
               {shape.window && (
                 <div className={`vz-win${win && winLen > 0 ? "" : " vz-win-empty"}`} style={vars({ "--lo": win?.lo ?? 0, "--len": Math.max(winLen, 0) })} />
               )}
-              {step.cells.map((c, i) => (
+              {cells.map((c, i) => (
                 <div key={i} className={`vz-cell vz-${c.state}`}>
                   <span>{c.v}</span>
                 </div>
               ))}
             </div>
             <div className="vz-idx">
-              {step.cells.map((_, i) => (
+              {cells.map((_, i) => (
                 <span key={i}>{i}</span>
               ))}
             </div>
             <div className="vz-ptrs vz-ptrs-bottom">
-              {step.pointers.map((ptr) =>
+              {pointers.map((ptr) =>
                 !shape.top.includes(ptr.id) ? (
                   <div key={ptr.id} className="vz-ptr" style={vars({ "--at": ptr.at })}>
                     <i />

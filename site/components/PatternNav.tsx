@@ -10,8 +10,9 @@ type Item = { id: string; name: string; count: number };
 // scrolling by hand moves the highlight to whichever pattern is at the top (scroll-spy).
 export function PatternNav({ items, total }: { items: Item[]; total: number }) {
   const [active, setActive] = useState(items[0]?.id ?? "");
-  // While a click's smooth scroll runs, the spy waits, so the highlight doesn't flicker
-  // through every pattern on the way.
+  // After a click the spy waits until the reader scrolls by hand. So the highlight doesn't
+  // flicker through every pattern on the way, and a pattern near the page end, which can't
+  // reach the top of the window, stays highlighted once the scroll stops.
   const lockRef = useRef(false);
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -25,22 +26,27 @@ export function PatternNav({ items, total }: { items: Item[]; total: number }) {
       const first = document.getElementById(ids[0]);
       if (!first) return;
       const offset = parseFloat(getComputedStyle(first).scrollMarginTop) || 0;
+      // The pattern being read is the last one whose heading has passed a reading line.
+      // That line sits under the header for most of the page. The last few patterns can't
+      // scroll up that far, so over the final stretch of scrolling the line slides down to
+      // the bottom of the window: each of them gets its turn, in order, and none is skipped.
+      const vh = window.innerHeight;
+      const max = document.documentElement.scrollHeight - vh;
+      const range = Math.min(max, vh - offset);
+      const t = range > 0 ? Math.min(1, Math.max(0, (window.scrollY - (max - range)) / range)) : 1;
+      const line = offset + (vh - offset) * t;
       let current = ids[0];
       for (const id of ids) {
         const el = document.getElementById(id);
-        if (el && el.getBoundingClientRect().top - offset <= 4) current = id;
+        if (el && el.getBoundingClientRect().top - line <= 4) current = id;
       }
-      // On phones the last few patterns can't scroll up to the top, so at the very bottom
-      // of the page the last pattern is the one being read.
-      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
-      if (atBottom) current = ids[ids.length - 1];
       setActive(current);
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(spy);
     };
-    // Release the spy without re-checking: the clicked pattern stays highlighted even if it
-    // couldn't reach the top (near the page end). The next real scroll updates it.
+    // Only the reader's own scrolling releases the spy. Releasing it when the click's scroll
+    // ended let one last queued scroll update run and move the highlight off the clicked pattern.
     const unlock = () => {
       lockRef.current = false;
     };
@@ -51,15 +57,16 @@ export function PatternNav({ items, total }: { items: Item[]; total: number }) {
     else spy();
 
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("scrollend", unlock);
-    // Any hand scrolling takes over from a click straight away.
+    // Any hand scrolling takes over from a click straight away (pointerdown covers the scrollbar;
+    // on a link it comes before the click, which locks again).
+    window.addEventListener("pointerdown", unlock, { passive: true });
     window.addEventListener("wheel", unlock, { passive: true });
     window.addEventListener("touchstart", unlock, { passive: true });
     window.addEventListener("keydown", unlock);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("scrollend", unlock);
+      window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("wheel", unlock);
       window.removeEventListener("touchstart", unlock);
       window.removeEventListener("keydown", unlock);
@@ -95,8 +102,6 @@ export function PatternNav({ items, total }: { items: Item[]; total: number }) {
     // Keyboard and screen-reader users land on the pattern they picked.
     target.focus({ preventScroll: true });
     history.replaceState(null, "", `#${id}`);
-    // Browsers without the scrollend event: release the spy after the scroll has had time.
-    if (!("onscrollend" in window)) setTimeout(() => (lockRef.current = false), reduce ? 50 : 900);
   }
 
   return (
@@ -115,7 +120,9 @@ export function PatternNav({ items, total }: { items: Item[]; total: number }) {
               onClick={(e) => go(e, it.id)}
             >
               <span className="pattern-nav-name">{it.name}</span>
-              <span className="pattern-nav-count">{it.count}</span>
+              <span className="pattern-nav-count" aria-label={`${it.count} lesson${it.count > 1 ? "s" : ""}`}>
+                {it.count}
+              </span>
             </a>
           </li>
         ))}

@@ -14,7 +14,7 @@ const SECTIONS = ["Start here", "Foundations", "Arrays and hashing", "Maths", "R
   "2D arrays and strings", "Backtracking", "Linked list", "Bit manipulation", "Greedy", "Stack and queue", "Trees",
   "Heaps", "Graphs", "Dynamic programming", "Tries and strings", "Advanced (optional)"];
 const PATTERNS = ["Roadmap", "Foundations", "Hashing", "Two pointers", "Sliding window", "Prefix sum", "Kadane's algorithm",
-  "Three-way partition", "Moore's voting", "Cyclic sort", "Merge intervals", "Next permutation", "Number theory"];
+  "Three-way partition", "Moore's voting", "Cyclic sort", "Merge intervals", "Next permutation", "Number theory", "Recursion", "Sorting", "Binary search"];
 const FIELDS = ["number", "title", "slug", "pattern", "section", "summary", "worked", "practice", "slides", "video", "visualizer", "tags", "published"];
 const LANGS = [["Java", "java"], ["Python", "python"], ["C++", "cpp"], ["JavaScript", "javascript"]];
 const HEAD_ORDER = ["The idea", "The walk", "Pseudocode", "Java", "Python", "C++", "JavaScript", "Complexity", "How it was tested"];

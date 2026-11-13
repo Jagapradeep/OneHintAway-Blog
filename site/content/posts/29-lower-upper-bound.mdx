@@ -1,0 +1,152 @@
+---
+number: 29
+title: "Lower bound"
+slug: lower-upper-bound
+pattern: "Binary search"
+section: "Binary search"
+summary: "Lower bound finds the first slot whose value is at least the target, which gives the first, last and count."
+practice:
+  - { name: "LeetCode 35 Search Insert Position", url: "https://leetcode.com/problems/search-insert-position/", level: easy, note: "It's lowerBound(nums, target)." }
+  - { name: "LeetCode 34 Find First and Last Position of Element in Sorted Array", url: "https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/", level: medium, note: "last = lowerBound(t + 1) − 1." }
+slides: 8
+video: 2
+visualizer: lower-bound
+tags: [binary-search, lower-bound, upper-bound]
+published: 2026-11-13
+---
+
+Values repeat and you need the first one, the last one, or how many there are? Find the first slot whose value is at least the target. Worked example: the 2s in **1 2 2 2 4 5**.
+
+## The idea
+
+A library shelf is sorted by book number, with three copies of book 2. Plain binary search ([post 28](/posts/binary-search/)) stops at whichever copy it meets first. Here we need the edges: the first copy, and the spot just after the last one.
+
+`lowerBound(t)` returns the first slot whose value is at least `t`. Two changes from post 28 make it work:
+
+- When the middle value is at least `t`, the middle might be the answer, so `high = middle` keeps it in range instead of skipping it.
+- `high` starts at `length(nums)`, one past the end, so the answer can be "after everything" when every value is smaller than `t`.
+
+For whole numbers, the spot just after the last `t` is the first value at least `t + 1`. So the upper bound is `lowerBound(t + 1)`, and the count of `t` is the difference.
+
+## The walk
+
+`lowerBound(2)` on 1 2 2 2 4 5:
+
+| low | high | middle | nums[middle] | Move |
+| --- | --- | --- | --- | --- |
+| 0 | 6 | 3 | 2 | at least 2: high = 3 |
+| 0 | 3 | 1 | 2 | at least 2: high = 1 |
+| 0 | 1 | 0 | 1 | less than 2: low = 1 |
+
+`low` meets `high` at 1. `lowerBound(3)` walks the same way to 4, so the 2s sit in slots 1 to 3 and there are 3 of them.
+
+Quick check: `lowerBound(6)` is **6**, one past the end, because no value is 6 or more. That is why `high` starts at `length(nums)`.
+
+## Pseudocode
+
+```
+function lowerBound(nums, target):
+    low = 0
+    high = length(nums)   // one past the end
+    while low < high:
+        middle = floor((low + high) / 2)
+        if nums[middle] < target:
+            low = middle + 1
+        else:
+            high = middle   // may be it
+    return low
+```
+
+**The trap:** post 28's search returns as soon as it sees the target. On 1 2 2 2 4 5 it lands on the middle 2 and returns slot 2. Lower bound keeps going left while it can and returns slot 1, the first 2.
+
+## Java
+
+```java
+class Solution {
+    // first index whose value is >= target
+    public int lowerBound(int[] nums, int target) {
+        int low = 0;
+        int high = nums.length; // one past the end
+        while (low < high) {
+            int middle = low + (high - low) / 2;
+            if (nums[middle] < target) {
+                low = middle + 1;
+            } else {
+                high = middle; // could be the answer
+            }
+        }
+        return low;
+    }
+}
+```
+
+## Python
+
+```python
+def lower_bound(nums, target):
+    """First index whose value is >= target."""
+    low = 0
+    high = len(nums)  # one past the end
+    while low < high:
+        middle = (low + high) // 2
+        if nums[middle] < target:
+            low = middle + 1
+        else:
+            high = middle  # could be the answer
+    return low
+```
+
+## C++
+
+```cpp
+#include <vector>
+using namespace std;
+
+// first index whose value is >= target
+int lowerBound(const vector<int>& nums, int target) {
+    int low = 0;
+    int high = nums.size(); // one past the end
+    while (low < high) {
+        int middle = low + (high - low) / 2;
+        if (nums[middle] < target) {
+            low = middle + 1;
+        } else {
+            high = middle; // could be the answer
+        }
+    }
+    return low;
+}
+```
+
+## JavaScript
+
+```javascript
+// first index whose value is >= target
+function lowerBound(nums, target) {
+    let low = 0;
+    let high = nums.length; // one past the end
+    while (low < high) {
+        const middle = Math.floor((low + high) / 2);
+        if (nums[middle] < target) {
+            low = middle + 1;
+        } else {
+            high = middle; // could be the answer
+        }
+    }
+    return low;
+}
+```
+
+The `target + 1` trick for the upper bound needs whole numbers whose `target + 1` doesn't overflow. For other values, copy the function and change `<` to `<=` on the comparison line: that version returns the first value strictly bigger than the target.
+
+## Complexity
+
+| | Cost | Why |
+| --- | --- | --- |
+| Each bound | O(log n) | Each check halves the range |
+| First, last and count of a value | O(log n) | Two bounds |
+| Extra space | O(1) | Three numbers |
+
+## How it was tested
+
+Lower bound, for the target and for target + 1 was run in Java, Python, C++ and JavaScript on 1,216 inputs: hand-picked cases (empty array, one value, all equal, targets below, inside and above every value, the LeetCode 34 examples, values at the problem's limits), one sorted array of 100,000 values with many repeats, and random sorted arrays of up to 15 values with repeats. Every output matched Python's bisect_left. The steps in the walk-through, the quick-check answer and the trap result come from running the code.

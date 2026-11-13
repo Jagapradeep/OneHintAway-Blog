@@ -442,11 +442,16 @@ a:hover { color: var(--gold); }
 .pattern-nav a:hover { color: var(--text); background: var(--row-alt); }
 .pattern-nav a.is-active { color: var(--gold-light); background: var(--active-bg); }
 .pattern-nav a.is-active::before { opacity: 1; transform: none; }
+/* Lesson count: a small number tile, the same family as the post-number tiles on the lists.
+   Fixed width and tabular digits, so the counts line up in a column down the list. */
 .pattern-nav-count {
-  flex: 0 0 auto; min-width: 1.9em; padding: 0 6px; border-radius: 999px; text-align: center;
-  border: 1px solid var(--border-strong); font-family: var(--mono); font-size: 0.75rem; color: var(--muted);
+  flex: 0 0 auto; display: grid; place-items: center; width: 30px; height: 24px; border-radius: 8px;
+  border: 1px solid var(--num-border); background: var(--num-bg); color: var(--num-text);
+  font-family: var(--mono); font-size: 0.74rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums;
+  box-shadow: var(--card-shadow); transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.pattern-nav a.is-active .pattern-nav-count { color: var(--gold-light); border-color: var(--accent-border); }
+.pattern-nav a:hover .pattern-nav-count { border-color: var(--border-strong); }
+.pattern-nav a.is-active .pattern-nav-count { color: var(--button-text); border-color: var(--accent-border); background: var(--button-bg); }
 
 .pattern-section { margin-bottom: 40px; border-radius: var(--radius); }
 .pattern-section:focus { outline: none; }
@@ -704,11 +709,13 @@ pre.shiki { background: var(--code-bg) !important; }
     background: var(--header-bg); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
   }
   .pattern-nav-title { display: none; }
-  .pattern-nav ul { display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  /* The chip row scrolls sideways only: an up or down swipe that starts on it still moves the page. */
+  .pattern-nav ul { display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior: contain auto; }
   .pattern-nav ul::-webkit-scrollbar { display: none; }
   .pattern-nav a { white-space: nowrap; padding: 6px 8px 6px 14px; border: 1.5px solid var(--border-strong); border-radius: 999px; background: var(--card-top); }
   .pattern-nav a::before { display: none; }
   .pattern-nav a.is-active { border-color: var(--accent-border); }
+  .pattern-nav-count { width: 26px; height: 22px; border-radius: 999px; }
 }
 
 /* Tablets and phones */

@@ -64,26 +64,32 @@ SWAPS = swaps(EXAMPLE)
 
 
 def video_steps(nums=EXAMPLE):
+    """Every comparison is a step: the pair is framed, it swaps or stays; each sweep ends with its count."""
     a = list(nums)
     n = len(a)
     steps = [{"eq": ["swaps so far:", "0"], "caption": "Walk the row and compare each pair of neighbours."}]
     total = 0
     for sweep in range(1, n):
         in_sweep = 0
+        band = {"band": [n - sweep + 1, n - 1, "IN PLACE"]} if sweep > 1 else {}
+        cap = f"Sweep {sweep}: compare each pair of neighbours."
         for j in range(0, n - sweep):
-            if a[j] > a[j + 1]:
+            x, y = a[j], a[j + 1]
+            st = dict(band, frame=[j, j + 1], gold=[j + 1], caption=cap, hold=0.5)
+            if x > y:
+                a[j], a[j + 1] = y, x
                 in_sweep += 1
-                big, small = a[j], a[j + 1]
-                a[j], a[j + 1] = a[j + 1], a[j]
                 total += 1
-                last = not any(a[q] > a[q + 1] for q in range(j + 1, n - sweep))
-                step = {"swap": [j, j + 1], "gold": [j + 1], "eq": [f"{big} > {small} → swap", f"{total}"],
-                        "caption": f"Sweep {sweep}: {big} > {small}, so they swap."}
-                if last:
-                    step["chip"] = f"sweep {sweep}: {in_sweep}"
-                if sweep > 1:
-                    step["band"] = [n - sweep + 1, n - 1, "IN PLACE"]
-                steps.append(step)
+                st.update(swap=[j, j + 1], eq=[f"{x} > {y} →", "swap"])
+            else:
+                st["eq"] = [f"{x} {'<' if x < y else '='} {y} →", "stay"]
+            steps.append(st)
+        steps.append({"band": [n - sweep, n - 1, "IN PLACE"], "eq": ["swaps so far:", str(total)],
+                      "chip": f"sweep {sweep}: {in_sweep}", "chip_hl": in_sweep > 0,
+                      "caption": f"Sweep {sweep} done: the {a[n - sweep]} is in place." if in_sweep
+                      else f"Sweep {sweep}: no swaps at all."})
+        if not in_sweep:
+            break
     return steps
 
 

@@ -51,15 +51,22 @@ COMPARES = compares(EXAMPLE)
 
 
 def video_steps(nums=EXAMPLE):
+    """Each pass: pointer j scans the unsorted part while the smallest so far stays gold, then one swap."""
     a = list(nums)
     n = len(a)
     steps = [{"frame": [0, n - 1], "eq": ["sorted part:", "empty"],
               "caption": "The whole row is unsorted. Find its smallest value."}]
     for i in range(n - 1):
         s = i
+        cap = f"Pass {i + 1}: find the smallest unsorted value."
+        band = {"band": [0, i - 1, "SORTED PART"]} if i else {}
         for j in range(i + 1, n):
             if a[j] < a[s]:
+                eq = [f"{a[j]} < {a[s]} →", "new smallest"]
                 s = j
+            else:
+                eq = [f"{a[j]} {'>' if a[j] > a[s] else '='} {a[s]} →", f"keep {a[s]}"]
+            steps.append(dict(band, frame=[i, n - 1], gold=[s], ptr={"j": j}, eq=eq, caption=cap, hold=0.5))
         v = a[s]
         rest = " ".join(map(str, a[i:]))
         step = {"band": [0, i, "SORTED PART"], "gold": [i], "eq": [f"smallest of {rest} →", str(v)]}
@@ -67,10 +74,10 @@ def video_steps(nums=EXAMPLE):
             step["swap"] = [i, s]
             step["chip"] = f"{v}: swap"
             step["chip_hl"] = True
-            step["caption"] = f"{v} swaps with {a[i]} into slot {i}."
+            step["caption"] = f"The {v} swaps with {a[i]} into slot {i}."
         else:
             step["chip"] = f"{v}: stays"
-            step["caption"] = f"{v} is already in slot {i}. No swap."
+            step["caption"] = f"The {v} is already in slot {i}. No swap."
         a[i], a[s] = a[s], a[i]
         steps.append(step)
     return steps

@@ -91,20 +91,25 @@ def video_steps(nums=EXAMPLE):
         steps.append({"frame": [low, high], "gold": [high], "steel": list(placed), "eq": ["pivot =", str(pivot)],
                       "caption": f"Pivot {pivot}: smaller values go left of it." if low == 0 and high == len(a) - 1 else f"Same move on {sp(a[low:high + 1])}: pivot {pivot}."})
         wall = low
-        for j in range(low, high):
+        cap = steps[-1]["caption"]
+        for j in range(low, high):          # one step per value checked against the pivot
+            st = {"frame": [low, high], "gold": [high], "steel": list(placed), "ptr": {"wall": wall, "j": j},
+                  "caption": cap, "hold": 0.6}
             if a[j] < pivot:
+                st["eq"] = [f"{a[j]} < {pivot} →", f"slot {wall}"]
                 if wall != j:
-                    steps.append({"frame": [low, high], "swap": [wall, j], "gold": [high], "steel": list(placed),
-                                  "eq": [f"{a[j]} < {pivot} →", f"slot {wall}"],
-                                  "caption": f"{a[j]} is smaller than {pivot}, so it moves to slot {wall}."})
+                    st["swap"] = [wall, j]
                 a[wall], a[j] = a[j], a[wall]
                 wall += 1
+            else:
+                st["eq"] = [f"{a[j]} {'>' if a[j] > pivot else '='} {pivot} →", "stays"]
+            steps.append(st)
         moved = wall != high
         a[wall], a[high] = a[high], a[wall]
         placed.append(wall)
         st = {"frame": [low, high], "gold": [wall], "steel": [p for p in placed if p != wall],
               "eq": [f"{pivot} lands at", f"slot {wall}"], "chip": f"{pivot} → slot {wall}", "chip_hl": True,
-              "caption": f"{pivot} swaps into slot {wall}. It never moves again."}
+              "caption": f"The {pivot} swaps into slot {wall}. It never moves again."}
         if moved:
             st["swap"] = [wall, high]
         steps.append(st)

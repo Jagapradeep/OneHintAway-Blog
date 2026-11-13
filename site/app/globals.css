@@ -451,8 +451,8 @@ a:hover { color: var(--gold); }
 .pattern-section { margin-bottom: 40px; border-radius: var(--radius); }
 .pattern-section:focus { outline: none; }
 .pattern-section:focus-visible { outline: 2px solid var(--gold); outline-offset: 8px; }
-/* The last pattern can still scroll to the top, so a click on it lands exactly there. */
-.patterns-content > .pattern-section:last-child { min-height: calc(100vh - var(--header-h) - 60px); margin-bottom: 0; }
+/* No filler under the last pattern: near the page end PatternNav highlights by click or by reaching the bottom. */
+.patterns-content > .pattern-section:last-child { margin-bottom: 0; }
 
 .prose ul { padding-left: 1.2em; }
 .prose li { margin: 6px 0; color: var(--text-2); }
@@ -697,7 +697,6 @@ pre.shiki { background: var(--code-bg) !important; }
   .patterns-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 20px; }
   .pattern-section { scroll-margin-top: calc(var(--header-h) + 76px); }
   /* No screen-tall last section here: it left a big empty gap at the end of the page. */
-  .patterns-content > .pattern-section:last-child { min-height: 0; }
   .pattern-nav {
     top: var(--header-h); z-index: 40; max-height: none; flex-direction: row; align-items: center;
     margin: 0 calc(-1 * var(--gutter)); padding: 10px var(--gutter);

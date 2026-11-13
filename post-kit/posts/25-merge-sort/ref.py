@@ -90,10 +90,12 @@ def video_steps(nums=EXAMPLE):
     for k, (lo, hi, left, right, merged) in enumerate(merge_events(nums), 1):
         sp = lambda x: " ".join(map(str, x))
         cuts -= set(range(lo, hi))
-        steps.append({"frame": [lo, hi], "set": {str(lo + t): v for t, v in enumerate(merged)}, "cuts": sorted(cuts),
-                      "eq": [f"{sp(left)} + {sp(right)} →", sp(merged)],
-                      "chip": f"size {hi - lo + 1}", "chip_hl": hi - lo + 1 == len(nums),
-                      "caption": f"Merge {sp(left)} with {sp(right)}."})
+        eq_left = f"{sp(left)} + {sp(right)} →"
+        cap = f"Merge {sp(left)} with {sp(right)}."
+        # the two pieces close up first, then their cards glide into order
+        steps.append({"frame": [lo, hi], "cuts": sorted(cuts), "eq": [eq_left, ""], "caption": cap, "quick": True})
+        steps.append({"frame": [lo, hi], "sort": [lo, hi], "cuts": sorted(cuts), "eq": [eq_left, sp(merged)],
+                      "chip": f"size {hi - lo + 1}", "chip_hl": hi - lo + 1 == len(nums), "caption": cap})
     return steps
 
 

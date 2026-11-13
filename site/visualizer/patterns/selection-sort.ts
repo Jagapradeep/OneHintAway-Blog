@@ -4,14 +4,15 @@ import { arrayOf } from "../schema.ts";
 import { arr, ascending, eq, list, pick, ptrs, sayOk, sortedCopy, step, swap, tiles, vals } from "./_lib.ts";
 
 const pseudocode = [
-  "function selectionSort(row):",
-  "    for i from 0 to length(row) - 2:",
-  "        smallest = i   // remember the spot",
-  "        for j from i + 1 to length(row) - 1:",
-  "            if row[j] < row[smallest]:",
+  "function selectionSort(nums):",
+  "    n = length(nums)",
+  "    for i from 0 to n - 2:",
+  "        smallest = i   // an index",
+  "        for j from i + 1 to n - 1:",
+  "            if nums[j] < nums[smallest]:",
   "                smallest = j",
-  "        swap row[i], row[smallest]",
-  "    return row",
+  "        swap nums[i], nums[smallest]",
+  "    return nums",
 ];
 
 function* run(input: Input): Generator<Step, Answer, void> {
@@ -23,21 +24,21 @@ function* run(input: Input): Generator<Step, Answer, void> {
 
   for (let i = 0; i < n - 1; i++) {
     let smallest = i;
-    yield snap(2, `Spot ${i} needs the smallest number left. Start by remembering ${t[i].v}.`, i, i, -1, smallest);
+    yield snap(3, `Spot ${i} needs the smallest number left. Start by remembering ${t[i].v}.`, i, i, -1, smallest);
     for (let j = i + 1; j < n; j++) {
       if (t[j].v < t[smallest].v) {
         const old = t[smallest].v;
         smallest = j;
-        yield snap(5, `${t[j].v} is smaller than ${old}: remember it instead.`, i, i, j, smallest);
+        yield snap(6, `${t[j].v} is smaller than ${old}: remember it instead.`, i, i, j, smallest);
       } else {
-        yield snap(4, `${t[j].v} is not smaller than ${t[smallest].v}: keep ${t[smallest].v}.`, i, i, j, smallest);
+        yield snap(5, `${t[j].v} is not smaller than ${t[smallest].v}: keep ${t[smallest].v}.`, i, i, j, smallest);
       }
     }
     const stays = smallest === i;
     swap(t, i, smallest);
-    yield snap(6, stays ? `${t[i].v} is already in spot ${i}: it swaps with itself.` : `Swap ${t[i].v} into spot ${i}.`, i + 1, -1, -1, -1);
+    yield snap(7, stays ? `${t[i].v} is already in spot ${i}: it swaps with itself.` : `Swap ${t[i].v} into spot ${i}.`, i + 1, -1, -1, -1);
   }
-  yield snap(7, "One number is left, the largest, and it is already last: sorted.", n, -1, -1, -1);
+  yield snap(8, "One number is left, the largest, and it is already last: sorted.", n, -1, -1, -1);
   return t.map((x) => x.v as number);
 }
 
@@ -57,7 +58,7 @@ function check(input: Input, s: Step, prev: Step | null, isLast: boolean): strin
     const seen = now.slice(i, (j ?? i) + 1);
     if (now[smallest] !== Math.min(...seen) || smallest < i) return "smallest must point at the smallest number looked at so far";
   }
-  if (isLast !== (s.line === 7)) return "the trace must end on 'return row'";
+  if (isLast !== (s.line === 8)) return "the trace must end on 'return nums'";
   if (isLast && (!ascending(now) || done !== row.length)) return "the trace ends before the row is sorted";
   return sayOk(input, s, prev);
 }

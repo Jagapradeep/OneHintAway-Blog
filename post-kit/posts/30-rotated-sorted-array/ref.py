@@ -76,11 +76,29 @@ def _dress(steps, n):
     return steps
 
 
+def _narrow(steps):
+    """After each check, a short step of its own: the range shrinks before the next middle appears."""
+    out = []
+    for k, st in enumerate(steps):
+        out.append(st)
+        nx = steps[k + 1] if k + 1 < len(steps) else None
+        if not (nx and st.get("gold") and st.get("frame") and nx.get("frame")) or nx["frame"] == st["frame"]:
+            continue
+        (a, b), (c, d) = st["frame"], nx["frame"]
+        if c < a or d > b:                  # a new search starts: not a shrink
+            continue
+        mid = {"frame": [c, d], "eq": st["eq"], "caption": st["caption"], "hold": 0.5}
+        if st.get("steel") == [b]:
+            mid["steel"] = [d]
+        out.append(mid)
+    return out
+
+
 _raw_video_steps = video_steps
 
 
 def video_steps(*args, **kw):
-    return _dress(_raw_video_steps(*args, **kw), len(EXAMPLE))
+    return _dress(_narrow(_raw_video_steps(*args, **kw)), len(EXAMPLE))
 
 
 # ---- tests for the four languages: one input per line, one answer per line ----

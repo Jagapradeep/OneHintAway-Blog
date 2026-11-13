@@ -68,12 +68,14 @@ function postPseudocode(slug) {
 // A post asks for a player with the frontmatter line `visualizer: <pattern id>`.
 const postsDir = join(site, "content", "posts");
 let embeds = 0;
-for (const file of readdirSync(postsDir).filter((f) => f.endsWith(".mdx"))) {
+const embedOf = {}; // pattern id -> slug of the first post that shows its player
+for (const file of readdirSync(postsDir).filter((f) => f.endsWith(".mdx")).sort()) {
   const fm = readFileSync(join(postsDir, file), "utf8").match(/^---\r?\n([\s\S]*?)\r?\n---/);
   const m = fm?.[1].match(/^visualizer:[ \t]*(.*)$/m);
   if (!m) continue;
   embeds++;
   const id = m[1].trim().replace(/^["']|["']$/g, "");
+  embedOf[id] ??= file.replace(/^\d+-/, "").replace(/\.mdx$/, "");
   if (!patterns.some((p) => p.id === id)) errors.push(`${file}: visualizer "${id}" is not a pattern. Known: ${patterns.map((p) => p.id).join(", ")}`);
 }
 
@@ -99,10 +101,12 @@ for (const p of patterns) {
   const limits = checkLimits(p.fields, p.example);
   if (limits) fail("example")(limits);
 
-  if (p.post) {
-    const want = postPseudocode(p.post);
-    if (!want) fail("pseudocode")(`post "${p.post}" or its ## Pseudocode block was not found`);
-    else if (want.join("\n") !== p.pseudocode.join("\n")) fail("pseudocode")(`differs from the pseudocode in the "${p.post}" post`);
+  // The pattern's post: named in the pattern file, or else the post that embeds this player.
+  const slug = p.post ?? embedOf[p.id];
+  if (slug) {
+    const want = postPseudocode(slug);
+    if (!want) fail("pseudocode")(`post "${slug}" or its ## Pseudocode block was not found`);
+    else if (want.join("\n") !== p.pseudocode.join("\n")) fail("pseudocode")(`differs from the pseudocode in the "${slug}" post`);
   }
 
   const file = join(site, "visualizer", "fixtures", `${p.id}.json`);

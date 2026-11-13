@@ -20,7 +20,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PatternPage({ params }: Props) {
   const p = patternById((await params).pattern);
   if (!p) notFound();
-  const post = getAllPosts().find((x) => x.slug === p.post);
+  // The pattern's post: the one named in the pattern file, or else the post whose
+  // frontmatter asks for this player (`visualizer: <id>`), so a newly added post links itself.
+  const posts = getAllPosts();
+  const post = posts.find((x) => x.slug === p.post) ?? posts.find((x) => x.visualizer === p.id);
   return (
     <article className="prose vz-page vz-one">
       <p className="vz-crumb">

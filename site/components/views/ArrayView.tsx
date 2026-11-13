@@ -9,9 +9,11 @@ interface Props {
   top: string[];
   /** Whether any step of the trace has a window, so the frame can animate in and out. */
   hasWindow: boolean;
+  /** Whether any step of the trace has a pointer below the cells. */
+  bottom: boolean;
 }
 
-export function ArrayView({ view, top, hasWindow }: Props) {
+export function ArrayView({ view, top, hasWindow, bottom }: Props) {
   const win = view.window;
   const winLen = win ? win.hi - win.lo + 1 : 0;
   // Drawn in id order, whatever their positions: a cell that moves keeps its
@@ -19,6 +21,7 @@ export function ArrayView({ view, top, hasWindow }: Props) {
   const cells = view.cells.map((c, at) => ({ c, at })).sort((a, b) => (a.c.id < b.c.id ? -1 : a.c.id > b.c.id ? 1 : 0));
   return (
     <>
+      {view.label && <div className="vz-stack-label">{view.label}</div>}
       {top.length > 0 && (
         <div className="vz-ptrs vz-ptrs-top">
           {view.pointers.map((ptr) =>
@@ -41,12 +44,14 @@ export function ArrayView({ view, top, hasWindow }: Props) {
           </div>
         ))}
       </div>
-      <div className="vz-idx">
-        {view.cells.map((_, i) => (
-          <span key={i}>{i}</span>
-        ))}
-      </div>
-      <div className="vz-ptrs vz-ptrs-bottom">
+      {!view.hideIndex && (
+        <div className="vz-idx">
+          {view.cells.map((_, i) => (
+            <span key={i}>{i}</span>
+          ))}
+        </div>
+      )}
+      {bottom && <div className="vz-ptrs vz-ptrs-bottom">
         {view.pointers.map((ptr) =>
           !top.includes(ptr.id) ? (
             <div key={ptr.id} className="vz-ptr" style={vars({ "--at": ptr.at })}>
@@ -55,7 +60,7 @@ export function ArrayView({ view, top, hasWindow }: Props) {
             </div>
           ) : null,
         )}
-      </div>
+      </div>}
     </>
   );
 }

@@ -302,6 +302,7 @@
     }
   ],
   "blog": {
+    "visualizer": "merge-sort",
     "pattern": "Sorting",
     "section": "Recursion and sorting",
     "summary": "Merge sort splits the array, sorts each half and merges them by always taking the smaller front.",

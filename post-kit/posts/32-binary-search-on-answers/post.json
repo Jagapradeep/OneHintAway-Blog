@@ -256,6 +256,7 @@
     }
   ],
   "blog": {
+    "visualizer": "binary-search-on-answers",
     "pattern": "Binary search",
     "section": "Binary search",
     "summary": "When every value past some point works, binary search the possible answers for the first one that does.",

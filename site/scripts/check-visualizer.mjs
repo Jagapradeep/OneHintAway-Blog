@@ -116,7 +116,10 @@ for (const p of patterns) {
   // Snapshot: the example, step by step, against Python's viz_steps().
   if (canon(fx.example.input) !== canon(p.example)) fail("example")(`ref.py's EXAMPLE ${short(fx.example.input)} is not the pattern's example ${short(p.example)}`);
   const ex = checked(p, p.example, fail("example"));
-  if (ex) {
+  if (ex && !fx.example.steps) {
+    // A ref.py without viz_steps(): only the example's answer is compared.
+    if (!p.sameAnswer(p.example, ex.answer, fx.example.answer)) fail("example")(`answer ${short(ex.answer)}, ref.py's brute force says ${short(fx.example.answer)}`);
+  } else if (ex) {
     const want = fx.example;
     if (canon(ex.pseudocode) !== canon(want.pseudocode)) fail("snapshot")("pseudocode differs from ref.py's PSEUDOCODE");
     if (ex.steps.length !== want.steps.length) fail("snapshot")(`${ex.steps.length} steps, ref.py has ${want.steps.length}`);

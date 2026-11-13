@@ -3,8 +3,9 @@
     python post-kit/tools/viz_fixtures.py            # every pattern
     python post-kit/tools/viz_fixtures.py two-pointers
 
-Each fixture (site/visualizer/fixtures/<pattern>.json) holds the example's full
-step trace from viz_steps() and the brute-force answer for every test input.
+Each fixture (site/visualizer/fixtures/<pattern>.json) holds the brute-force answer
+for every test input and, when ref.py has viz_steps(), the example's full step trace
+(otherwise only the example's brute-force answer). solve() is optional too.
 `npm run build` in site/ checks the TypeScript engine against them, so the
 cloud build never needs Python. Re-run this whenever a ref.py changes.
 """
@@ -42,15 +43,16 @@ def build(folder):
     cases = []
     for inp in inputs:
         want = ref.brute(inp)
-        got = ref.solve(inp)
+        got = ref.solve(inp) if hasattr(ref, "solve") else want
         if not same(inp, got, want):
             sys.exit(f"{folder.name}: solve() disagrees with brute() on {json.dumps(inp)[:200]}: {got} vs {want}")
         cases.append({"in": inp, "out": want})
-    data = {"schema": SCHEMA, "pattern": ref.PATTERN, "example": trace(ref, ref.EXAMPLE), "cases": cases}
+    example = trace(ref, ref.EXAMPLE) if hasattr(ref, "viz_steps") else {"input": ref.EXAMPLE, "answer": ref.brute(ref.EXAMPLE)}
+    data = {"schema": SCHEMA, "pattern": ref.PATTERN, "example": example, "cases": cases}
     OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / f"{ref.PATTERN}.json"
     path.write_text(json.dumps(data, separators=(",", ":"), ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"{ref.PATTERN}: {len(cases)} cases, {len(data['example']['steps'])} example steps -> {path.relative_to(ROOT)} ({path.stat().st_size // 1024} KB)")
+    print(f"{ref.PATTERN}: {len(cases)} cases, {len(example.get('steps', []))} example steps -> {path.relative_to(ROOT)} ({path.stat().st_size // 1024} KB)")
 
 
 def main():

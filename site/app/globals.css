@@ -799,7 +799,8 @@ pre.shiki { background: var(--code-bg) !important; }
 .vz-cell {
   grid-row: 1; grid-column: 1; aspect-ratio: 1; padding: var(--pad);
   transform: translateX(calc(var(--at) * 100%));
-  transition: transform var(--vz-dur) var(--vz-ease);
+  /* No overshoot here: a cell that slides the whole row would swing out past the edge of the card. */
+  transition: transform var(--vz-dur) cubic-bezier(0.22, 1, 0.36, 1);
 }
 .vz-cell span {
   display: grid; place-items: center; width: 100%; height: 100%;
@@ -828,7 +829,8 @@ pre.shiki { background: var(--code-bg) !important; }
   position: absolute; top: 0; left: 0; width: calc(100% / var(--n)); height: 100%;
   display: flex; flex-direction: column; align-items: center; justify-content: space-between;
   transform: translateX(calc(var(--at) * 100%));
-  transition: transform var(--vz-dur) var(--vz-ease);
+  /* No overshoot: a pointer arriving at the last cell would swing past the edge of the screen. */
+  transition: transform var(--vz-dur) cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
 }
 .vz-ptr span {
@@ -844,14 +846,16 @@ pre.shiki { background: var(--code-bg) !important; }
 .vz-cells { contain: layout; }
 .vz-win {
   position: absolute; top: -3px; bottom: -3px; pointer-events: none; box-sizing: border-box;
-  left: calc(var(--lo) * 100% / var(--n) - 1px); width: calc(var(--len) * 100% / var(--n) + 2px);
+  /* Pinned by its two edges, each moving on its own, so even fast stepping can't push an edge past the row. */
+  left: calc(var(--lo) * 100% / var(--n) - 1px); right: calc((var(--n) - var(--lo) - var(--len)) * 100% / var(--n) - 1px);
   border: 2px solid var(--steel); border-radius: 14px;
   box-shadow: 0 0 0 4px var(--glow-steel);
-  transition: left var(--vz-dur) cubic-bezier(0.22, 1, 0.36, 1), width var(--vz-dur) cubic-bezier(0.22, 1, 0.36, 1), opacity var(--vz-dur);
+  transition: left var(--vz-dur) cubic-bezier(0.22, 1, 0.36, 1), right var(--vz-dur) cubic-bezier(0.22, 1, 0.36, 1), opacity var(--vz-dur);
 }
 .vz-win-empty { opacity: 0; }
 
-.vz-stack-label { margin-top: 8px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+/* A label starts at the left edge of the cells and may run on to the right edge of the picture before it wraps. */
+.vz-stack-label { margin-top: 8px; margin-right: calc((100% - 100cqw) / 2); font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .vz-stack { position: relative; height: 0; padding-bottom: calc(100% / var(--n)); border-bottom: 2px solid var(--border-strong); }
 .vz-item {
   position: absolute; top: 0; left: 0; width: calc(100% / var(--n)); aspect-ratio: 1; padding: 3px;
@@ -864,6 +868,8 @@ pre.shiki { background: var(--code-bg) !important; }
   font-size: clamp(11px, calc(100cqw / var(--n) * 0.34), 21px);
   animation: vz-push var(--vz-dur) var(--vz-ease) both;
 }
+/* A long value (a call such as f(4)) gets smaller type, so it stays inside its box. */
+.vz-long span { font-size: clamp(9px, calc(100cqw / var(--n) * 0.24), 15px); }
 .vz-item-out span { animation: vz-pop var(--vz-dur) ease-in both; }
 @keyframes vz-push { from { opacity: 0; transform: translateY(-70%); } }
 @keyframes vz-pop { to { opacity: 0; transform: translateY(-70%) scale(0.8); } }
@@ -891,6 +897,29 @@ pre.shiki { background: var(--code-bg) !important; }
 .vz-node.vz-gold span { background: linear-gradient(var(--active-bg), var(--active-bg)) var(--card-bottom); transform: none; }
 .vz-node.vz-steel span { background: linear-gradient(var(--glow-steel), var(--glow-steel)) var(--card-bottom); }
 .vz-node.vz-dim span { background: var(--card-bottom); transform: scale(0.82); }
+
+/* Map, bars and grid views (components/views/MoreViews.tsx). */
+/* The chips start at the left edge of the cells and may run on to the right edge of the picture. */
+.vz-map { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; min-height: 28px; margin-right: calc((100% - 100cqw) / 2); }
+.vz-entry {
+  display: flex; align-items: baseline; gap: 6px; padding: 3px 9px;
+  border: 1.5px solid var(--num-border); border-radius: 8px;
+  font-family: var(--mono); font-size: 12px; line-height: 18px; color: var(--num-text); font-variant-numeric: tabular-nums;
+  transition: color var(--vz-dur), border-color var(--vz-dur), background-color var(--vz-dur);
+}
+.vz-entry b { font-weight: 700; }
+.vz-entry span::before { content: "→ "; color: var(--muted); }
+.vz-e-gold { border-color: var(--gold); color: var(--gold); background: var(--active-bg); }
+.vz-e-dim { border-style: dashed; border-color: var(--border); color: var(--muted); }
+.vz-entry-off { visibility: hidden; }
+
+.vz-bars { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); height: 92px; border-bottom: 2px solid var(--border-strong); }
+.vz-bar { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; padding: 0 calc(var(--pad) + 1px); }
+.vz-bar i { display: block; transition: height var(--vz-dur) var(--vz-ease), background-color var(--vz-dur), opacity var(--vz-dur); }
+.vz-water { height: calc(var(--w) / var(--max) * 100%); background: var(--steel); opacity: 0.5; border-radius: 3px 3px 0 0; }
+.vz-wall { height: calc(var(--h) / var(--max) * 100%); background: var(--muted); border-radius: 3px 3px 0 0; }
+.vz-b-gold .vz-wall { background: var(--gold); }
+.vz-b-dim .vz-wall { opacity: 0.45; }
 
 .vz-vars { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px; }
 .vz-var {
@@ -1007,7 +1036,24 @@ pre.shiki { background: var(--code-bg) !important; }
   .vz-form { flex-wrap: nowrap; }
   .vz-field-ints { flex: 3 1 0; }
   .vz-field-int { flex: 1 1 0; }
+  .vz-field-text { flex: 2 1 0; }
   .vz-actions { flex: none; flex-wrap: nowrap; }
+}
+/* A short laptop screen: tighten everything a little so a whole player fits without scrolling. */
+@media (min-width: 760px) and (max-height: 700px) {
+  .vz { padding-block: 12px; row-gap: 8px; }
+  .vz-one .vz { margin-top: 6px; }
+  .vz-left { gap: 8px; }
+  .vz-stage { padding: 0; }
+  .vz-grid { width: min(100%, calc(var(--n) * 44px)); }
+  .vz-idx { margin-top: 4px; }
+  .vz-ptrs { height: 26px; }
+  .vz-stack-label { margin-top: 4px; }
+  .vz-status { margin-top: 4px; }
+  .vz-tree { --rh: clamp(22px, calc(100cqw / var(--n)), 24px); }
+  .vz-bars { height: 76px; }
+  .vz-scrub { height: 22px; }
+  .vz-btn, .vz-speed select { height: 38px; }
 }
 @media (max-width: 480px) {
   .vz .vz-code pre.shiki { font-size: 11px; padding-left: 8px; }

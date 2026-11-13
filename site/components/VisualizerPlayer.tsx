@@ -7,13 +7,16 @@
 // pseudocode on the right scrolling inside its own box, so one screen holds it all.
 import { lazy, use, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { loadPattern } from "@/visualizer/loaders.ts";
-import { arrayOf, checkLimits, stackOf, traceOf, type Field, type Input, type Pattern } from "@/visualizer/schema.ts";
+import { checkLimits, stackOf, traceOf, type Field, type Input, type MapEntry, type Pattern } from "@/visualizer/schema.ts";
 import { ArrayView } from "./views/ArrayView.tsx";
 import { StackView } from "./views/StackView.tsx";
 import { vars } from "./views/vars.ts";
 
 // Only patterns with a tree fetch this; the player's loading box covers the wait.
 const TreeView = lazy(() => import("./views/TreeView.tsx"));
+const MapView = lazy(() => import("./views/MoreViews.tsx").then((m) => ({ default: m.MapView })));
+const BarsView = lazy(() => import("./views/MoreViews.tsx").then((m) => ({ default: m.BarsView })));
+const GridView = lazy(() => import("./views/MoreViews.tsx").then((m) => ({ default: m.GridView })));
 
 const SPEEDS = [0.5, 1, 2];
 const STEP_MS = 1600;
@@ -26,7 +29,8 @@ type Props = { patternId: string; codeHtml: string; locked?: boolean };
 const textsOf = (input: Input): Texts =>
   Object.fromEntries(Object.entries(input).map(([k, v]) => [k, Array.isArray(v) ? v.join(", ") : String(v)]));
 
-function parseField(f: Field, text: string): number | number[] | Problem {
+function parseField(f: Field, text: string): number | number[] | string | Problem {
+  if (f.kind === "text") return text.trim();
   const parts = text.split(/[\s,]+/).filter(Boolean);
   for (const t of parts) {
     if (!/^[-+]?\d{1,9}$/.test(t)) return { field: f.name, msg: `${f.label}: "${t.slice(0, 12)}" is not a whole number.` };
@@ -69,6 +73,7 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
   const [wantPlay, setWantPlay] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [panel, setPanel] = useState<"code" | "input">("code"); // phones show one at a time
+  const [run, setRun] = useState(0); // counts the inputs loaded
 
   const trace = useMemo(() => traceOf(p, input), [p, input]);
   const last = trace.steps.length - 1;
@@ -80,23 +85,32 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
   const step = trace.steps[Math.min(pos.i, last)];
   const before = trace.steps[Math.min(pos.prev, last)];
   const playing = wantPlay && pos.i < last;
-  const n = Math.max(1, arrayOf(step)?.cells.length ?? 0);
   // What the stage needs room for is decided once per trace, so stepping never changes the layout.
   const shape = useMemo(() => {
-    const seen: Record<string, string[]> = {}; // pointer ids per array view, in the order they first appear
+    const seen: Record<string, string[]> = {}; // pointer ids per view, in the order they first appear
     const window: string[] = []; // array views that show a window on some step
+    const maps: Record<string, MapEntry[]> = {}; // every entry a map view ever holds
+    let n = 0; // the widest row of cells
+    let deep = 0; // the tallest stack
     for (const s of trace.steps) {
       for (const v of s.views) {
-        if (v.kind !== "array") continue;
-        const ids = (seen[v.id] ??= []);
-        for (const q of v.pointers) if (!ids.includes(q.id)) ids.push(q.id);
-        if (v.window && !window.includes(v.id)) window.push(v.id);
+        if (v.kind === "map") {
+          const all = (maps[v.id] ??= []);
+          for (const e of v.entries) if (!all.some((x) => x.id === e.id)) all.push(e);
+        } else if (v.kind === "stack") deep = Math.max(deep, v.items.length);
+        else if (v.kind === "grid") n = Math.max(n, ...v.rows.map((r) => r.length));
+        else if (v.kind === "array" || v.kind === "bars") {
+          n = Math.max(n, v.kind === "array" ? v.cells.length : v.bars.length);
+          const ids = (seen[v.id] ??= []);
+          for (const q of v.pointers) if (!ids.includes(q.id)) ids.push(q.id);
+          if (v.kind === "array" && v.window && !window.includes(v.id)) window.push(v.id);
+        }
       }
     }
     // Pointers alternate below and above the cells and keep their side.
     const top: Record<string, string[]> = {};
     for (const id of Object.keys(seen)) top[id] = seen[id].filter((_, k) => k % 2 === 1);
-    return { top, window, vars: trace.steps[0].vars?.map((v) => v.name) ?? [] };
+    return { top, seen, window, maps, n: Math.max(1, n || deep), vars: trace.steps[0].vars?.map((v) => v.name) ?? [] };
   }, [trace]);
 
   useEffect(() => {
@@ -129,6 +143,7 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
     setProblem(null);
     setWantPlay(false);
     setPos({ i: 0, prev: 0 });
+    setRun((r) => r + 1);
     // On a phone the form sits below the picture: bring the picture back, or the new input seems to do nothing.
     setPanel("code");
     const stage = stageRef.current;
@@ -167,7 +182,7 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
       tabIndex={0}
       onKeyDown={onKey}
       data-panel={panel}
-      style={vars({ "--n": n, "--vz-dur": `${Math.round(Math.min(520, 520 / speed))}ms` })}
+      style={vars({ "--n": shape.n, "--vz-dur": `${Math.round(Math.min(520, 520 / speed))}ms` })}
     >
       <div className="vz-inputs" id={`${uid}-input`}>
         {locked ? (
@@ -185,7 +200,7 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
               <label key={f.name} className={`vz-field vz-field-${f.kind}`}>
                 <span>
                   {f.label}
-                  <small>{f.kind === "ints" ? ` ${f.minLen ?? 0} to ${f.maxLen} numbers, ${f.min} to ${f.max}` : ` ${f.min} to ${f.max}`}</small>
+                  <small>{f.kind === "text" ? ` ${f.minLen ?? 0} to ${f.maxLen} letters` : f.kind === "ints" ? ` ${f.minLen ?? 0} to ${f.maxLen} numbers, ${f.min} to ${f.max}` : ` ${f.min} to ${f.max}`}</small>
                 </span>
                 <input
                   type="text"
@@ -217,12 +232,19 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
 
       <div className="vz-left">
         <div className="vz-stage" aria-hidden="true" ref={stageRef}>
-          <div className="vz-grid">
+          {/* A new input is drawn fresh: nothing slides in from where it stood in the old one. */}
+          <div className="vz-grid" key={run}>
             {step.views.map((v) =>
               v.kind === "array" ? (
-                <ArrayView key={v.id} view={v} top={shape.top[v.id] ?? []} hasWindow={shape.window.includes(v.id)} />
+                <ArrayView key={v.id} view={v} top={shape.top[v.id] ?? []} hasWindow={shape.window.includes(v.id)} bottom={(shape.seen[v.id]?.length ?? 0) > (shape.top[v.id]?.length ?? 0)} />
               ) : v.kind === "tree" ? (
                 <TreeView key={v.id} view={v} />
+              ) : v.kind === "map" ? (
+                <MapView key={v.id} view={v} all={shape.maps[v.id] ?? []} />
+              ) : v.kind === "bars" ? (
+                <BarsView key={v.id} view={v} />
+              ) : v.kind === "grid" ? (
+                <GridView key={v.id} view={v} />
               ) : (
                 <StackView key={v.id} view={v} before={pos.prev !== pos.i ? stackOf(before, v.id) : undefined} />
               ),

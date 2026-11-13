@@ -300,6 +300,7 @@
     }
   ],
   "blog": {
+    "visualizer": "selection-sort",
     "pattern": "Sorting",
     "section": "Recursion and sorting",
     "summary": "Selection sort finds the smallest value in the unsorted part and swaps it to the front, once per pass.",

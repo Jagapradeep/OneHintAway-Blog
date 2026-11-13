@@ -275,6 +275,7 @@
     }
   ],
   "blog": {
+    "visualizer": "search-2d-matrix",
     "pattern": "Binary search",
     "section": "Binary search",
     "summary": "Read a grid sorted row after row as one sorted row: index i sits at row floor(i / cols), column i mod cols.",

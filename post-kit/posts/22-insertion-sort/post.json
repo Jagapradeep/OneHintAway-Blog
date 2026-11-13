@@ -302,6 +302,7 @@
     }
   ],
   "blog": {
+    "visualizer": "insertion-sort",
     "pattern": "Sorting",
     "section": "Recursion and sorting",
     "summary": "Small or almost-sorted input: pick up each value like a card and shift bigger values right until it fits.",

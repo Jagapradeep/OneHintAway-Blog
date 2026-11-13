@@ -317,6 +317,7 @@
     }
   ],
   "blog": {
+    "visualizer": "quick-sort",
     "pattern": "Sorting",
     "section": "Recursion and sorting",
     "summary": "Partition puts a pivot in its final slot, so quickselect keeps only the side that holds the k-th value.",

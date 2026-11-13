@@ -246,6 +246,7 @@
     }
   ],
   "blog": {
+    "visualizer": "rotated-sorted-array",
     "pattern": "Binary search",
     "section": "Binary search",
     "summary": "In a sorted array cut once, compare the middle with the last value to know which side the drop is on.",

@@ -1,5 +1,5 @@
 // One Hint Away step schema, version 2: a step is a list of typed views.
-// Each view kind (array, stack, tree; later grid, …) has its own shape, its own
+// Each view kind (array, stack, tree, map, bars, grid) has its own shape, its own
 // stable ids, its own generic check below and its own drawing component.
 // The same JSON is produced by the TypeScript patterns in ./patterns (for the
 // website player) and by viz_steps() in post-kit/viz/<pattern>/ref.py (for the
@@ -56,6 +56,8 @@ export interface ArrayView {
   cells: Cell[];
   pointers: Pointer[];
   window?: Win;
+  /** True when the positions are not indexes worth showing (a row of candidate answers, say). */
+  hideIndex?: boolean;
 }
 
 export interface StackView {
@@ -90,7 +92,49 @@ export interface TreeView {
   nodes: TreeNode[];
 }
 
-export type View = ArrayView | StackView | TreeView;
+export interface MapEntry {
+  /** Stable across steps and unique in its view. */
+  id: string;
+  k: number | string;
+  v: number | string;
+  state: NodeState;
+}
+
+/** A hash map: entries may be added, changed or removed from step to step. */
+export interface MapView {
+  kind: "map";
+  id: string;
+  label?: string;
+  entries: MapEntry[];
+}
+
+export interface Bar {
+  id: string;
+  /** Height of the wall. Never changes. */
+  h: number;
+  /** Units of water standing on top of the wall. */
+  water: number;
+  state: NodeState;
+}
+
+/** A bar chart with pointers, for problems about heights. */
+export interface BarsView {
+  kind: "bars";
+  id: string;
+  label?: string;
+  bars: Bar[];
+  pointers: Pointer[];
+}
+
+/** A grid of cells, row by row. Cells never move. */
+export interface GridView {
+  kind: "grid";
+  id: string;
+  label?: string;
+  rows: Cell[][];
+}
+
+export type View = ArrayView | StackView | TreeView | MapView | BarsView | GridView;
 
 export interface Var {
   name: string;
@@ -108,7 +152,7 @@ export interface Step {
   vars?: Var[];
 }
 
-export type Input = Record<string, number | number[]>;
+export type Input = Record<string, number | number[] | string>;
 export type Answer = number | string | boolean | null | number[];
 
 export interface Trace {
@@ -124,11 +168,11 @@ export interface Trace {
 export interface Field {
   name: string;
   label: string;
-  kind: "ints" | "int";
-  /** Smallest and largest value allowed. */
+  kind: "ints" | "int" | "text";
+  /** Smallest and largest value allowed (unused for "text"). */
   min: number;
   max: number;
-  /** For "ints": how many numbers are allowed. */
+  /** For "ints": how many numbers are allowed. For "text": how many letters. */
   minLen?: number;
   maxLen?: number;
 }
@@ -186,7 +230,12 @@ export function checkLimits(fields: Field[], input: Input): string | null {
   for (const f of fields) {
     const v = input[f.name];
     const inRange = (x: unknown) => typeof x === "number" && Number.isInteger(x) && x >= f.min && x <= f.max;
-    if (f.kind === "int") {
+    if (f.kind === "text") {
+      const lo = f.minLen ?? 0;
+      const hi = f.maxLen ?? Infinity;
+      if (typeof v !== "string" || !/^[A-Za-z]*$/.test(v)) return `${f.label} must be letters only.`;
+      if (v.length < lo || v.length > hi) return `${f.label} needs ${lo} to ${hi} letters.`;
+    } else if (f.kind === "int") {
       if (!inRange(v)) return `${f.label} must be a whole number from ${f.min} to ${f.max}.`;
     } else {
       if (!Array.isArray(v)) return `${f.label} must be a list of numbers.`;
@@ -243,6 +292,57 @@ function checkStack(v: StackView, step: Step): string | null {
       const src = arrayOf(step, it.from.view);
       if (!src) return `item "${it.id}" comes from "${it.from.view}", which is not an array view`;
       if (!Number.isInteger(it.from.at) || it.from.at < 0 || it.from.at >= src.cells.length) return `item "${it.id}" points at cell ${it.from.at}`;
+    }
+  }
+  return null;
+}
+
+/** Rules every map view must obey. */
+function checkMap(v: MapView): string | null {
+  if (!Array.isArray(v.entries)) return "no entry list";
+  const ids = new Set<string>();
+  for (const e of v.entries) {
+    if (!e.id || ids.has(e.id)) return `entry id "${e.id}" is missing or repeated`;
+    ids.add(e.id);
+    if (!isVal(e.k) || !isVal(e.v)) return `entry "${e.id}" has no key or no value`;
+    if (!NODE_STATES.includes(e.state)) return `entry "${e.id}" has unknown state "${e.state}"`;
+  }
+  return null;
+}
+
+function checkPointers(pointers: Pointer[], n: number): string | null {
+  if (!Array.isArray(pointers)) return "no pointer list";
+  const ids = new Set<string>();
+  for (const p of pointers) {
+    if (!p.id || !p.label || ids.has(p.id)) return `pointer id "${p.id}" is missing, unlabelled or repeated`;
+    ids.add(p.id);
+    if (!Number.isInteger(p.at) || p.at < 0 || p.at >= n) return `pointer "${p.id}" is at ${p.at}, outside 0..${n - 1}`;
+  }
+  return null;
+}
+
+/** Rules every bars view must obey. `first` is the same view on step 1. */
+function checkBars(v: BarsView, first: BarsView): string | null {
+  if (!Array.isArray(v.bars) || v.bars.length !== first.bars.length) return "the number of bars changed";
+  for (const [k, b] of v.bars.entries()) {
+    if (b.id !== first.bars[k].id || b.h !== first.bars[k].h) return `bar ${k} changed its id or height`;
+    if (!Number.isFinite(b.h) || b.h < 0 || !Number.isFinite(b.water) || b.water < 0) return `bar ${k} has a height or water below 0`;
+    if (!NODE_STATES.includes(b.state)) return `bar ${k} has unknown state "${b.state}"`;
+  }
+  if (new Set(v.bars.map((b) => b.id)).size !== v.bars.length) return "a bar id is repeated";
+  return checkPointers(v.pointers, v.bars.length);
+}
+
+/** Rules every grid view must obey. `first` is the same view on step 1. */
+function checkGrid(v: GridView, first: GridView): string | null {
+  if (!Array.isArray(v.rows) || v.rows.length !== first.rows.length) return "the number of rows changed";
+  const ids = new Set<string>();
+  for (const [y, row] of v.rows.entries()) {
+    if (row.length !== first.rows[y].length) return `row ${y} changed length`;
+    for (const [x, c] of row.entries()) {
+      if (!c.id || ids.has(c.id) || c.id !== first.rows[y][x].id) return `cell ${y},${x}: id "${c.id}" is missing, repeated or moved`;
+      ids.add(c.id);
+      if (!CELL_STATES.includes(c.state) || !isVal(c.v)) return `cell ${y},${x} has no value or an unknown state`;
     }
   }
   return null;
@@ -308,6 +408,9 @@ export function checkStep(trace: Trace, i: number): string | null {
     if (v.kind === "array") why = checkArray(v, f as ArrayView);
     else if (v.kind === "stack") why = checkStack(v, s);
     else if (v.kind === "tree") why = checkTree(v, f as TreeView);
+    else if (v.kind === "map") why = checkMap(v);
+    else if (v.kind === "bars") why = checkBars(v, f as BarsView);
+    else if (v.kind === "grid") why = checkGrid(v, f as GridView);
     else why = "unknown kind of view";
     if (why) return `${(v as View).kind} "${(v as View).id}": ${why}`;
   }
@@ -351,6 +454,11 @@ export function stackOf(step: Step, id?: string): StackView | undefined {
 /** The step's tree view with this id, or its first tree view. */
 export function treeOf(step: Step, id?: string): TreeView | undefined {
   return step.views.find((v): v is TreeView => v.kind === "tree" && (id === undefined || v.id === id));
+}
+
+/** The step's map view with this id. */
+export function mapOf(step: Step, id: string): MapView | undefined {
+  return step.views.find((v): v is MapView => v.kind === "map" && v.id === id);
 }
 
 /** Where a pointer of the first array view stands. */

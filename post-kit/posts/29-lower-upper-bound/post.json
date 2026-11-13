@@ -257,6 +257,7 @@
     }
   ],
   "blog": {
+    "visualizer": "lower-bound",
     "pattern": "Binary search",
     "section": "Binary search",
     "summary": "Lower bound finds the first slot whose value is at least the target, which gives the first, last and count.",

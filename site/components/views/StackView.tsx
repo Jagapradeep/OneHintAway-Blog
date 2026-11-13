@@ -18,12 +18,12 @@ export function StackView({ view, before }: Props) {
       <div className="vz-stack-label">{view.label ?? "Stack"} · top on the right</div>
       <div className="vz-stack">
         {view.items.map((item, at) => (
-          <div key={item.id} className="vz-item" style={vars({ "--at": at })}>
+          <div key={item.id} className={`vz-item${String(item.v).length > 3 ? " vz-long" : ""}`} style={vars({ "--at": at })}>
             <span>{item.v}</span>
           </div>
         ))}
         {leaving.map(({ item, at }) => (
-          <div key={item.id} className="vz-item vz-item-out" style={vars({ "--at": at })}>
+          <div key={item.id} className={`vz-item vz-item-out${String(item.v).length > 3 ? " vz-long" : ""}`} style={vars({ "--at": at })}>
             <span>{item.v}</span>
           </div>
         ))}

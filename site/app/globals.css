@@ -779,6 +779,7 @@ pre.shiki { background: var(--code-bg) !important; }
   background: linear-gradient(180deg, var(--card-top), var(--card-bottom));
   box-shadow: var(--card-shadow);
 }
+.vz { scroll-margin-top: calc(var(--header-h, 64px) + 12px); }
 .vz:focus-visible { outline-offset: 2px; border-radius: var(--radius); }
 .vz-loading { min-height: 420px; display: grid; place-items: center; color: var(--muted); }
 .vz p { margin: 0; }
@@ -790,12 +791,13 @@ pre.shiki { background: var(--code-bg) !important; }
 }
 
 .vz-stage { container-type: inline-size; padding: 4px 0; }
-.vz-grid { width: min(100%, calc(var(--n) * 56px)); margin: 0 auto; }
+/* --pad is the air around each cell's box: it shrinks with the cells on small screens. */
+.vz-grid { width: min(100%, calc(var(--n) * 56px)); margin: 0 auto; --pad: clamp(2px, calc(100cqw / var(--n) * 0.075), 4px); }
 .vz-cells { position: relative; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
 /* Every cell sits in the first column and is moved to its position, so a cell
    that changes position (a swap) slides there. The DOM order never changes. */
 .vz-cell {
-  grid-row: 1; grid-column: 1; aspect-ratio: 1; padding: 3px;
+  grid-row: 1; grid-column: 1; aspect-ratio: 1; padding: var(--pad);
   transform: translateX(calc(var(--at) * 100%));
   transition: transform var(--vz-dur) var(--vz-ease);
 }
@@ -804,7 +806,7 @@ pre.shiki { background: var(--code-bg) !important; }
   border: 1.5px solid var(--num-border); border-radius: 22%;
   background: var(--num-bg); color: var(--num-text);
   font-family: var(--mono); font-weight: 600; letter-spacing: -0.04em;
-  font-size: clamp(11px, calc(100cqw / var(--n) * 0.34), 21px);
+  font-size: clamp(9px, calc(100cqw / var(--n) * 0.34), 21px);
   font-variant-numeric: tabular-nums;
   transition: color var(--vz-dur), border-color var(--vz-dur), background-color var(--vz-dur),
     box-shadow var(--vz-dur), transform var(--vz-dur) var(--vz-ease), opacity var(--vz-dur);
@@ -818,7 +820,7 @@ pre.shiki { background: var(--code-bg) !important; }
 .vz-ghost span { border-color: transparent; background: none; color: transparent; }
 .vz-dash span { border-style: dashed; border-color: var(--border-strong); background: none; }
 
-.vz-idx { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
+.vz-idx { margin-top: 6px; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
 .vz-idx span { text-align: center; font-family: var(--mono); font-size: 10px; line-height: 14px; color: var(--muted); }
 
 .vz-ptrs { position: relative; height: 30px; }
@@ -841,8 +843,8 @@ pre.shiki { background: var(--code-bg) !important; }
    changes size, so nothing else on the page is laid out again. */
 .vz-cells { contain: layout; }
 .vz-win {
-  position: absolute; top: -2px; bottom: -2px; pointer-events: none; box-sizing: border-box;
-  left: calc(var(--lo) * 100% / var(--n)); width: calc(var(--len) * 100% / var(--n));
+  position: absolute; top: -3px; bottom: -3px; pointer-events: none; box-sizing: border-box;
+  left: calc(var(--lo) * 100% / var(--n) - 1px); width: calc(var(--len) * 100% / var(--n) + 2px);
   border: 2px solid var(--steel); border-radius: 14px;
   box-shadow: 0 0 0 4px var(--glow-steel);
   transition: left var(--vz-dur) cubic-bezier(0.22, 1, 0.36, 1), width var(--vz-dur) cubic-bezier(0.22, 1, 0.36, 1), opacity var(--vz-dur);
@@ -866,6 +868,30 @@ pre.shiki { background: var(--code-bg) !important; }
 @keyframes vz-push { from { opacity: 0; transform: translateY(-70%); } }
 @keyframes vz-pop { to { opacity: 0; transform: translateY(-70%) scale(0.8); } }
 
+/* Tree view (components/views/TreeView.tsx). A node is one column wide, like a cell;
+   --rh is the height of one level. Nodes never move: only their colours change. */
+.vz-tree { position: relative; margin-top: 4px; --rh: clamp(22px, calc(100cqw / var(--n)), 30px); height: calc(var(--rows) * var(--rh)); }
+.vz-edges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.vz-edges line { stroke: var(--border-strong); stroke-width: 1.5; vector-effect: non-scaling-stroke; transition: stroke var(--vz-dur); }
+.vz-edges .vz-edge-on { stroke: var(--steel); stroke-width: 2; }
+.vz-edges .vz-edge-off { stroke-dasharray: 3 4; }
+.vz-node {
+  position: absolute; left: 0; top: calc(var(--row) * var(--rh)); width: calc(100% / var(--n)); height: var(--rh); padding: 3px clamp(1px, calc(100cqw / var(--n) * 0.06), 3px);
+  transform: translateX(calc(var(--at) * 100%));
+}
+/* Solid ground under every state, so the lines stop at the node's edge. */
+.vz-node span {
+  display: grid; place-items: center; width: 100%; height: 100%;
+  border: 1.5px solid var(--num-border); border-radius: 999px;
+  background: var(--card-bottom); color: var(--num-text);
+  font-family: var(--mono); font-weight: 600; letter-spacing: -0.04em; font-variant-numeric: tabular-nums;
+  font-size: clamp(8.5px, calc(100cqw / var(--n) * 0.36), 14px);
+  transition: color var(--vz-dur), border-color var(--vz-dur), background-color var(--vz-dur), box-shadow var(--vz-dur), transform var(--vz-dur);
+}
+.vz-node.vz-gold span { background: linear-gradient(var(--active-bg), var(--active-bg)) var(--card-bottom); transform: none; }
+.vz-node.vz-steel span { background: linear-gradient(var(--glow-steel), var(--glow-steel)) var(--card-bottom); }
+.vz-node.vz-dim span { background: var(--card-bottom); transform: scale(0.82); }
+
 .vz-vars { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px; }
 .vz-var {
   display: flex; align-items: baseline; gap: 8px; padding: 4px 10px; min-width: 96px; justify-content: space-between;
@@ -874,10 +900,15 @@ pre.shiki { background: var(--code-bg) !important; }
 .vz-var span { color: var(--muted); }
 .vz-var b { color: var(--text); font-variant-numeric: tabular-nums; white-space: pre; }
 
-.vz-say { min-height: 5.6em; }
+/* Every narration line of the trace is stacked, hidden, in the same grid cell, so the
+   box is exactly as tall as the longest one and never changes height while stepping. */
+.vz-say { display: grid; }
+.vz-say > div { grid-area: 1 / 1; min-width: 0; }
+.vz-say-size { visibility: hidden; }
 .vz .vz-say p { font-size: 0.98rem; line-height: 1.45; color: var(--text); }
 .vz .vz-say .vz-answer { margin-top: 4px; font-weight: 700; color: var(--gold); opacity: 0; transition: opacity var(--vz-dur); }
-.vz .vz-say .vz-answer-on { opacity: 1; }
+.vz .vz-say .vz-answer-on { opacity: 1; animation: vz-fade var(--vz-dur); }
+@keyframes vz-fade { from { opacity: 0; } }
 
 .vz-scrub { width: 100%; height: 28px; margin: 0; accent-color: var(--gold); cursor: pointer; }
 .vz-buttons { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
@@ -977,7 +1008,6 @@ pre.shiki { background: var(--code-bg) !important; }
   .vz-field-ints { flex: 3 1 0; }
   .vz-field-int { flex: 1 1 0; }
   .vz-actions { flex: none; flex-wrap: nowrap; }
-  .vz-say { min-height: 4.4em; }
 }
 @media (max-width: 480px) {
   .vz .vz-code pre.shiki { font-size: 11px; padding-left: 8px; }

@@ -288,6 +288,7 @@
     }
   ],
   "blog": {
+    "visualizer": "binary-search",
     "pattern": "Binary search",
     "section": "Binary search",
     "summary": "In a sorted array, check the middle and drop the half that can't hold the target, for O(log n).",

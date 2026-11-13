@@ -5,12 +5,15 @@
 // Motion is CSS transforms only, driven by the difference between two steps.
 // Layout is a fixed workbench: input on top, picture and controls on the left,
 // pseudocode on the right scrolling inside its own box, so one screen holds it all.
-import { use, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { lazy, use, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { loadPattern } from "@/visualizer/loaders.ts";
 import { arrayOf, checkLimits, stackOf, traceOf, type Field, type Input, type Pattern } from "@/visualizer/schema.ts";
 import { ArrayView } from "./views/ArrayView.tsx";
 import { StackView } from "./views/StackView.tsx";
 import { vars } from "./views/vars.ts";
+
+// Only patterns with a tree fetch this; the player's loading box covers the wait.
+const TreeView = lazy(() => import("./views/TreeView.tsx"));
 
 const SPEEDS = [0.5, 1, 2];
 const STEP_MS = 1600;
@@ -58,6 +61,7 @@ export default function VisualizerPlayer(props: Props) {
 function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
   const uid = useId();
   const codeRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const [texts, setTexts] = useState<Texts>(() => textsOf(p.example));
   const [input, setInput] = useState<Input>(p.example);
   const [problem, setProblem] = useState<Problem | null>(null);
@@ -68,6 +72,11 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
 
   const trace = useMemo(() => traceOf(p, input), [p, input]);
   const last = trace.steps.length - 1;
+  // Every different narration line, the last step's at the end: they size the narration box.
+  const says = useMemo(() => {
+    const all = trace.steps.map((s) => s.say);
+    return [...new Set(all.slice(0, -1)), all[all.length - 1]];
+  }, [trace]);
   const step = trace.steps[Math.min(pos.i, last)];
   const before = trace.steps[Math.min(pos.prev, last)];
   const playing = wantPlay && pos.i < last;
@@ -120,6 +129,13 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
     setProblem(null);
     setWantPlay(false);
     setPos({ i: 0, prev: 0 });
+    // On a phone the form sits below the picture: bring the picture back, or the new input seems to do nothing.
+    setPanel("code");
+    const stage = stageRef.current;
+    if (stage && (stage.getBoundingClientRect().top < 0 || stage.getBoundingClientRect().bottom > window.innerHeight)) {
+      const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      stage.closest(".vz")?.scrollIntoView({ block: "start", behavior: calm ? "auto" : "smooth" });
+    }
   };
   const submit = () => {
     const r = parseInput(p, texts);
@@ -200,11 +216,13 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
       </div>
 
       <div className="vz-left">
-        <div className="vz-stage" aria-hidden="true">
+        <div className="vz-stage" aria-hidden="true" ref={stageRef}>
           <div className="vz-grid">
             {step.views.map((v) =>
               v.kind === "array" ? (
                 <ArrayView key={v.id} view={v} top={shape.top[v.id] ?? []} hasWindow={shape.window.includes(v.id)} />
+              ) : v.kind === "tree" ? (
+                <TreeView key={v.id} view={v} />
               ) : (
                 <StackView key={v.id} view={v} before={pos.prev !== pos.i ? stackOf(before, v.id) : undefined} />
               ),
@@ -226,14 +244,24 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
         </div>
 
         <div className="vz-say">
-          <p aria-live="polite" aria-atomic="true">
-            <span className="vz-visually-hidden">{`Step ${pos.i + 1} of ${last + 1}. `}</span>
-            {step.say}
-            {done && <span className="vz-visually-hidden">{` Answer: ${p.answerText(trace.answer)}.`}</span>}
-          </p>
-          <p className={`vz-answer${done ? " vz-answer-on" : ""}`} aria-hidden="true">
-            {done ? p.answerText(trace.answer) : " "}
-          </p>
+          {says.map((s, k) => (
+            <div key={k} className="vz-say-size" aria-hidden="true">
+              <p>{s}</p>
+              {k === says.length - 1 && <p className="vz-answer">{p.answerText(trace.answer)}</p>}
+            </div>
+          ))}
+          <div>
+            <p aria-live="polite" aria-atomic="true">
+              <span className="vz-visually-hidden">{`Step ${pos.i + 1} of ${last + 1}. `}</span>
+              {step.say}
+              {done && <span className="vz-visually-hidden">{` Answer: ${p.answerText(trace.answer)}.`}</span>}
+            </p>
+            {done && (
+              <p className="vz-answer vz-answer-on" aria-hidden="true">
+                {p.answerText(trace.answer)}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="vz-controls">

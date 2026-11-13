@@ -1,5 +1,5 @@
 // One Hint Away step schema, version 2: a step is a list of typed views.
-// Each view kind (array, stack; later tree, grid, …) has its own shape, its own
+// Each view kind (array, stack, tree; later grid, …) has its own shape, its own
 // stable ids, its own generic check below and its own drawing component.
 // The same JSON is produced by the TypeScript patterns in ./patterns (for the
 // website player) and by viz_steps() in post-kit/viz/<pattern>/ref.py (for the
@@ -66,7 +66,31 @@ export interface StackView {
   items: StackItem[];
 }
 
-export type View = ArrayView | StackView;
+/** gold = the current focus, steel = already visited, dim = ruled out. */
+export type NodeState = "plain" | "gold" | "steel" | "dim";
+export const NODE_STATES: readonly string[] = ["plain", "gold", "steel", "dim"];
+
+export interface TreeNode {
+  /** Stable across steps and unique in its view. */
+  id: string;
+  v: number | string;
+  state: NodeState;
+  /** Id of the parent node. Only the root has none. */
+  parent?: string;
+  /** Which child of its parent this is. Left children are drawn left of the parent. */
+  side?: "left" | "right";
+}
+
+/** A rooted tree. The whole tree is present on every step; only states change. */
+export interface TreeView {
+  kind: "tree";
+  id: string;
+  label?: string;
+  /** Any order, but the same on every step. May be empty. */
+  nodes: TreeNode[];
+}
+
+export type View = ArrayView | StackView | TreeView;
 
 export interface Var {
   name: string;
@@ -224,6 +248,46 @@ function checkStack(v: StackView, step: Step): string | null {
   return null;
 }
 
+/** Rules every tree view must obey. `first` is the same view on step 1. */
+function checkTree(v: TreeView, first: TreeView): string | null {
+  if (!Array.isArray(v.nodes) || v.nodes.length !== first.nodes.length) return `node count changed from ${first.nodes.length} to ${v.nodes?.length}`;
+  const parentOf = new Map<string, string | undefined>();
+  const sides = new Set<string>();
+  let roots = 0;
+  for (const [k, nd] of v.nodes.entries()) {
+    const f = first.nodes[k];
+    if (!nd.id || parentOf.has(nd.id)) return `node id "${nd.id}" is missing or repeated`;
+    if (nd.id !== f.id || nd.parent !== f.parent || nd.side !== f.side) return `node ${k} ("${f.id}") changed its id, parent or side`;
+    parentOf.set(nd.id, nd.parent);
+    if (!NODE_STATES.includes(nd.state)) return `node "${nd.id}" has unknown state "${nd.state}"`;
+    if (!isVal(nd.v)) return `node "${nd.id}" has no value`;
+    if (nd.side !== undefined && nd.side !== "left" && nd.side !== "right") return `node "${nd.id}" has side "${nd.side}"`;
+    if (nd.parent === undefined) {
+      roots++;
+      if (nd.side !== undefined) return `the root "${nd.id}" has a side`;
+    } else if (nd.side) {
+      const key = `${nd.parent} ${nd.side}`;
+      if (sides.has(key)) return `node "${nd.parent}" has two ${nd.side} children`;
+      sides.add(key);
+    }
+  }
+  if (v.nodes.length > 0 && roots !== 1) return `${roots} roots (a tree has exactly one)`;
+  // Every node must reach the root: no missing parents, no cycles.
+  const ok = new Set<string>();
+  for (const nd of v.nodes) {
+    const path: string[] = [];
+    let at: string | undefined = nd.id;
+    while (at !== undefined && !ok.has(at)) {
+      if (!parentOf.has(at)) return `node "${path[path.length - 1]}" has parent "${at}", which is not a node`;
+      if (path.includes(at)) return `node "${at}" is its own ancestor`;
+      path.push(at);
+      at = parentOf.get(at);
+    }
+    for (const id of path) ok.add(id);
+  }
+  return null;
+}
+
 /** Rules every step of every pattern must obey. Returns the broken rule, or null. */
 export function checkStep(trace: Trace, i: number): string | null {
   const s = trace.steps[i];
@@ -243,6 +307,7 @@ export function checkStep(trace: Trace, i: number): string | null {
     let why: string | null;
     if (v.kind === "array") why = checkArray(v, f as ArrayView);
     else if (v.kind === "stack") why = checkStack(v, s);
+    else if (v.kind === "tree") why = checkTree(v, f as TreeView);
     else why = "unknown kind of view";
     if (why) return `${(v as View).kind} "${(v as View).id}": ${why}`;
   }
@@ -281,6 +346,11 @@ export function arrayOf(step: Step, id?: string): ArrayView | undefined {
 /** The step's stack view with this id, or its first stack view. */
 export function stackOf(step: Step, id?: string): StackView | undefined {
   return step.views.find((v): v is StackView => v.kind === "stack" && (id === undefined || v.id === id));
+}
+
+/** The step's tree view with this id, or its first tree view. */
+export function treeOf(step: Step, id?: string): TreeView | undefined {
+  return step.views.find((v): v is TreeView => v.kind === "tree" && (id === undefined || v.id === id));
 }
 
 /** Where a pointer of the first array view stands. */

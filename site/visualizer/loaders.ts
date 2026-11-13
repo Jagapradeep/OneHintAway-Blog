@@ -9,6 +9,7 @@ import type { Pattern } from "./schema.ts";
 
 export const loaders: Record<string, () => Promise<Pattern>> = {
   "two-pointers": () => import("./patterns/two-pointers.ts").then((m) => m.twoPointers),
+  "binary-search": () => import("./patterns/binary-search.ts").then((m) => m.binarySearch),
   "sliding-window": () => import("./patterns/sliding-window.ts").then((m) => m.slidingWindow),
   "monotonic-stack": () => import("./patterns/monotonic-stack.ts").then((m) => m.monotonicStack),
 };

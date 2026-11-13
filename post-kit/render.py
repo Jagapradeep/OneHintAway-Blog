@@ -150,8 +150,9 @@ def one(folder, a, published):
             page.evaluate("document.fonts.ready")
             n_st = len(tl["states"])
             for k in range(n_st):
-                times = [k * V.STEP + V.STEP - 0.05] if k < n_st - 1 else [tl["duration"] - V.FADE - 0.05]
-                times.insert(0, k * V.STEP + 0.6)
+                st = tl["states"][k]
+                times = [st["t0"] + st["len"] - 0.05] if k < n_st - 1 else [tl["duration"] - V.FADE - 0.05]
+                times.insert(0, st["t0"] + st["mv"] * 0.5)
                 seen = []
                 for j, t in enumerate(times):
                     page.evaluate(f"window.draw({t})")
@@ -164,6 +165,12 @@ def one(folder, a, published):
             vs["player_html"] = vs["html"]
             vs["html"] = vs["html"].replace(V.stage_div(vslide["video"]), still)
         for x in slides:
+            if P.ui.FIT_OPEN in x["html"]:      # fill the slide: draw a sparse slide's content larger
+                page.set_content(plain_page(x["html"]))
+                page.evaluate("document.fonts.ready")
+                z, gap = page.evaluate(P.ui.FIT_JS, [list(P.ui.FIT_STEPS), P.ui.FIT_MIN_ROOM, P.ui.FIT_KEEP])
+                if z != 1 or gap:
+                    x["html"] = x["html"].replace(P.ui.FIT_OPEN, P.ui.fitted(z, gap))
             page.set_content(plain_page(x["html"]))
             page.evaluate("document.fonts.ready")
             r = page.evaluate(CHECK_JS)

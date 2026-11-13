@@ -10,7 +10,7 @@
     "lead": "Sort like a hand of cards: each new card slides left past every bigger card.",
     "use_it_when": "The input is small, or almost sorted: insertion sort does very little work there.",
     "why_it_matters": "It's the first of three basic sorts. Selection and bubble sort come next.",
-    "promise": "You'll write **insertion sort** in {lines} lines.",
+    "blocks": [{"type": "boxes", "size": "s", "gap": 24, "mt": 18, "values": ["", 2, 4, 5, 3], "dash": [0], "steel": [1, 2, 3], "float": {"value": 1, "over": 0}}], "promise": "You'll write **insertion sort** in {lines} lines.",
     "promise_slide": "template"
   },
   "slides": [
@@ -95,10 +95,10 @@
                 2,
                 4,
                 5,
-                "",
+                1,
                 3
               ],
-              "dash": [
+              "held": [
                 3
               ]
             },
@@ -107,11 +107,11 @@
               "values": [
                 2,
                 4,
-                "",
+                1,
                 5,
                 3
               ],
-              "dash": [
+              "held": [
                 2
               ]
             },
@@ -119,25 +119,25 @@
               "label": "4 > 1: shift",
               "values": [
                 2,
-                "",
+                1,
                 4,
                 5,
                 3
               ],
-              "dash": [
+              "held": [
                 1
               ]
             },
             {
               "label": "2 > 1: shift",
               "values": [
-                "",
+                1,
                 2,
                 4,
                 5,
                 3
               ],
-              "dash": [
+              "held": [
                 0
               ]
             },

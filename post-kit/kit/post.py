@@ -175,14 +175,17 @@ def _wrap(n, total, inner, teaser, last=False, spacer=True):
     return f'<div style="{ROOT}">\n{ui.header(n, total)}{inner}{ui.footer(teaser, last, spacer)}</div>'
 
 
-def _title_block(s, label, label_color=STEEL, mt=40):
+def _title_parts(s, label, label_color=STEEL, mt=40):
+    """(pill and title, lead). The lead belongs to the part that ui.fit() may enlarge."""
     out = ui.pill_label(label, label_color, mt) if label else ""
     if s.get("title"):
         out += ui.h1(s["title"], 22 if label else 36)
     lead = s.get("scene") or s.get("lead")
-    if lead:
-        out += ui.lead(lead)
-    return out
+    return out, (ui.lead(lead) if lead else "")
+
+
+def _title_block(s, label, label_color=STEEL, mt=40):
+    return "".join(_title_parts(s, label, label_color, mt))
 
 
 def build(post, ns, seq, video_still=None):
@@ -217,9 +220,9 @@ def build(post, ns, seq, video_still=None):
             inner += _title_block(s, s.get("label", DEFAULT_LABEL["video"]), mt=40 if not inner else 30)
             inner += video_still or '<div style="margin-top: 30px; height: 730px; border: 2px dashed #3A3F49; border-radius: 24px"></div>'
         elif t == "pause":
-            inner += pause(post)
+            inner += ui.fit(pause(post))
         elif t == "bridge":
-            inner += bridge(sum(1 for tt, _ in seq[n:] if tt in ("video", "solution")))
+            inner += ui.fit(bridge(sum(1 for tt, _ in seq[n:] if tt in ("video", "solution"))))
         elif t in ("practice", "closing"):
             inner = practice(post, s, kind)
         else:
@@ -232,7 +235,8 @@ def build(post, ns, seq, video_still=None):
                 sol_i += 1
                 label = "THE SOLUTION" + (f" · {sol_i} OF {len(sols)}" if len(sols) > 1 else "")
             mt = 30 if inner else (36 if kind == "challenge" else 40)
-            inner += _title_block(s, label, color, mt)
+            head, body = _title_parts(s, label, color, mt)
+            inner, keep = "", inner + head
             for b in s.get("blocks", []):
                 inner += ui.block(b)
             if s.get("code"):
@@ -258,6 +262,7 @@ def build(post, ns, seq, video_still=None):
                 inner += ui.block(b)
             if t == "hint":
                 inner += ui.try_again()
+            inner = keep + ui.fit(body + inner)
         last = n == total
         name = "Main.dc.html" if n == 1 else f"{n:02d}-{t.capitalize()}{'' if t not in ('hint', 'solution', 'extra') else (hint_i if t == 'hint' else sol_i if t == 'solution' else n)}.dc.html"
         board = s.get("board") or (f"Hint {hint_i}" if t == "hint" else f"Pseudocode {sol_i} of {len(sols)}" if t == "solution" and len(sols) > 1 else
@@ -277,19 +282,20 @@ def cover(post, c, n, total, promise_n):
         inner += ui.pill_label(f"POST {num} · {post['category'].upper()}", STEEL, 48)
         inner += ui.h1(c["title"], 28, ui.fit_title(c["title"], 140), 800, "-6px", "0.98")
         inner += ui.lead(c["lead"], 24, 40, 54)
+        # with a picture on the cover there is room for one card: "why it matters" stays in the summary only
+        pic = "".join(ui.block(b) for b in c.get("blocks", []))
         cards = ""
-        for lab, key in (("USE IT WHEN", "use_it_when"), ("WHY IT MATTERS", "why_it_matters")):
-            cards += (f'<div style="display: flex; flex-direction: column; gap: 8px; padding: 20px 28px; {CARD}">{ui.mlabel(lab, GOLD)}'
+        for lab, key in (("USE IT WHEN", "use_it_when"),) + (() if pic else (("WHY IT MATTERS", "why_it_matters"),)):
+            cards += (f'<div style="display: flex; flex-direction: column; gap: 8px; padding: 20px 28px; {ui.card(GOLD)}">{ui.mlabel(lab, GOLD)}'
                       f'<div style="font-size: 34px; line-height: 44px; font-weight: 600; {NOLIG}">{md(c[key])}</div></div>')
-        inner += f'<div style="margin-top: 32px; display: flex; flex-direction: column; gap: 16px">{cards}</div>\n'
+        inner += ui.fit(f'{pic}<div style="margin-top: {24 if pic else 32}px; display: flex; flex-direction: column; gap: 16px">{cards}</div>')
     else:
         p = c["problem"]
         inner += (f'<div style="margin-top: 48px; display: flex; gap: 12px">{ui.pill_label(f"POST {num} · CHALLENGE", STEEL, 0)}'
-                  f'<div style="display: flex; align-items: center; padding: 8px 18px; border: 1.5px solid #8A7444; border-radius: 999px; font-family: {MONO}; font-size: 24px; font-weight: 600; letter-spacing: 3px; color: #F4CF6E">{esc(p.get("platform", "LeetCode").upper())} {p["id"]} · {esc(p["difficulty"].upper())}</div></div>\n')
+                  f'<div style="display: flex; align-items: center; padding: 8px 18px; border: 1.5px solid #8A7444; border-radius: 999px; font-family: {MONO}; font-size: 26px; font-weight: 600; letter-spacing: 2px; color: #F4CF6E">{esc(p.get("platform", "LeetCode").upper())} {p["id"]} · {esc(p["difficulty"].upper())}</div></div>\n')
         inner += ui.h1(c["title"], 22, ui.fit_title(c["title"], 150), 800, "-6px", "0.98")
         inner += ui.lead("Can you crack it with hints?", 16, 40, 54)
-        for b in c.get("blocks", []):
-            inner += ui.block(b)
+        inner += ui.fit("".join(ui.block(b) for b in c.get("blocks", [])))
     promise = c["promise"].replace("{slide}", str(promise_n)).replace("{lines}", str(post.get("_promise_lines", "")))
     inner += (f'<div style="margin-top: auto; display: flex; flex-direction: column; gap: 16px">'
               f'<div style="display: flex; align-items: center; gap: 24px; padding: 24px 28px; border: 1.5px solid #8A7444; border-radius: 24px; background: linear-gradient(180deg, rgba(244,207,110,0.11) 0%, rgba(244,207,110,0.03) 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06)">'
@@ -307,23 +313,23 @@ def gold_md(s):
 
 def meta_pill(icon, text):
     return (f'<div style="display: flex; align-items: center; gap: 10px; padding: 10px 18px; border: 1.5px solid #3A3F49; border-radius: 999px; font-family: {MONO}; '
-            f'font-size: 24px; font-weight: 600; letter-spacing: 1px; color: #D3D7DE">{icon}{esc(text)}</div>')
+            f'font-size: 26px; font-weight: 600; letter-spacing: 1px; color: #D3D7DE">{icon}{esc(text)}</div>')
 
 
 def pause(post):
     p = post["cover"]["problem"]
     try_first = next((s.get("try_first") for s in post["slides"] if s["type"] == "pause"), "")
     return (ui.h1("Stop here.\n**Give it 15**\n**minutes.**", 120, 130, 800, "-4px", "1.02")
-            + f'<div style="margin-top: 56px; padding: 24px 28px; {CARD}">{ui.mlabel(p.get("platform", "LeetCode").upper() + " " + str(p["id"]) + " · " + p["difficulty"].upper(), STEEL)}'
+            + f'<div style="margin-top: 56px; padding: 24px 28px; {ui.card(STEEL)}">{ui.mlabel(p.get("platform", "LeetCode").upper() + " " + str(p["id"]) + " · " + p["difficulty"].upper(), STEEL)}'
             f'<div style="margin-top: 8px; font-family: {SORA}; font-size: 44px; line-height: 54px; font-weight: 700">{esc(p["title"])}</div>'
-            + (f'<div style="margin-top: 8px; font-size: 30px; line-height: 42px; font-weight: 500; color: #D3D7DE; {NOLIG}">{md(try_first)}</div>' if try_first else "")
+            + (f'<div style="margin-top: 8px; font-size: 32px; line-height: 44px; font-weight: 500; color: #D3D7DE; {NOLIG}">{md(try_first)}</div>' if try_first else "")
             + "</div>" + ui.blk_text({"style": "big", "text": "Stuck? Swipe for hint 1."}))
 
 
 def bridge(k):
     nxt = "the next slide" if k == 1 else f"the next {['', 'one', 'two', 'three', 'four'][k]} slides"
     return (ui.h1("Solved it?", 110, 120, 800, "-4px", "1.02") + ui.lead(f"That was all you. Compare your approach with {nxt}.", 24)
-            + f'<div style="margin-top: 48px; padding: 30px 32px; {CARD}">{ui.mlabel("STILL STUCK?", GOLD)}'
+            + f'<div style="margin-top: 48px; padding: 30px 32px; {ui.card(GOLD)}">{ui.mlabel("STILL STUCK?", GOLD)}'
             f'<div style="margin-top: 12px; font-size: 36px; line-height: 50px; font-weight: 600">{BRIDGE_LINES[0]}</div>'
             f'<div style="margin-top: 14px; font-size: 32px; line-height: 46px; font-weight: 500; color: #D3D7DE">{BRIDGE_LINES[1]}</div></div>')
 
@@ -334,7 +340,7 @@ def practice(post, s, kind):
     inner += f'<p style="margin: 14px 0 0; font-size: 32px; line-height: 44px; font-weight: 500; color: #D3D7DE">You made it to the end. Now lock it in:</p>'
     cards = ""
     if s.get("pattern"):
-        cards += f'<div style="padding: 20px 28px; {CARD}">{ui.mlabel("THE PATTERN YOU USED", STEEL)}<div style="margin-top: 8px; font-family: {SORA}; font-size: 36px; line-height: 46px; font-weight: 700">{md(s["pattern"])}</div></div>'
+        cards += f'<div style="padding: 20px 28px; {ui.card(STEEL)}">{ui.mlabel("THE PATTERN YOU USED", STEEL)}<div style="margin-top: 8px; font-family: {SORA}; font-size: 36px; line-height: 46px; font-weight: 700">{md(s["pattern"])}</div></div>'
     cards += "".join(ui.problem_card(p) for p in s["problems"])
     inner += f'<div style="margin-top: 20px; display: flex; flex-direction: column; gap: 14px">{cards}</div>'
     last = s["problems"][-1]

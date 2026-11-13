@@ -151,14 +151,33 @@ Fonts are embedded into each render as data, so PNGs and MP4s always use Sora, M
 - A cost that isn't Big-O
 - An example whose output doesn't match
 - A practice hint too slow for the problem's limits (complexity at max input > 10⁸, unless marked `partial`). It checks the `complexity` you declare, not the note's wording, so make the two agree.
-- `dash` on a box that holds a value. `dash` draws an empty dashed slot (a gap); mark values with `gold` (current pick), `steel` (done, or compared against the gold one) or `dim` (out of play).
+- `dash` on a box that holds a value. `dash` draws an empty dashed slot (a gap); mark values with `gold` (current pick), `steel` (done, or compared against the gold one) or `dim` (out of play). To show a card that is in hand at the place it is about to fill, use `held`: a dashed gold slot with the number inside (post 22, slide 4).
 - Banned hook words; teasers over 34 characters
 
 Layout check after rendering: anything running into the header or footer, text cut off, text leaving the side margins.
 
 ## Video
 
-Steps describe states (`swap`, `move`, `set`, `gold`, `steel`, `frame`, `band`, `ptr`, `water`, `eq`, `chip`, `caption`); `ref.py` usually generates them by running the real algorithm. Two stages: `boxes` (arrays) and `bars` (heights and water). Each step's caption and equation change as the boxes start to move, and the result and chip land as the boxes arrive. Give a step a `chip` only when it says something new (like `sweep 1: 4` or `3 → slot 2`). Frames that don't change are reused, not re-rendered (about 40% of a typical video).
+Steps describe states (`swap`, `move`, `set`, `gold`, `steel`, `frame`, `band`, `ptr`, `water`, `eq`, `chip`, `caption`); `ref.py` usually generates them by running the real algorithm. Two stages: `boxes` (arrays) and `bars` (heights and water). Each step's caption and equation change as the boxes start to move, and the result and chip land as the boxes arrive. Give a step a `chip` only when it says something new (like `sweep 1: 4` or `3 → slot 2`). Frames that don't change are reused, not re-rendered.
+
+More step words (Part 2, November 2026):
+
+- `lift: [slot]` holds a card raised for this step. Lift it, `swap` it left one place per step, then leave `lift` out and it drops (with a small pulse).
+- `sort: [a, b]` makes the cards in slots a to b glide into sorted order (a merge). Use it in place of `set` when the values only change places.
+- `quick: true` rests 0.3 s after the move, so a run of steps plays as one motion. `hold: 0.45` sets the rest in seconds yourself.
+- A step whose `eq` has the same left part as the step before, where that step had no result, keeps the left part still and only lands the result.
+
+Timing is worked out per step: the move takes longer the further a card travels (0.5 to 1.3 s), then the picture rests long enough to read what is new on that step (about 1.2 to 1.7 s). Results, chips and landing cards pulse once. The video opens on the full input and its last 0.9 s dips from the answer back to that first frame, so it loops without a jump.
+
+## Filling the slide
+
+`render.py` measures every slide. When the content leaves 90 px or more empty above the footer, everything under the title is drawn larger (one of 1.06, 1.12, 1.18, 1.25, 1.36 times), using the largest size that still fits and keeps every line inside the margins. Dense slides are not touched. The sizes are `FIT_STEPS` in `kit/ui.py`.
+
+Room still left after that is shared out between the slide's blocks (up to 36 px each).
+
+Cells carry a soft drop shadow (in the video too), a card with a label gets a thin bar in the label's colour down its left edge, and the highlighted pseudocode line gets a gold bar.
+
+A concept cover may carry a picture: give `cover` a `blocks` list (as on a challenge cover). The cover then shows the picture and the "Use it when" card; "Why it matters" stays in `post.json` and the review summary but is not drawn, because there is no room for both.
 
 ## Website visualizer, step by step
 

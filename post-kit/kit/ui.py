@@ -20,13 +20,21 @@ ROOT = ("width: 1080px; height: 1350px; box-sizing: border-box; padding: 72px 80
         "radial-gradient(700px 500px at 100% 105%, #1B1D22 0%, rgba(27,29,34,0) 70%); color: #F5F6F8; "
         "font-family: 'Manrope', system-ui, sans-serif")
 STEEL, STEEL_LT, GOLD = "#A3CDF2", "#CBE6FB", "#F4CF6E"
+
+
+def card(accent=None):
+    """CARD; with `accent` (a label colour) it gets a thin bar of that colour down its left edge."""
+    if not accent:
+        return CARD
+    bar = {GOLD: "#DDB25A", STEEL: "#7FB0DA"}.get(accent, accent)
+    return CARD.replace("box-shadow: inset 0 1px 0", f"box-shadow: inset 4px 0 0 {bar}, inset 0 1px 0")
 TEXT2, MUTED = "#D3D7DE", "#A2A8B3"
 
 BOX = {
-    "plain": "background: linear-gradient(180deg, #1A1C21 0%, #111317 100%); border: 2px solid #3D424C; color: #E6E8EC; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08)",
-    "gold": "background: linear-gradient(180deg, #4A3B1C 0%, #261E0E 100%); border: 2px solid #DDB25A; color: #FFE3A0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 4px rgba(244,207,110,0.10)",
-    "steel": "background: linear-gradient(180deg, #223A52 0%, #132333 100%); border: 2px solid #7FB0DA; color: #CBE6FB; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 4px rgba(163,205,242,0.10)",
-    "dim": "background: linear-gradient(180deg, #1A1C21 0%, #111317 100%); border: 2px solid #2B2F37; color: #666C78",
+    "plain": "background: linear-gradient(180deg, #1A1C21 0%, #111317 100%); border: 2px solid #3D424C; color: #E6E8EC; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 18px rgba(0,0,0,0.35)",
+    "gold": "background: linear-gradient(180deg, #4A3B1C 0%, #261E0E 100%); border: 2px solid #DDB25A; color: #FFE3A0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 4px rgba(244,207,110,0.10), 0 8px 18px rgba(0,0,0,0.35)",
+    "steel": "background: linear-gradient(180deg, #223A52 0%, #132333 100%); border: 2px solid #7FB0DA; color: #CBE6FB; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 4px rgba(163,205,242,0.10), 0 8px 18px rgba(0,0,0,0.35)",
+    "dim": "background: linear-gradient(180deg, #1A1C21 0%, #111317 100%); border: 2px solid #2B2F37; color: #8A909C",
 }
 # size: (w, h, radius, font)
 BOX_SIZE = {"s": (76, 76, 16, 34), "m": (88, 88, 18, 38), "l": (112, 120, 16, 48), "xl": (150, 130, 18, 60)}
@@ -76,10 +84,20 @@ def title_html(s):
 
 
 # ---------- slide chrome ----------
+# The One Hint Away mark, the same drawing as the site's BrandMark and the profile picture:
+# three outlined squares and a gold one. Outlines are a little thicker so they hold at 30 px.
+LOGO = ('<svg width="30" height="30" viewBox="270 270 540 540" aria-hidden="true" style="flex: none; display: block">'
+        '<defs><linearGradient id="ohaGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF0C2"/>'
+        '<stop offset="0.55" stop-color="#EBC566"/><stop offset="1" stop-color="#C99A3F"/></linearGradient></defs>'
+        '<g fill="none" stroke="#E6E8EC" stroke-width="40">'
+        '<rect x="290" y="290" width="212" height="212" rx="40"/><rect x="578" y="290" width="212" height="212" rx="40"/>'
+        '<rect x="290" y="578" width="212" height="212" rx="40"/></g>'
+        '<rect x="564" y="564" width="240" height="240" rx="52" fill="url(#ohaGold)"/></svg>')
+
 def header(n, total):
     return (f'<div data-chrome="header" style="flex: none; display: flex; justify-content: space-between; align-items: center">\n'
             f'<div style="display: flex; align-items: center; gap: 14px">\n'
-            f'<div style="width: 22px; height: 22px; border-radius: 6px; background-image: {GOLDGRAD}"></div>\n'
+            f'{LOGO}\n'
             f'<div style="font-family: {MONO}; font-size: 24px; font-weight: 600; letter-spacing: 4px; color: #D3D7DE">ONE HINT AWAY</div>\n'
             f'</div>\n'
             f'<div style="font-family: {MONO}; font-size: 24px; font-weight: 600; letter-spacing: 2px; color: #A2A8B3">{n:02d} <span style="color: #3A3F49">/</span> {total:02d}</div>\n'
@@ -102,7 +120,7 @@ def footer(teaser, last=False, spacer=True):
 
 
 def pill_label(text, color=STEEL, mt=40):
-    return (f'<div style="margin-top: {mt}px; align-self: flex-start; display: flex; align-items: center; gap: 12px; padding: 8px 18px 8px 14px; border: 1.5px solid #3A3F49; border-radius: 999px; background: rgba(255,255,255,0.02); font-family: {MONO}; font-size: 24px; font-weight: 600; letter-spacing: 3px; color: {color}">'
+    return (f'<div style="margin-top: {mt}px; align-self: flex-start; display: flex; align-items: center; gap: 12px; padding: 8px 18px 8px 14px; border: 1.5px solid #3A3F49; border-radius: 999px; background: rgba(255,255,255,0.02); font-family: {MONO}; font-size: 26px; line-height: 30px; font-weight: 600; letter-spacing: 2px; color: {color}">'
             f'<div style="width: 9px; height: 9px; border-radius: 50%; background: {color}; box-shadow: 0 0 10px {color}"></div>{esc(text)}</div>\n')
 
 
@@ -115,7 +133,7 @@ def lead(text, mt=20, size=38, lh=50):
 
 
 def mlabel(text, color=MUTED, extra=""):
-    return f'<div style="font-family: {MONO}; font-size: 24px; font-weight: 600; letter-spacing: 3px; color: {color}{extra}">{esc(text)}</div>'
+    return f'<div style="font-family: {MONO}; font-size: 26px; line-height: 30px; font-weight: 600; letter-spacing: 2px; color: {color}{extra}">{esc(text)}</div>'
 
 
 # ---------- content blocks ----------
@@ -129,13 +147,16 @@ def box(value, state="plain", size="l"):
         return f'<div style="width: {w}px; height: {h}px; flex: none; box-sizing: border-box; border-radius: {r}px; border: 2px dashed #8A7444"></div>'
     if state == "ghost":
         return f'<div style="width: {w}px; height: {h}px; flex: none"></div>'
+    if state == "held":  # the card in hand, shown in the gap it is about to fill
+        return (f'<div style="width: {w}px; height: {h}px; flex: none; box-sizing: border-box; border-radius: {r}px; display: flex; align-items: center; justify-content: center; '
+                f'font-family: {MONO}; font-size: {f}px; font-weight: 600; {NOLIG}; border: 2px dashed #DDB25A; background: rgba(244,207,110,0.07); color: #FFE3A0">{esc(value)}</div>')
     return (f'<div style="width: {w}px; height: {h}px; flex: none; box-sizing: border-box; border-radius: {r}px; display: flex; align-items: center; justify-content: center; '
             f'font-family: {MONO}; font-size: {f}px; font-weight: 600; {NOLIG}; {BOX[state]}">{esc(value)}</div>')
 
 
 def _states(b, n):
     st = ["plain"] * n
-    for name in ("gold", "steel", "dim", "dash", "ghost"):
+    for name in ("gold", "steel", "dim", "dash", "ghost", "held"):
         for i in b.get(name, []):
             st[i] = name
     for k, v in (b.get("states") or {}).items():
@@ -165,14 +186,14 @@ def blk_boxes(b):
         rows.append(f'<div style="display: flex; gap: {gap}px; justify-content: center">{"".join(cells)}</div>')
     rows.append(f'<div style="display: flex; gap: {gap}px; justify-content: center">' + "".join(box(v, s, size) for v, s in zip(vals, st)) + "</div>")
 
-    def label_row(labels, color, ls="0"):
-        return (f'<div style="display: flex; gap: {gap}px; justify-content: center; font-family: {MONO}; font-size: 24px; font-weight: 600; letter-spacing: {ls}; color: {color}; {NOLIG}">'
+    def label_row(labels, color, ls="0", fs=28):
+        return (f'<div style="display: flex; gap: {gap}px; justify-content: center; font-family: {MONO}; font-size: {fs}px; line-height: 30px; font-weight: 600; letter-spacing: {ls}; color: {color}; {NOLIG}">'
                 + "".join(f'<div style="width: {w}px; flex: none; display: flex; justify-content: center"><span style="white-space: nowrap">{esc(x)}</span></div>' for x in labels) + "</div>")
     if b.get("under"):  # free text under some boxes {"3": "smallest"}
         labs = [""] * n
         for k, v in b["under"].items():
             labs[int(k)] = v
-        rows.append(label_row(labs, GOLD))
+        rows.append(label_row(labs, GOLD, fs=24))
     if b.get("indexes"):
         rows.append(label_row([str(i) for i in range(n)], MUTED))
     if b.get("pointers"):
@@ -181,7 +202,7 @@ def blk_boxes(b):
             labs[i] = (labs[i] + " " + name).strip()
         rows.append(label_row(labs, STEEL_LT, "2px"))
     if b.get("note"):
-        rows.append(f'<div style="font-size: 30px; line-height: 42px; font-weight: 500; color: #D3D7DE; {NOLIG}">{md(b["note"])}</div>')
+        rows.append(f'<div style="font-size: 32px; line-height: 44px; font-weight: 500; color: #D3D7DE; {NOLIG}">{md(b["note"])}</div>')
     inner = "".join(rows)
     if b.get("card", False):
         return f'<div style="margin-top: {b.get("mt", 28)}px; padding: 24px 28px; {CARD}; display: flex; flex-direction: column; gap: 14px">{inner}</div>'
@@ -195,7 +216,7 @@ def blk_steps(b):
         rows.append(f'<div style="display: flex; align-items: center; justify-content: space-between"><div style="font-family: {MONO}; font-size: 28px; font-weight: 600; color: #D3D7DE; white-space: nowrap; {NOLIG}">{md(r.get("label", ""), False)}</div>'
                     f'<div style="display: flex; gap: 10px; flex: none">' + "".join(box(v, s, "s") for v, s in zip(r["values"], st)) + "</div></div>")
     lab = f'{mlabel(b["label"], _color(b.get("label_color")))}' if b.get("label") else ""
-    return f'<div style="margin-top: {b.get("mt", 26)}px; padding: 20px 28px; {CARD}; display: flex; flex-direction: column; gap: 12px">{lab}{"".join(rows)}</div>'
+    return f'<div style="margin-top: {b.get("mt", 24)}px; padding: 20px 28px; {CARD}; display: flex; flex-direction: column; gap: 12px">{lab}{"".join(rows)}</div>'
 
 
 def blk_bars(b):
@@ -224,7 +245,7 @@ def blk_bars(b):
         vcol = {"steel": STEEL_LT, "gold": "#FFE3A0"}.get(st[i], "#E6E8EC")
         els.append(f'<div style="position: absolute; left: {x}px; width: {bw}px; text-align: center; top: {base + 10}px; font-family: {MONO}; font-size: 32px; line-height: 40px; font-weight: 600; color: {vcol}">{h}</div>')
         if b.get("indexes", True):
-            els.append(f'<div style="position: absolute; left: {x}px; width: {bw}px; text-align: center; top: {base + 52}px; font-family: {MONO}; font-size: 24px; line-height: 30px; font-weight: 600; color: #A2A8B3">i = {i}</div>')
+            els.append(f'<div style="position: absolute; left: {x}px; width: {bw}px; text-align: center; top: {base + 52}px; font-family: {MONO}; font-size: 26px; line-height: 30px; font-weight: 600; color: #A2A8B3">i = {i}</div>')
     els.append(f'<div style="position: absolute; left: {left0 - 10}px; top: {base}px; width: {n * step - 24 + 20}px; height: 2px; background: #3A3F49"></div>')
     height = base + (86 if b.get("indexes", True) else 52)
     lab = mlabel(b["label"], _color(b.get("label_color"), STEEL)) if b.get("label") else ""
@@ -238,16 +259,16 @@ def blk_card(b):
     lab = f'<div style="margin-bottom: 10px">{mlabel(b["label"], _color(b.get("label_color"), GOLD))}</div>' if b.get("label") else ""
     big = b.get("size") == "big"
     t = f'<div style="font-size: {34 if big else 32}px; line-height: {48 if big else 44}px; font-weight: 600; {NOLIG}">{md(b["text"])}</div>'
-    sub = f'<div style="margin-top: 12px; font-size: 30px; line-height: 42px; font-weight: 500; color: #D3D7DE; {NOLIG}">{md(b["sub"])}</div>' if b.get("sub") else ""
-    return f'<div style="margin-top: {b.get("mt", 28)}px; padding: 22px 28px; {CARD}">{lab}{t}{sub}</div>'
+    sub = f'<div style="margin-top: 12px; font-size: 32px; line-height: 44px; font-weight: 500; color: #D3D7DE; {NOLIG}">{md(b["sub"])}</div>' if b.get("sub") else ""
+    return f'<div style="margin-top: {b.get("mt", 24)}px; padding: 22px 28px; {card(_color(b.get("label_color"), GOLD) if b.get("label") else None)}">{lab}{t}{sub}</div>'
 
 
 def blk_text(b):
     style = b.get("style", "note")
     if style == "note":
-        return f'<p style="margin: {b.get("mt", 26)}px 0 0; font-size: 32px; line-height: 44px; font-weight: 600; color: #F5F6F8; {NOLIG}">{md(b["text"])}</p>'
+        return f'<p style="margin: {b.get("mt", 24)}px 0 0; font-size: 32px; line-height: 44px; font-weight: 600; color: #F5F6F8; {NOLIG}">{md(b["text"])}</p>'
     if style == "muted":
-        return f'<p style="margin: {b.get("mt", 24)}px 0 0; font-size: 30px; line-height: 42px; font-weight: 500; color: #D3D7DE; {NOLIG}">{md(b["text"])}</p>'
+        return f'<p style="margin: {b.get("mt", 24)}px 0 0; font-size: 32px; line-height: 44px; font-weight: 500; color: #D3D7DE; {NOLIG}">{md(b["text"])}</p>'
     if style == "big":
         return f'<p style="margin: {b.get("mt", 40)}px 0 0; font-size: 38px; line-height: 52px; font-weight: 700; color: #F5F6F8; {NOLIG}">{md(b["text"])}</p>'
     raise ValueError("text style " + style)
@@ -258,7 +279,7 @@ def blk_kv(b):
     for r in b["rows"]:
         c = {"steel": STEEL_LT, "gold": GOLD}.get(r[2] if len(r) > 2 else "", "#F5F6F8")
         rows += f'<div><span style="color: #A2A8B3">{esc(r[0])} =</span> <span style="color: {c}">{esc(r[1])}</span></div>'
-    return f'<div style="margin-top: {b.get("mt", 28)}px; padding: 22px 28px; {CARD}; font-family: {MONO}; font-size: 32px; line-height: 50px; font-weight: 600; {NOLIG}">{rows}</div>'
+    return f'<div style="margin-top: {b.get("mt", 24)}px; padding: 22px 28px; {CARD}; font-family: {MONO}; font-size: 32px; line-height: 50px; font-weight: 600; {NOLIG}">{rows}</div>'
 
 
 def blk_equation(b):
@@ -272,17 +293,19 @@ def blk_compare(b):
         rows.append(f'<div style="padding: 22px 28px; {CARD}; display: flex; align-items: center; justify-content: space-between; gap: 20px"><div style="display: flex; flex-direction: column; gap: 6px">'
                     f'<div style="font-family: {MONO}; font-size: 36px; font-weight: 600; {NOLIG}">{esc(r["main"])}</div><div style="font-size: 28px; line-height: 36px; font-weight: 500; color: #D3D7DE">{md(r.get("sub", ""))}</div></div>'
                     f'<div style="font-family: {SORA}; font-size: 44px; font-weight: 700; white-space: nowrap">{val}</div></div>')
-    return f'<div style="margin-top: {b.get("mt", 28)}px; display: flex; flex-direction: column; gap: 16px">{"".join(rows)}</div>'
+    return f'<div style="margin-top: {b.get("mt", 24)}px; display: flex; flex-direction: column; gap: 16px">{"".join(rows)}</div>'
 
 
 def blk_trap(b):
+    cfs = 28 if max(len(x) for sd in (b["wrong"], b["right"]) for x in sd["code"]) <= 23 else 26
+
     def side(s, good):
         border = "#7FB0DA" if good else "#2B2F37"
         code_c = STEEL_LT if good else MUTED
         lab = mlabel("RIGHT" if good else "WRONG", STEEL if good else GOLD) if b.get("labels", True) else ""
         code = "<br>".join(esc(x) for x in s["code"])
         return (f'<div style="flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 24px 26px; {CARD}; border-color: {border}">{lab}'
-                f'<div style="font-family: {MONO}; font-size: 26px; font-weight: 600; color: {code_c}; line-height: 36px; white-space: nowrap; {NOLIG}">{code}</div>'
+                f'<div style="font-family: {MONO}; font-size: {cfs}px; font-weight: 600; color: {code_c}; line-height: 36px; white-space: nowrap; {NOLIG}">{code}</div>'
                 f'<div style="font-size: 28px; line-height: 38px; font-weight: 500; color: #D3D7DE; {NOLIG}">{md(s["note"])}</div>'
                 f'<div style="font-family: {MONO}; font-size: 40px; line-height: 1.1; font-weight: 600; color: {code_c}; {NOLIG}">{esc(s["result"])}</div></div>')
     call = f'<div style="margin-top: 24px; font-family: {MONO}; font-size: 30px; font-weight: 600; color: #F5F6F8; {NOLIG}">{esc(b["call"])}</div>' if b.get("call") else ""
@@ -293,8 +316,8 @@ def blk_cost(b):
     items = []
     for it in b["items"]:
         v = f'<span style="{GOLDTXT if it.get("gold") else CHROME}">{esc(it["value"])}</span>'
-        note = f'<div style="font-size: 24px; line-height: 32px; font-weight: 500; color: #D3D7DE">{md(it["note"])}</div>' if it.get("note") else ""
-        items.append(f'<div style="padding: 20px 22px; {CARD}; display: flex; flex-direction: column; gap: 8px"><div style="font-size: 26px; line-height: 34px; font-weight: 600; color: #A2A8B3">{esc(it["label"])}</div>'
+        note = f'<div style="font-size: 26px; line-height: 32px; font-weight: 500; color: #D3D7DE">{md(it["note"])}</div>' if it.get("note") else ""
+        items.append(f'<div style="padding: 20px 22px; {CARD}; display: flex; flex-direction: column; gap: 8px"><div style="font-size: 28px; line-height: 34px; font-weight: 600; color: #A2A8B3">{esc(it["label"])}</div>'
                      f'<div style="font-family: {SORA}; font-size: 46px; line-height: 50px; font-weight: 700">{v}</div>{note}</div>')
     lab = pill_label("THE COST", STEEL, b.get("mt", 36)) if b.get("label", True) else ""
     note = f'<div style="margin-top: 22px; font-size: 28px; line-height: 38px; font-weight: 500; color: #D3D7DE; {NOLIG}">{md(b["note"])}</div>' if b.get("note") else ""
@@ -323,15 +346,15 @@ def code_block(lines, start=1, highlight=(), mt=24):
         n = start + k
         pad, h, comment = _code_line(line)
         hl = n in highlight
-        rowsty = "display: flex; gap: 22px; height: 46px; white-space: nowrap" + ("; background: rgba(244,207,110,0.08); border-radius: 10px" if hl else "")
+        rowsty = "display: flex; gap: 22px; height: 46px; white-space: nowrap" + ("; background: rgba(244,207,110,0.08); border-radius: 10px; box-shadow: inset 4px 0 0 #F4CF6E" if hl else "")
         if hl:
             h = f'<span style="color: #F4CF6E; font-weight: 600">{esc(line.strip().split("//")[0].rstrip())}</span>'
-        rows.append(f'<div style="{rowsty}"><div style="width: 40px; flex: none; text-align: right; color: #666C78">{n}</div><div style="padding-left: {pad}px">{h}{comment}</div></div>')
-    return (f'<div style="margin: {mt}px 0 0; flex: none; {CARD}; overflow: hidden"><div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 28px; border-bottom: 1.5px solid #2B2F37; font-family: {MONO}; font-size: 24px; font-weight: 600; letter-spacing: 3px; color: #A2A8B3"><span>PSEUDOCODE</span><span>any language</span></div>'
+        rows.append(f'<div style="{rowsty}"><div style="width: 40px; flex: none; text-align: right; color: #8A909C">{n}</div><div style="padding-left: {pad}px">{h}{comment}</div></div>')
+    return (f'<div style="margin: {mt}px 0 0; flex: none; {CARD}; overflow: hidden"><div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 28px; border-bottom: 1.5px solid #2B2F37; font-family: {MONO}; font-size: 26px; line-height: 30px; font-weight: 600; letter-spacing: 2px; color: #A2A8B3"><span>PSEUDOCODE</span><span>any language</span></div>'
             f'<div style="padding: 14px 28px 16px 16px; font-family: {MONO}; font-size: 30px; line-height: 46px; font-weight: 500; color: #F5F6F8; {NOLIG}">{"".join(rows)}</div></div>')
 
 
-def quickcheck(q, mt=26):
+def quickcheck(q, mt=24):
     return (f'<div style="margin-top: {mt}px; display: flex; align-items: center; gap: 24px; padding: 24px 28px; border: 1.5px solid #A88A4E; border-radius: 24px; background: linear-gradient(180deg, rgba(244,207,110,0.10) 0%, rgba(244,207,110,0.03) 100%)">'
             f'<div style="flex: 1; display: flex; flex-direction: column; gap: 6px">{mlabel("QUICK CHECK", GOLD)}<div style="font-size: 34px; line-height: 46px; font-weight: 700; {NOLIG}">{md(q)}</div></div>'
             f'<div style="width: 112px; height: 112px; flex: none; display: flex; align-items: center; justify-content: center; border-radius: 24px; border: 2px dashed #DDB25A; font-family: {SORA}; font-size: 64px; font-weight: 800; color: #F4CF6E">?</div></div>')
@@ -342,7 +365,7 @@ def answer_banner(text, mt=36):
             f'{ICON_TICK("#CBE6FB", 34)}<span>{md(text)}</span></div>\n')
 
 
-def try_again(mt=26):
+def try_again(mt=24):
     return (f'<div style="margin-top: {mt}px; display: flex; align-items: center; gap: 14px; font-size: 32px; line-height: 42px; font-weight: 700; color: #F5F6F8">'
             f'<div style="width: 12px; height: 12px; border-radius: 50%; background: #F4CF6E; box-shadow: 0 0 10px #F4CF6E"></div>Try again before you swipe.</div>')
 
@@ -355,13 +378,49 @@ def tick_pills(items, mt=18):
 def problem_card(p, mt=0):
     lab = f'{p["difficulty"].upper()} · {p.get("platform", "LeetCode").upper()} {p["id"]}'
     note = f'<div style="font-size: 30px; line-height: 42px; font-weight: 500; color: #D3D7DE; {NOLIG}">{md(p["note"])}</div>' if p.get("note") else ""
-    return (f'<div style="padding: 20px 28px; {CARD}; display: flex; flex-direction: column; gap: 8px">{mlabel(lab, STEEL)}'
+    return (f'<div style="padding: 20px 28px; {card(STEEL)}; display: flex; flex-direction: column; gap: 8px">{mlabel(lab, STEEL)}'
             f'<div style="font-family: {SORA}; font-size: 38px; line-height: 48px; font-weight: 700">{esc(p["title"])}</div>{note}</div>')
 
 
 def ai_prompt(pid, platform="LeetCode", mt=16):
     return (f'<div style="margin-top: {mt}px; padding: 18px 28px; border: 1.5px dashed #8A7444; border-radius: 22px; background: rgba(244,207,110,0.05); display: flex; flex-direction: column; gap: 8px">{mlabel("STUCK? PASTE THIS INTO YOUR AI", GOLD)}'
             f'<div style="font-size: 30px; line-height: 42px; font-weight: 500">Give me one hint for {esc(platform)} {esc(pid)}. Don\'t show the solution unless I ask.</div></div>')
+
+
+# ---------- fill the slide ----------
+# Content wrapped in fit() is measured by render.py: when a slide has a lot of empty
+# room under it, the wrapped part is drawn larger (FIT_STEPS) until the room is used.
+FIT_OPEN = '<div data-fit style="display: flex; flex-direction: column">'
+FIT_STEPS = (1.36, 1.25, 1.18, 1.12, 1.06)
+FIT_MIN_ROOM, FIT_KEEP = 90, 36     # px of empty room needed to start, and to leave
+
+
+def fit(inner):
+    return f'{FIT_OPEN}{inner}</div>\n' if inner else ""
+
+
+def fitted(z, gap=0):
+    return (f'<div data-fit style="display: flex; flex-direction: column; align-self: flex-start; '
+            f'width: {920 / z:.2f}px; zoom: {z}; gap: {gap}px">')
+
+
+FIT_JS = """([steps, minRoom, keep]) => {
+ const f = document.querySelector('[data-fit]'), nx = f && f.nextElementSibling;
+ if (!f || !nx || nx.style.marginTop !== 'auto') return [1, 0];
+ const room = () => nx.getBoundingClientRect().top - f.getBoundingClientRect().bottom;
+ if (room() < minRoom) return [1, 0];
+ const ok = () => { if (room() < keep) return false;
+   for (const e of f.querySelectorAll('*')) { const r = e.getBoundingClientRect(); if (!r.width || !r.height) continue;
+     if ((r.right > 1001 || r.left < 79) && e.textContent.trim()) return false;
+     if (getComputedStyle(e).whiteSpace === 'nowrap' && e.scrollWidth > e.clientWidth + 1 && e.clientWidth > 0) return false; }
+   return true; };
+ let zz = 1;
+ for (const z of steps) { f.style.alignSelf = 'flex-start'; f.style.width = (920 / z).toFixed(2) + 'px'; f.style.zoom = z; if (ok()) { zz = z; break; } }
+ if (zz === 1) { f.style.width = '920px'; f.style.zoom = 1; }
+ const n = f.children.length - 1;
+ const gap = n > 0 ? Math.max(0, Math.floor(Math.min(36, (room() - keep) * 0.7 / n) / zz)) : 0;
+ return [zz, gap];
+}"""
 
 
 BLOCKS = {"boxes": blk_boxes, "steps": blk_steps, "bars": blk_bars, "card": blk_card, "text": blk_text, "kv": blk_kv,
@@ -374,7 +433,7 @@ def block(b):
     if t == "code":
         return code_block(b["lines"], b.get("start", 1), b.get("highlight", []), b.get("mt", 24))
     if t == "quickcheck":
-        return quickcheck(b["question"], b.get("mt", 26))
+        return quickcheck(b["question"], b.get("mt", 24))
     if t not in BLOCKS:
         raise ValueError(f"unknown block type '{t}'")
     return BLOCKS[t](b)

@@ -58,19 +58,31 @@ RIGHT_HALF = sorted(EXAMPLE[3:])
 
 
 def video_steps(nums=EXAMPLE):
+    """Per merge: the walk across (pointer r on a right value, pointer i on the first
+    left value above 2 x r, the pairing left values in gold), then the cells merge."""
     reverse_pairs(nums)
     n = len(nums)
-    sp = lambda x: " ".join(map(str, x))
     cuts = set(range(n - 1))
     steps = [{"eq": ["pairs =", "0"], "caption": "Split until each piece is one value."},
              {"cuts": sorted(cuts), "eq": ["pairs =", "0"], "caption": "Now count and merge on the way up."}]
     total = 0
     for low, high, L, R, c in reverse_pairs.events:
-        total += c
-        merged = sorted(L + R)
+        mid = low + len(L) - 1
         cuts -= set(range(low, high))
-        steps.append({"frame": [low, high], "set": {str(low + t): v for t, v in enumerate(merged)}, "cuts": sorted(cuts),
-                      "eq": [f"{sp(L)} | {sp(R)} → +{c}", f"{total}"], "chip": f"+{c}", "chip_hl": c > 0,
+        i = 0
+        for t, r in enumerate(R):
+            while i < len(L) and L[i] <= 2 * r:
+                i += 1
+            k = len(L) - i
+            ptr = {"r": mid + 1 + t}
+            if k:
+                ptr["i"] = low + i
+            steps.append({"frame": [low, high], "cuts": sorted(cuts), "ptr": ptr, "gold": list(range(low + i, mid + 1)),
+                          "eq": [f"{L[i]} > 2 × {r} →", f"+{k}"] if k else [f"none > 2 × {r} →", "+0"],
+                          "caption": "Left values above 2 × r pair with r."})
+        total += c
+        steps.append({"frame": [low, high], "sort": [low, high], "cuts": sorted(cuts), "eq": ["pairs =", str(total)],
+                      "chip": f"+{c}", "chip_hl": c > 0,
                       "caption": f"{c} pair{'s' if c != 1 else ''} across, then merge." if c else "No pair across, then merge."})
     return steps
 

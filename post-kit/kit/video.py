@@ -1,13 +1,16 @@
 """Generic motion slide. A post describes its video as a list of steps (usually
 produced by ref.py running the real algorithm); this module turns them into a
 timeline, a player page with draw(t), the canvas still and the MP4.
-Pacing follows design.md 6b: glide 1.2 s, equation fades in, ~1 s pause,
-result, chip lands; ~3.8 s per step; final answer held 4 s, then a fade."""
+Pacing: every step gets its own length. The move lasts longer the further a
+card travels, then the result lands (with a small pulse) and the picture rests
+just long enough to read what is new. A step marked "quick" rests 0.3 s, so a
+run of them plays as one motion (a gap walking left, a pointer walking across).
+The video opens on the full input and ends by dipping back to it, so it loops."""
 import json
 
 # Caption and equation start with the movement; result and chip land as the boxes arrive.
-MOVE, EQ_IN, RES_IN, CHIP_IN, STEP = 1.2, 0.0, 1.1, 1.2, 3.8
-FINAL_IN, HOLD, FADE = 1.6, 4.0, 0.8
+INTRO, FINAL_IN, HOLD, FADE = 0.5, 1.2, 2.2, 0.9   # FADE: the dip back to the first frame
+RES_LAG, QUICK_HOLD = 0.35, 0.3
 
 
 def resolve(v):
@@ -26,6 +29,9 @@ def resolve(v):
             mid = slots.pop(a)
             slots.insert(b, mid)
             arc = mid
+        if "sort" in s:                     # cards a..b glide into sorted order (a merge)
+            a, b = s["sort"]
+            slots[a:b + 1] = sorted(slots[a:b + 1], key=lambda i: idval[i])
         for slot, val in (s.get("set") or {}).items():
             idval[slots[int(slot)]] = val
         n = len(slots)
@@ -50,6 +56,8 @@ def resolve(v):
             "water": {str(k2): v2 for k2, v2 in (s.get("water") or {}).items()},
             "eq": ({"left": eq[0], "result": eq[1] if len(eq) > 1 else ""} if eq else None),
             "caption": s.get("caption", ""), "final": bool(s.get("final")),
+            "up": [slots[int(i)] for i in (s.get("lift") or [])],
+            "quick": bool(s.get("quick")), "hold": s.get("hold"),
         })
     return states, chips
 
@@ -60,12 +68,12 @@ def layout(v):
     allsteps = v["steps"] + [v["final"]]
     max_cuts = max(len(set(s.get("cuts") or [])) for s in allsteps)
     cut_gap = 30 if max_cuts else 0
-    gap = 26 if n <= 8 else 14
-    w = min(150, (920 - (n - 1) * gap - max_cuts * cut_gap) // n)
+    gap = 22 if n <= 5 else 26 if n <= 8 else 14
+    w = min(160, (920 - (n - 1) * gap - max_cuts * cut_gap) // n)
     left0 = (920 - (n * w + (n - 1) * gap)) // 2
     L = {"n": n, "w": w, "gap": gap, "left0": left0, "bars": bars, "label": v.get("stage_label", ""),
          "chipsLabel": v.get("chips_label", ""), "indexes": v.get("indexes", True), "cutGap": cut_gap}
-    lift = any("move" in s for s in v["steps"])
+    lift = any("move" in s or s.get("lift") for s in v["steps"])
     has_ptr = any(s.get("ptr") for s in v["steps"])
     stack = 1
     for s in allsteps:
@@ -80,14 +88,15 @@ def layout(v):
     unit = min(64, 300 // maxh) if bars else 0
     # natural heights of the four groups; the leftover height of the 730 px stage
     # (the size of the approved post 22/23 video stages) is shared between the gaps
-    top_group = (44 if L["label"] else 0) + (70 if lift else 0)
+    top_group = (48 if L["label"] else 0) + (70 if lift else 0)
     if bars:
         picture = maxh * unit + 10 + 40
     else:
-        L["boxH"] = 130 if w >= 120 else 110
+        L["boxH"] = 150 if w >= 140 else 130 if w >= 120 else 110
         picture = L["boxH"]
-    picture += (12 + 28 if L["indexes"] else 0) + (6 + 30 * L["ptrRows"] if has_ptr else 0) + (14 + 42 if has_band else 0)
-    eq_h, chips_h, cap_h = 80, (36 + 56 if has_chips else 0), 48
+    PTR = L["ptrH"] = 36
+    picture += (12 + 34 if L["indexes"] else 0) + (6 + PTR * L["ptrRows"] if has_ptr else 0) + (14 + 46 if has_band else 0)
+    eq_h, chips_h, cap_h = 80, (42 + 64 if has_chips else 0), 48
     TARGET = 730
     gaps = 3 if has_chips else 2
     natural = top_group + picture + eq_h + chips_h + cap_h
@@ -104,17 +113,17 @@ def layout(v):
         y += L["boxH"]
     if L["indexes"]:
         L["idxTop"] = y + 12
-        y += 40
+        y += 46
     L["ptrTop"] = y + 6
-    y += 6 + 30 * L["ptrRows"] if has_ptr else 0
+    y += 6 + PTR * L["ptrRows"] if has_ptr else 0
     L["bandTop"] = y + 14
-    y += 56 if has_band else 0
+    y += 60 if has_band else 0
     y += g
     L["eqTop"] = y
     y += eq_h + g
     if has_chips:
         L["chipsLabelTop"] = y
-        L["chipsTop"] = y + 36
+        L["chipsTop"] = y + 42
         y += chips_h + g
     L["capTop"] = y
     L["height"] = max(TARGET, y + cap_h)
@@ -123,11 +132,31 @@ def layout(v):
 
 def timeline(v):
     states, chips = resolve(v)
-    nsteps = len(states) - 1
-    duration = STEP * nsteps + FINAL_IN + HOLD + FADE
-    return {"states": states, "chips": chips, "layout": layout(v), "duration": round(duration, 3),
-            "T": {"MOVE": MOVE, "EQ_IN": EQ_IN, "RES_IN": RES_IN, "CHIP_IN": CHIP_IN, "STEP": STEP,
-                  "FINAL_IN": FINAL_IN, "HOLD": HOLD, "FADE": FADE}}
+    t, prev = 0.0, None
+    for s in states:
+        if prev is None:
+            mv = INTRO
+        else:
+            d = max(abs(s["slots"].index(i) - prev["slots"].index(i)) for i in s["slots"])
+            if s["cuts"] != prev["cuts"]:
+                d = max(d, 1)
+            mv = FINAL_IN if s["final"] else (0.5 if d == 0 else min(1.3, 0.45 + 0.25 * d))
+        if s["final"]:
+            hold = HOLD
+        elif s["hold"] is not None:
+            hold = float(s["hold"])
+        elif s["quick"]:
+            hold = QUICK_HOLD
+        else:                               # time to read only what is new on this step
+            new = "" if prev and prev["caption"] == s["caption"] else s["caption"]
+            if s["eq"] and (not prev or prev["eq"] != s["eq"]):
+                new += s["eq"]["left"] + s["eq"]["result"]
+            hold = RES_LAG + min(1.3, max(0.8, 0.032 * len(new)))
+        s["t0"], s["mv"], s["len"] = round(t, 3), round(mv, 3), round(mv + hold, 3)
+        t += mv + hold
+        prev = s
+    return {"states": states, "chips": chips, "layout": layout(v), "duration": round(t + FADE, 3),
+            "T": {"FADE": FADE}}
 
 
 PLAYER_JS = r"""
@@ -138,10 +167,11 @@ const MONO = "'Geist Mono', ui-monospace, monospace", NOLIG = "font-variant-liga
 const C = {plain:{t:[26,28,33],b:[17,19,23],br:[61,66,76],tx:[230,232,236],h:[0,0,0,0]},
   gold:{t:[74,59,28],b:[38,30,14],br:[221,178,90],tx:[255,227,160],h:[244,207,110,0.10]},
   steel:{t:[34,58,82],b:[19,35,51],br:[127,176,218],tx:[203,230,251],h:[163,205,242,0.10]},
-  dim:{t:[26,28,33],b:[17,19,23],br:[43,47,55],tx:[102,108,120],h:[0,0,0,0]},
+  dim:{t:[26,28,33],b:[17,19,23],br:[43,47,55],tx:[138,144,156],h:[0,0,0,0]},
   ghost:{t:[26,28,33],b:[17,19,23],br:[61,66,76],tx:[230,232,236],h:[0,0,0,0]}};
 const sm = x => { x = Math.min(1, Math.max(0, x)); return x*x*x*(x*(x*6-15)+10); };
 const lerp = (a,b,e) => a + (b-a)*e;
+const bump = x => Math.sin(Math.PI * Math.min(1, Math.max(0, x)));
 const mix = (a,b,e) => a.map((v,i)=> i<3 ? Math.round(lerp(v,b[i],e)) : +lerp(v,b[i],e).toFixed(3));
 const rgb = c => `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
 const slotXc = (i, cuts) => { const c = cuts || [], before = c.filter(x => x < i).length;
@@ -149,59 +179,64 @@ const slotXc = (i, cuts) => { const c = cuts || [], before = c.filter(x => x < i
 let CUT0 = [], CUT1 = [], EE = 1;
 const slotX = i => lerp(slotXc(i, CUT0), slotXc(i, CUT1), EE);
 function el(css, text){ const d=document.createElement('div'); d.style.cssText='position:absolute;'+css; if(text!==undefined) d.textContent=text; stage.appendChild(d); return d; }
-if (L.label) el(`left:0;top:0;font-family:${MONO};font-size:24px;font-weight:600;letter-spacing:3px;color:#A2A8B3;`+NOLIG, L.label);
+if (L.label) el(`left:0;top:0;font-family:${MONO};font-size:28px;font-weight:600;letter-spacing:2px;color:#A2A8B3;`+NOLIG, L.label);
 const n = L.n, ids = Object.keys(S[0].vals);
 const idx = [];
-if (L.indexes) for (let i=0;i<n;i++) idx.push(el(`left:0px;width:${L.w}px;top:${L.idxTop}px;text-align:center;font-family:${MONO};font-size:24px;font-weight:600;color:#A2A8B3;`+NOLIG, String(i)));
+if (L.indexes) for (let i=0;i<n;i++) idx.push(el(`left:0px;width:${L.w}px;top:${L.idxTop}px;text-align:center;font-family:${MONO};font-size:${L.w>=100?28:24}px;font-weight:600;color:#A2A8B3;`+NOLIG, String(i)));
 const water = [];
 if (L.bars) { el(`left:${L.left0-10}px;top:${L.base}px;width:${n*(L.w+L.gap)-L.gap+20}px;height:2px;background:#3A3F49;`); }
 const boxes = {}, vlab = {};
 for (const id of ids) {
-  boxes[id] = el(`box-sizing:border-box;width:${L.w}px;${L.bars?'border-radius:14px 14px 6px 6px;':`height:${L.boxH}px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-family:${MONO};font-size:${L.w>=120?60:46}px;font-weight:600;`+NOLIG}`);
+  boxes[id] = el(`box-sizing:border-box;width:${L.w}px;${L.bars?'border-radius:14px 14px 6px 6px;':`height:${L.boxH}px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-family:${MONO};font-size:${L.w>=140?68:L.w>=120?60:46}px;font-weight:600;`+NOLIG}`);
   if (L.bars) vlab[id] = el(`width:${L.w}px;text-align:center;top:${L.valTop}px;font-family:${MONO};font-size:32px;line-height:40px;font-weight:600;`+NOLIG);
 }
 if (L.bars) for (let i=0;i<n;i++) water.push(el(`left:${slotX(i)+6}px;width:${L.w-12}px;box-sizing:border-box;border-radius:10px;background:rgba(163,205,242,0.20);border:2px solid #7FB0DA;`));
 const frame = el(`box-sizing:border-box;border:3px solid #F4CF6E;border-radius:24px;box-shadow:0 0 0 6px rgba(244,207,110,0.10);`);
 const band = el(`top:${L.bandTop}px;height:4px;border-radius:2px;background:#A3CDF2;box-shadow:rgba(163,205,242,0.45) 0 0 10px;`);
-const bandLab = el(`top:${L.bandTop+14}px;font-family:${MONO};font-size:24px;font-weight:600;letter-spacing:3px;color:#A3CDF2;white-space:nowrap;`+NOLIG);
+const bandLab = el(`top:${L.bandTop+14}px;font-family:${MONO};font-size:28px;font-weight:600;letter-spacing:2px;color:#A3CDF2;white-space:nowrap;`+NOLIG);
 const ORDER = ['low', 'left', 'slow', 'i', 'mid', 'middle', 'j', 'k', 'fast', 'high', 'right'];
 const rank = p => { const r = ORDER.indexOf(p.toLowerCase()); return r < 0 ? 50 : r; };
 const ptrNames = [...new Set(S.flatMap(s => Object.keys(s.ptr)))].sort((a, b) => rank(a) - rank(b));
-const ptr = {}; for (const p of ptrNames) ptr[p] = el(`top:${L.ptrTop}px;width:${L.w}px;text-align:center;font-family:${MONO};font-size:24px;font-weight:600;letter-spacing:2px;color:#CBE6FB;white-space:nowrap;`+NOLIG, p.toUpperCase());
+const ptr = {}; for (const p of ptrNames) ptr[p] = el(`top:${L.ptrTop}px;width:${L.w}px;text-align:center;font-family:${MONO};font-size:${L.w>=100?28:24}px;font-weight:600;letter-spacing:2px;color:#CBE6FB;white-space:nowrap;`+NOLIG, p.toUpperCase());
 function eqLayer(){ const d = el(`left:0;right:0;top:${L.eqTop}px;height:80px;display:flex;justify-content:center;align-items:center;font-family:${MONO};font-size:64px;font-weight:600;white-space:nowrap;`+NOLIG);
   d.p = document.createElement('span'); d.p.style.color='#D3D7DE'; d.r = document.createElement('span'); d.r.style.marginLeft='0.35em'; d.append(d.p, d.r); return d; }
 const eqA = eqLayer(), eqB = eqLayer();
-if (L.chipsLabel) el(`left:0;top:${L.chipsLabelTop}px;font-family:${MONO};font-size:24px;font-weight:600;letter-spacing:3px;color:#A2A8B3;white-space:nowrap;`+NOLIG, L.chipsLabel);
+if (L.chipsLabel) el(`left:0;top:${L.chipsLabelTop}px;font-family:${MONO};font-size:28px;font-weight:600;letter-spacing:2px;color:#A2A8B3;white-space:nowrap;`+NOLIG, L.chipsLabel);
 const NC = TL.chips.length, cw = NC ? Math.min(212, Math.floor((920-(NC-1)*16)/NC)) : 0;
-const chips = TL.chips.map((c,i) => el(`top:${L.chipsTop}px;left:${i*(cw+16)}px;width:${cw}px;height:56px;box-sizing:border-box;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:${MONO};font-size:${cw>=180?28:24}px;font-weight:600;white-space:nowrap;`+NOLIG+(c.hl?'background:linear-gradient(180deg,#4A3B1C 0%,#261E0E 100%);border:1.5px solid #DDB25A;color:#FFE3A0;':'background:linear-gradient(180deg,#1A1C21 0%,#111317 100%);border:1.5px solid #3D424C;color:#E6E8EC;'), c.text));
+const chips = TL.chips.map((c,i) => el(`top:${L.chipsTop}px;left:${i*(cw+16)}px;width:${cw}px;height:64px;box-sizing:border-box;border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:${MONO};font-size:${cw>=180?34:cw>=120?30:28}px;font-weight:600;white-space:nowrap;`+NOLIG+(c.hl?'background:linear-gradient(180deg,#4A3B1C 0%,#261E0E 100%);border:1.5px solid #DDB25A;color:#FFE3A0;':'background:linear-gradient(180deg,#1A1C21 0%,#111317 100%);border:1.5px solid #3D424C;color:#E6E8EC;'), c.text));
 function capLayer(){ return el(`left:0;right:0;top:${L.capTop}px;font-family:Manrope,sans-serif;font-size:38px;line-height:48px;font-weight:700;white-space:nowrap;`); }
 const capFit = d => { let f = 38; d.style.fontSize = f+'px'; while (d.scrollWidth > 920 && f > 32) { f -= 1; d.style.fontSize = f+'px'; } };
 const capA = capLayer(), capB = capLayer();
 const fit = d => { let f = 64; d.style.fontSize = f+'px'; while (d.scrollWidth > 920 && f > 36) { f -= 2; d.style.fontSize = f+'px'; } };
 function setEq(d, eq, final){ const key = eq ? eq.left+'|'+eq.result+'|'+final : ''; if (d.key === key) return; d.key = key;
   d.p.textContent = eq ? eq.left : ''; d.r.textContent = eq ? eq.result : '';
-  d.r.style.cssText = 'margin-left:0.35em;' + (final ? 'color:#CBE6FB;' : "background-image:linear-gradient(180deg,#FFF0C2 0%,#EBC566 55%,#C99A3F 100%);-webkit-background-clip:text;background-clip:text;color:transparent;");
+  d.r.style.cssText = 'display:inline-block;margin-left:0.35em;' + (final ? 'color:#CBE6FB;' : "background-image:linear-gradient(180deg,#FFF0C2 0%,#EBC566 55%,#C99A3F 100%);-webkit-background-clip:text;background-clip:text;color:transparent;");
   if (!eq || !eq.result) d.r.style.marginLeft = '0'; fit(d); }
 const sig = [];
 const r1 = x => Math.round(x*2)/2, r2 = x => Math.round(x*100)/100;
 window.DURATION = TL.duration;
+// The last T.FADE seconds dip from the answer back to the first frame, so the loop has no jump.
 window.draw = function(t){
+  const tEnd = TL.duration - T.FADE; let tt = t, op = 1;
+  if (t > tEnd) { const x = (t - tEnd) / T.FADE; if (x < 0.5) { tt = tEnd; op = 1 - sm(x*2); } else { tt = 0; op = sm(x*2 - 1); } }
+  const s = core(tt); stage.style.opacity = r2(op); return s + '|' + r2(op);
+};
+function core(t){
   sig.length = 0;
   const N = S.length - 1;
-  let k = Math.min(N, Math.floor(t / T.STEP)), u = t - k*T.STEP;
-  if (t >= N*T.STEP) { k = N; u = t - N*T.STEP; }
+  let k = 0; while (k < N && t >= S[k+1].t0) k++;
+  const u = t - S[k].t0;
   const S1 = S[k], S0 = k ? S[k-1] : null;
-  const moveDur = S1.final ? T.FINAL_IN : T.MOVE;
-  const e = sm(u / moveDur);
+  const mv = S1.mv, e = sm(u / mv), intro = 1;
+  const land = bump((u - mv) / 0.35);
   CUT0 = S0 ? S0.cuts : S1.cuts; CUT1 = S1.cuts; EE = e;
-  const intro = k === 0 ? sm(u / 0.8) : 1;
-  const fade = 1 - sm((t - (TL.duration - T.FADE)) / T.FADE);
-  stage.style.opacity = r2(fade); sig.push(r2(fade));
   for (const id of ids) {
     const s1 = S1.slots.indexOf(+id), s0 = S0 ? S0.slots.indexOf(+id) : s1;
     const x = lerp(slotXc(s0, CUT0), slotXc(s1, CUT1), e);
     const dimA = S0 && S0.st[id]==='dim' ? 1 : 0, dimB = S1.st[id]==='dim' ? 1 : 0, dimE = S0 ? lerp(dimA, dimB, e) : dimB;
-    const lift = (S1.arc === +id) ? Math.sin(Math.PI*e) * 70 : 0;
+    const upA = S0 && S0.up.includes(+id) ? 1 : 0, upB = S1.up.includes(+id) ? 1 : 0;
+    const lift = 70 * lerp(upA, upB, e) + ((S1.arc === +id && !upA && !upB) ? Math.sin(Math.PI*e) * 70 : 0);
+    const pop = ((S1.arc === +id || upA) && !upB) ? 0.07 * land : 0;
     const a = C[S0 ? S0.st[id] : S1.st[id]], b = C[S1.st[id]];
     const top = mix(a.t,b.t,e), bot = mix(a.b,b.b,e), br = mix(a.br,b.br,e), tx = mix(a.tx,b.tx,e), h = mix(a.h,b.h,e);
     const ghostA = S0 && S0.st[id]==='ghost' ? 0 : 1, ghostB = S1.st[id]==='ghost' ? 0 : 1;
@@ -209,12 +244,12 @@ window.draw = function(t){
     const bx = boxes[id];
     bx.style.left = r1(x)+'px'; bx.style.opacity = r2(op);
     bx.style.background = `linear-gradient(${rgb(top)} 0%, ${rgb(bot)} 100%)`; bx.style.borderColor = rgb(br); bx.style.borderStyle='solid'; bx.style.borderWidth='2px';
-    bx.style.boxShadow = `rgba(255,255,255,0.08) 0px 1px 0px inset, rgba(${h[0]},${h[1]},${h[2]},${h[3]}) 0px 0px 0px 4px`;
+    bx.style.boxShadow = `rgba(255,255,255,0.08) 0px 1px 0px inset, rgba(${h[0]},${h[1]},${h[2]},${h[3]}) 0px 0px 0px 4px, rgba(0,0,0,0.35) 0px 8px 18px`;
     const val = (e < 0.5 && S0) ? S0.vals[id] : S1.vals[id];
     if (L.bars) { const hv = +val, hh = hv*L.unit; bx.style.top = (L.base - hh)+'px'; bx.style.height = hh+'px'; bx.style.display = hv ? 'block':'none';
       const v = vlab[id]; v.textContent = val; v.style.left = r1(x)+'px'; v.style.color = rgb(tx); v.style.opacity = r2(intro); }
-    else { bx.style.top = r1(L.boxTop - lift + 14*dimE)+'px'; bx.style.transform = `scale(${r2(1 - 0.08*dimE)})`; bx.style.color = rgb(tx); bx.textContent = val; }
-    sig.push(r1(x), r1(lift), r2(op), r2(dimE), top.join(), br.join(), h.join(), val);
+    else { bx.style.top = r1(L.boxTop - lift + 14*dimE)+'px'; bx.style.transform = `scale(${(1 - 0.08*dimE + pop).toFixed(3)})`; bx.style.zIndex = lift > 1 ? 3 : ''; bx.style.color = rgb(tx); bx.textContent = val; }
+    sig.push(r1(x), r1(lift), r2(op), r2(dimE), top.join(), br.join(), h.join(), val, pop.toFixed(3));
   }
   idx.forEach((d, i) => { d.style.left = r1(slotX(i))+'px'; d.style.opacity = r2(intro); sig.push(r1(slotX(i))); });
   if (L.bars) for (let i=0;i<n;i++) { const w0 = S0 ? (S0.water[i]||0) : 0, w1 = S1.water[i]||0; const lv = lerp(w0,w1,e); const slotId = S1.slots[i]; const hv = +S1.vals[slotId];
@@ -238,26 +273,31 @@ window.draw = function(t){
     let x = xb !== null ? xb : (xa !== null ? xa : 0), o = b !== undefined ? (a !== undefined ? 1 : e) : (a !== undefined ? 1-e : 0);
     if (xa !== null && xb !== null) x = lerp(xa, xb, e);
     const ry = lerp(S0 && a !== undefined ? row(S0, p) : row(S1, p), b !== undefined ? row(S1, p) : row(S0, p), e);
-    d.style.left = r1(x)+'px'; d.style.top = r1(L.ptrTop + 30*ry)+'px'; d.style.opacity = r2(o*intro); sig.push(r1(x), r1(ry), r2(o)); }
+    d.style.left = r1(x)+'px'; d.style.top = r1(L.ptrTop + L.ptrH*ry)+'px'; d.style.opacity = r2(o*intro); sig.push(r1(x), r1(ry), r2(o)); }
   const same = S0 && JSON.stringify(S0.eq) === JSON.stringify(S1.eq);
-  const eqIn = S1.final ? 0 : T.EQ_IN, resIn = S1.final ? T.FINAL_IN - 0.1 : T.RES_IN;
+  // Same left part as the step before (a run of quick steps): it stays put and only the result lands.
+  const keep = !same && S0 && S0.eq && S1.eq && S0.eq.left === S1.eq.left && !S0.eq.result;
+  const resIn = Math.max(0.2, mv - 0.1);
   setEq(eqB, S1.eq, S1.final); setEq(eqA, S0 && S0.eq, S0 && S0.final);
-  const outA = same ? 0 : sm(u / 0.25);
-  eqA.style.opacity = S0 && !same ? r2(1 - outA) : 0; eqA.style.transform = `translateY(${r1(-14*outA)}px)`;
-  const pin = same ? 1 : sm((u - eqIn - 0.25) / 0.35), rin = same ? 1 : sm((u - resIn) / 0.4);
+  const outA = same ? 0 : sm(u / 0.2);
+  eqA.style.opacity = S0 && !same && !keep ? r2(1 - outA) : 0; eqA.style.transform = `translateY(${r1(-14*outA)}px)`;
+  const pin = same || keep ? 1 : sm((u - 0.15) / 0.3), rin = same ? 1 : sm((u - resIn) / 0.35);
+  const rpop = same || !S1.eq || !S1.eq.result ? 0 : 0.10 * bump((u - resIn - 0.1) / 0.4);
   eqB.p.style.opacity = r2(pin); eqB.r.style.opacity = r2(rin); eqB.style.transform = `translateY(${r1(14*(1-pin))}px)`;
-  sig.push(r2(outA), r2(pin), r2(rin));
-  TL.chips.forEach((c,i) => { const d = chips[i]; const o = c.step < k ? 1 : c.step === k ? sm((u - (S1.final ? T.FINAL_IN : T.CHIP_IN)) / 0.5) : 0;
-    d.style.opacity = r2(o*intro); d.style.transform = `translateY(${r1(12*(1-o))}px)`; sig.push(r2(o)); });
+  eqB.r.style.transform = `scale(${(1 + rpop).toFixed(3)})`;
+  sig.push(r2(outA), r2(pin), r2(rin), rpop.toFixed(3));
+  TL.chips.forEach((c,i) => { const d = chips[i]; const o = c.step < k ? 1 : c.step === k ? sm((u - mv) / 0.4) : 0;
+    const cp = c.step === k ? 0.08 * bump((u - mv - 0.15) / 0.4) : 0;
+    d.style.opacity = r2(o*intro); d.style.transform = `translateY(${r1(12*(1-o))}px) scale(${(1 + cp).toFixed(3)})`; sig.push(r2(o), cp.toFixed(3)); });
   const cs = S0 && S0.caption === S1.caption;
   if (capA.textContent !== (S0 ? S0.caption : '')) { capA.textContent = S0 ? S0.caption : ''; capFit(capA); }
   if (capB.textContent !== S1.caption) { capB.textContent = S1.caption; capFit(capB); }
   capB.style.color = S1.final ? '#CBE6FB' : '#F5F6F8'; capA.style.color = S0 && S0.final ? '#CBE6FB' : '#F5F6F8';
-  const cOut = cs ? 0 : sm(u/0.25), cIn = cs ? 1 : sm((u - eqIn - 0.25)/0.35);
+  const cOut = cs ? 0 : sm(u/0.2), cIn = cs ? 1 : sm((u - 0.15)/0.3);
   capA.style.opacity = S0 && !cs ? r2(1-cOut) : 0; capB.style.opacity = r2(cIn);
   capB.style.transform = `translateY(${r1(10*(1-cIn))}px)`; sig.push(r2(cOut), r2(cIn), k);
   return sig.join('|');
-};
+}
 window.check = function(settled){
   const out = [], sr = stage.getBoundingClientRect();
   const vis = d => +getComputedStyle(d).opacity > 0.05 && d.textContent.trim() !== '';

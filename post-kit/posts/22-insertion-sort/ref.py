@@ -44,23 +44,23 @@ EXAMPLE = [5, 2, 4, 1, 3]
 
 
 def video_steps(nums=EXAMPLE):
+    """One card per pass: it lifts, each bigger card shifts right in turn (the gap
+    walks left under the card), then the card drops into the gap."""
     a = list(nums)
-    steps = [{"band": [0, 0, "SORTED PART"], "eq": ["sorted:", str(a[0])], "caption": "One card on its own is already sorted."}]
+    band = lambda hi: [0, hi, "SORTED PART"]
+    steps = [{"band": band(0), "eq": ["sorted:", str(a[0])], "caption": "One card on its own is already sorted."}]
     for i in range(1, len(a)):
-        card, j = a[i], i - 1
-        bigger = []
-        while j >= 0 and a[j] > card:
-            bigger.append(a[j])
+        card, j = a[i], i
+        bigger = [x for x in reversed(a[:i]) if x > card]
+        cap = f"The {card} slides left past {', '.join(map(str, bigger))}." if bigger else f"The {card} is already in place."
+        steps.append({"lift": [i], "gold": [i], "band": band(i - 1), "eq": [f"card = {card}", ""], "caption": cap, "quick": True})
+        while j > 0 and a[j - 1] > card:
+            a[j - 1], a[j] = a[j], a[j - 1]
             j -= 1
-        a.insert(j + 1, a.pop(i))
-        if bigger:
-            eq = [", ".join(map(str, bigger)) + f" > {card} →", f"index {j + 1}"]
-            cap = f"{card} slides left past {', '.join(map(str, bigger))}."
-        else:
-            eq = [f"{a[j]} < {card} →", "stays"]
-            cap = f"{card} is already in place."
-        steps.append({"move": [i, j + 1], "gold": [j + 1], "band": [0, i, "SORTED PART"], "eq": eq,
-                      "chip": f"{card}: {len(bigger)}", "caption": cap})
+            steps.append({"swap": [j, j + 1], "lift": [j], "gold": [j], "band": band(i),
+                          "eq": [f"{a[j + 1]} > {card} →", "shift"], "caption": cap, "hold": 0.45})
+        eq = [f"{card} fits at", f"index {j}"] if bigger else [f"{a[j - 1]} < {card} →", "stays"]
+        steps.append({"gold": [j], "band": band(i), "eq": eq, "chip": f"{card}: {len(bigger)}", "caption": cap})
     return steps
 
 

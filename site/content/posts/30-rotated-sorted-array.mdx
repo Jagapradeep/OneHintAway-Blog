@@ -1,0 +1,148 @@
+---
+number: 30
+title: "Rotated arrays"
+slug: rotated-sorted-array
+pattern: "Binary search"
+section: "Binary search"
+summary: "In a sorted array cut once, compare the middle with the last value to know which side the drop is on."
+practice:
+  - { name: "LeetCode 153 Find Minimum in Rotated Sorted Array", url: "https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/", level: medium, note: "This post's template, as it is." }
+  - { name: "LeetCode 33 Search in Rotated Sorted Array", url: "https://leetcode.com/problems/search-in-rotated-sorted-array/", level: medium, note: "Find the sorted half, then check if the target fits in it." }
+slides: 8
+video: 2
+visualizer: rotated-sorted-array
+tags: [binary-search, rotated-array]
+published: 2026-11-14
+---
+
+Sorted array that was cut once and swapped round? Compare the middle with the last value to know which side of the drop you're on. Worked example: the minimum of **4 5 6 1 2 3**.
+
+## The idea
+
+A sorted deck of cards is cut once: the top part goes to the bottom. Now it rises, drops once, and rises again. The smallest card sits right after the drop, so finding the drop finds the minimum.
+
+The last value is the key. Every value before the drop is bigger than the last value; every value from the drop on is not. So one compare tells you where the middle stands:
+
+- `nums[middle] > nums[high]`: the middle is before the drop, so the minimum is to its right: `low = middle + 1`.
+- otherwise: the middle is at or after the drop, so the minimum is the middle or to its left: `high = middle`.
+
+The same trick searches for a target (LeetCode 33): any middle splits the range into two halves and at least one of them is sorted. If `nums[low] <= nums[middle]` the left half is sorted; check whether the target fits between its ends, and search that half or the other.
+
+## The walk
+
+Minimum of 4 5 6 1 2 3:
+
+| low | high | middle | nums[middle] vs nums[high] | Move |
+| --- | --- | --- | --- | --- |
+| 0 | 5 | 2 | 6 vs 3: bigger | low = 3 |
+| 3 | 5 | 4 | 2 vs 3: smaller | high = 4 |
+| 3 | 4 | 3 | 1 vs 2: smaller | high = 3 |
+
+`low` meets `high` at slot 3: the minimum is 1.
+
+Quick check: in 6 7 1 2 3 4 5 the minimum sits in **slot 2**, right after the drop from 7.
+
+## Pseudocode
+
+```
+function findMin(nums):
+    low = 0
+    high = length(nums) - 1
+    while low < high:
+        middle = floor((low + high) / 2)
+        if nums[middle] > nums[high]:
+            low = middle + 1
+        else:
+            high = middle
+    return nums[low]
+```
+
+**The trap:** compare the middle with `nums[low]` instead of `nums[high]`, and the compare can't tell "no drop" from "a drop on the right". On 4 5 6 1 2 3 it steps past the 1 and returns 3. Comparing with `nums[high]` returns 1.
+
+## Java
+
+```java
+class Solution {
+    public int findMin(int[] nums) {
+        int low = 0;
+        int high = nums.length - 1;
+        while (low < high) {
+            int middle = low + (high - low) / 2;
+            if (nums[middle] > nums[high]) {
+                low = middle + 1; // the drop is to the right
+            } else {
+                high = middle; // middle may be the minimum
+            }
+        }
+        return nums[low];
+    }
+}
+```
+
+## Python
+
+```python
+def find_min(nums):
+    low = 0
+    high = len(nums) - 1
+    while low < high:
+        middle = (low + high) // 2
+        if nums[middle] > nums[high]:
+            low = middle + 1  # the drop is to the right
+        else:
+            high = middle  # middle may be the minimum
+    return nums[low]
+```
+
+## C++
+
+```cpp
+#include <vector>
+using namespace std;
+
+int findMin(const vector<int>& nums) {
+    int low = 0;
+    int high = nums.size() - 1;
+    while (low < high) {
+        int middle = low + (high - low) / 2;
+        if (nums[middle] > nums[high]) {
+            low = middle + 1; // the drop is to the right
+        } else {
+            high = middle; // middle may be the minimum
+        }
+    }
+    return nums[low];
+}
+```
+
+## JavaScript
+
+```javascript
+function findMin(nums) {
+    let low = 0;
+    let high = nums.length - 1;
+    while (low < high) {
+        const middle = Math.floor((low + high) / 2);
+        if (nums[middle] > nums[high]) {
+            low = middle + 1; // the drop is to the right
+        } else {
+            high = middle; // middle may be the minimum
+        }
+    }
+    return nums[low];
+}
+```
+
+This needs distinct values, as in LeetCode 153. With repeats, `nums[middle] == nums[high]` can't pick a side.
+
+## Complexity
+
+| | Cost | Why |
+| --- | --- | --- |
+| Time | O(log n) | Each compare halves the range |
+| Extra space | O(1) | Three numbers |
+| Scan for the minimum | O(n) | The slow way it replaces |
+
+## How it was tested
+
+Find the minimum was run in Java, Python, C++ and JavaScript on 1,213 inputs: hand-picked cases (one value, two values both ways, the LeetCode 153 examples, no rotation, rotation by one at each end, values at the problem's limits), one rotated array of 5,000 values, and random rotated arrays of up to 15 distinct values. Every output matched Python's min. The steps in the walk-through, the quick-check slot and the trap result come from running the code.

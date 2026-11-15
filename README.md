@@ -44,6 +44,7 @@ Daily Instagram carousels and a companion blog that teach data structures and al
 - [Repository map](#-repository-map)
 - [The post kit](#-the-post-kit-post-kit)
 - [The blog](#-the-blog-site)
+- [The API](#-the-api-api)
 - [Anatomy of a post](#-anatomy-of-a-post)
 - [Run it locally](#-run-it-locally)
 - [Design system](#-design-system)
@@ -175,6 +176,7 @@ OneHintAway-Blog/
     ├── public/posts/NN/          each post's slides and video
     ├── lib/
     │   ├── posts.ts              reads every post's frontmatter at build time
+    │   ├── api.ts                the only door to the API: empty address = every extra off, no call ever throws
     │   ├── sections.ts           roadmap sections, in reading order
     │   ├── remark-code-tabs.mjs  turns four language sections into one tabbed block
     │   └── shiki/                IntelliJ Light theme + a grammar for the pseudocode
@@ -187,8 +189,26 @@ OneHintAway-Blog/
     ├── scripts/
     │   ├── add-post.mjs          adds a finished post: MDX in, slides and video in, checked
     │   ├── check-posts.mjs       runs before every build; a drifting post fails the build
-    │   └── check-visualizer.mjs  runs before every build; one wrong step fails the build
+    │   ├── check-visualizer.mjs  runs before every build; one wrong step fails the build
+    │   └── export-posts.mjs      writes the list of posts the API searches, and sends it (sync-posts)
     └── wrangler.jsonc            Cloudflare: serve out/ as static files
+
+api/                              ☕  Spring Boot API: view counts, copy counts, search, sign-ups
+├── src/main/java/com/onehintaway/api/
+│   ├── config/                   typed settings (the app won't start without its secrets), CORS
+│   ├── visitor/                  the anonymous visitor id and the rate limiter
+│   ├── posts/                    the posts table, the sync endpoint, search
+│   ├── stats/                    view and copy counters
+│   └── subscribers/              newsletter sign-up with double opt-in
+├── src/main/resources/
+│   ├── application.properties    every setting, each read from an environment variable
+│   └── db/migration/             Flyway SQL: the only place the schema is defined
+├── src/test/                     every endpoint against a real PostgreSQL 16 in Docker
+├── compose.yaml                  Postgres for running the API by hand
+├── .env.example                  the settings to fill in (the real .env is git-ignored)
+└── README.md                     run, test, settings, adding a migration
+
+.github/workflows/api.yml         runs the API's tests on every push that touches api/
 ```
 
 <br/>
@@ -279,6 +299,49 @@ Each pattern ships as its own small chunk (about 2 KB gzipped) beside the player
 
 <br/>
 
+## ◆ The API (`api/`)
+
+A small Spring Boot 4.1 service (Java 21) with PostgreSQL 16. It adds the things a static site can't do alone: count views and code copies, search the posts, and take newsletter sign-ups. **It is built and tested but not deployed yet**: it runs locally and in CI, and goes live with the cluster. Until then the site is built without an API address, and its pages are exactly what they were before the API existed.
+
+| Method and path | What it does | Answers |
+| --- | --- | --- |
+| `POST /api/v1/posts/{slug}/views` | Counts a view, once per visitor per day | 204 |
+| `POST /api/v1/posts/{slug}/copies?lang=java` | Counts one copy of a code block, by language | 204 |
+| `GET /api/v1/posts/{slug}/stats` | Views, copies, copies by language | JSON |
+| `GET /api/v1/search?q=` | Searches titles, patterns and page text; best 20, best first | JSON list |
+| `POST /api/v1/subscribers` | Starts a newsletter sign-up | 202 |
+| `GET /api/v1/subscribers/confirm?token=` | The link in the confirmation email | text |
+| `PUT /api/v1/admin/posts` | Replaces the posts table (called by the site's sync script, with a secret) | JSON |
+| `GET /actuator/health/liveness`, `/readiness`, `/actuator/prometheus` | Kubernetes probes and metrics | |
+
+### The rules it works by
+
+**A visitor is a hash, never an address.** To count "one view per visitor per day" the API needs to tell visitors apart, but it must not keep anything that identifies a person. So it stores only SHA-256 of *(secret salt, today's date, IP address, browser name)*. The salt stops anyone with the database from testing addresses against it. The date is inside the hash, so the same reader gets a different id tomorrow and visits can't be joined up across days.
+
+**The database does the counting.** A view is one `INSERT … ON CONFLICT DO NOTHING` into a table whose primary key is *(post, day, visitor)*: a second view from the same visitor simply hits the key. A copy is one `INSERT … ON CONFLICT DO UPDATE SET count = count + 1`. Nothing is read before it is written, so two requests at the same instant can't lose a count. Counts are only kept for posts the site has synced, so made-up addresses can't fill the tables.
+
+**Every write is rate-limited**, with a token bucket (Bucket4j) per address and per kind of request: 60 counts a minute, 5 sign-ups an hour, 10 sync calls a minute. Over the limit, the answer is `429` with `Retry-After`. The limit is keyed on the address alone, not the browser name, because the caller chooses the browser name and could change it to get a fresh allowance. Buckets live in memory, which is right for one instance; two replicas would each allow the full limit.
+
+**Search is PostgreSQL full-text search.** Each post has a `tsvector` column that Postgres works out itself from the title (heaviest), the pattern and the page text, so it can never be out of date. Full-text search only matches whole words, so a half-typed word would find nothing; a second condition (`ILIKE` on title and pattern) makes search-as-you-type work.
+
+**The posts table is a copy, and the MDX files stay the truth.** `npm run sync-posts` in `site/` reads every post's frontmatter and its text without code, and sends the whole list in one `PUT`. In one transaction the API saves every post in the list and deletes the ones missing from it; an empty list is refused, so a broken export can't wipe the table. The caller proves itself with a shared secret, compared in constant time. View and copy history has no foreign key to posts, so removing a post never deletes its numbers.
+
+**A sign-up only counts after the email link is opened** (double opt-in). Signing up stores the address as `PENDING` with a random 32-byte token and emails a link holding that token; opening it sets `CONFIRMED`. So nobody can subscribe someone else, and the list only holds addresses that work. The answer to a sign-up is always the same `202`, whether or not the address was already known, so the form can't be used to find out who is subscribed. The email goes out through [Resend](https://resend.com)'s HTTP API when a key is set; without one (local runs) the link is written to the log instead. Both sit behind one `MailSender` interface. If Resend refuses the email, the sign-up fails with a `503` and nothing is stored, so nobody is left pending with no email on the way. The weekly newsletter itself is a later, separate piece: Listmonk on the cluster, sending through Amazon SES.
+
+**Only the site's pages may call it from a browser** (CORS limited to the site's address), every input is validated (bad input is a `400` with a problem-JSON body), and the schema changes only through numbered Flyway migrations; Hibernate just checks that the code matches it.
+
+### How the site uses it, and how it fails
+
+The site reads one build-time setting, `NEXT_PUBLIC_API_URL`. Empty, as in production today, and nothing API-related is rendered or called. Set, and three things appear: a view count in each post's meta row, a search button in the header, and a silent count when a reader copies code.
+
+Every call goes through [`site/lib/api.ts`](site/lib/api.ts), which gives up after four seconds and returns nothing instead of throwing. So with the API slow, failing or gone, a post page looks exactly like a page with no count, search says it isn't available right now, and no error reaches the screen.
+
+### How it is tested
+
+`./mvnw verify` starts a throwaway PostgreSQL 16 in Docker (Testcontainers), applies the real migrations and calls every endpoint: counting once per visitor, the stored hash holding no address, per-language copies, search by word and by half-typed title, the sync's token and delete rules, the whole double opt-in, the rate limit, CORS and the probes. GitHub Actions runs the same command on every push that touches `api/`.
+
+<br/>
+
 ## ◆ Anatomy of a post
 
 <table>
@@ -331,6 +394,30 @@ cd site && npm install && npm run dev
 </details>
 
 <details>
+<summary><b>API</b>: JDK 21 or newer, Docker</summary>
+
+```bash
+cd api
+cp .env.example .env            # then fill in the three blank values
+docker compose up -d --wait     # PostgreSQL 16 on localhost
+./mvnw spring-boot:run          # the API on http://localhost:8080
+
+./mvnw verify                   # the tests; they start their own database
+```
+
+To see the site use it, in a second terminal:
+
+```bash
+cd site
+npm run sync-posts                                       # copy the posts into the API
+NEXT_PUBLIC_API_URL=http://localhost:8080 npm run dev    # PowerShell: $env:NEXT_PUBLIC_API_URL="http://localhost:8080"; npm run dev
+```
+
+More in [api/README.md](api/README.md).
+
+</details>
+
+<details>
 <summary><b>Post kit</b>: WSL / Linux / macOS</summary>
 
 ```bash
@@ -374,9 +461,10 @@ Slides are 1080 × 1350 (Instagram 4:5) with 80 px side margins.
 - [x] Interactive pattern visualizer: three patterns, checked against a brute force on every build
 - [ ] Visualizer: more kinds of picture (decision tree for binary search, moving cells for sorting, grid, linked list, call stack, heap, graph)
 - [ ] Post kit: studio-quality pass on slides and video, with the video drawn from the visualizer's step format
-- [ ] **API**: Spring Boot 3 (Java 21) + PostgreSQL 16 for search, view counts and sign-ups
+- [x] **API**: Spring Boot 4.1 (Java 21) + PostgreSQL 16 for search, view counts and sign-ups: built and tested, live once the cluster exists
+- [ ] **Docker**: images for the API and the site build, and one compose file for the whole stack
 - [ ] **Cluster**: k3s with Traefik, cert-manager, Umami analytics, Prometheus and Grafana
-- [ ] **CI/CD**: GitHub Actions to test the API, build the image, push to GHCR and roll out
+- [ ] **CI/CD**: GitHub Actions tests the API today; next it builds the image, pushes to GHCR and rolls out
 
 The site never depends on the cluster: if the API is down, every post still loads, and only the extras pause.
 

@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Label } from "@/components/PostList";
+import { PostViews } from "@/components/PostViews";
 import { SlideGallery } from "@/components/SlideGallery";
 import { Visualizer } from "@/components/Visualizer";
+import { API_URL } from "@/lib/api";
 import { getAllPosts, getNeighbours, getPost } from "@/lib/posts";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -79,6 +81,8 @@ export default async function PostPage({ params }: Props) {
               {practiceCount} practice problem{practiceCount > 1 ? "s" : ""}
             </li>
           )}
+          {/* Only when the site was built with an API address; shows nothing if the API is down. */}
+          {API_URL && <PostViews slug={post.slug} />}
         </ul>
       </header>
 

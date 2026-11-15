@@ -1,0 +1,40 @@
+package com.onehintaway.api.config;
+
+import java.util.List;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
+
+/**
+ * Everything under {@code app.} in application.properties. The app refuses to start
+ * when a required value is missing, so a missing salt is caught at boot, not at the first request.
+ *
+ * @param corsOrigins the site addresses whose pages may call the API from a browser
+ * @param visitorSalt secret mixed into visitor hashes; without it hashes could be reversed by guessing addresses
+ * @param adminToken secret for the posts sync; blank switches the sync off
+ * @param publicUrl the API's own public address, used in confirmation links
+ * @param mail who emails come from, and the Resend key; a blank key means emails go to the log
+ */
+@ConfigurationProperties("app")
+@Validated
+public record AppProperties(
+		@NotEmpty List<String> corsOrigins,
+		@NotBlank String visitorSalt,
+		String adminToken,
+		@NotBlank String publicUrl,
+		@NotNull @Valid Rate rate,
+		@NotNull @Valid Mail mail) {
+
+	public record Mail(String resendApiKey, @NotBlank String from) {
+	}
+
+	public record Rate(@Min(1) int countPerMinute, @Min(1) int subscribePerHour, @Min(1) int adminPerMinute) {
+	}
+
+}

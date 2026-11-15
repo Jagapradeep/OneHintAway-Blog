@@ -5,6 +5,8 @@ import { BackButton } from "@/components/BackButton";
 import { BrandMark } from "@/components/BrandMark";
 import { NavLinks } from "@/components/NavLinks";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { SearchBox } from "@/components/SearchBox";
+import { API_URL } from "@/lib/api";
 import { INSTAGRAM_URL } from "@/lib/site";
 import { themeScript } from "@/lib/theme";
 import "./globals.css";
@@ -44,12 +46,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           Skip to content
         </a>
         <div className="site-header-wrap">
-          <header className="site-header">
+          <header className={API_URL ? "site-header has-search" : "site-header"}>
             <Link href="/" className="brand" aria-label="One Hint Away, home">
               <BrandMark />
               ONE HINT AWAY
             </Link>
             <NavLinks />
+            {API_URL && <SearchBox />}
             <ThemeToggle />
           </header>
         </div>

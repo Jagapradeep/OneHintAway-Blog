@@ -1,5 +1,6 @@
 "use client";
 
+import { countCopy } from "@/lib/api";
 import { createContext, useContext, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 
 export const LANG_LABELS: Record<string, string> = {
@@ -55,6 +56,7 @@ export function CodeTabs({ children, langs }: { children: ReactNode; langs?: str
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
+      countCopy(active);
       setTimeout(() => setCopied(false), 1500);
     } catch {
       /* clipboard blocked: do nothing */

@@ -11,6 +11,8 @@
     "check-posts": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-posts.mjs",
     "check-viz": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning --experimental-strip-types scripts/check-visualizer.mjs",
     "viz-fixtures": "python ../post-kit/tools/viz_fixtures.py",
+    "export-posts": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/export-posts.mjs",
+    "sync-posts": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=../api/.env scripts/export-posts.mjs --push",
     "add-post": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/add-post.mjs"
   },
   "dependencies": {

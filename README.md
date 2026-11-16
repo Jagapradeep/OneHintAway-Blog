@@ -572,7 +572,9 @@ Slides are 1080 × 1350 (Instagram 4:5) with 80 px side margins.
 - [x] **API**: Spring Boot 4.1 (Java 21) + PostgreSQL 16 for search, view counts and sign-ups: built and tested, live once the cluster exists
 - [x] **Docker**: images for the API and the site build, and one compose file that starts the API, PostgreSQL and Umami with one command
 - [x] **Cluster**: k3s on one server with Traefik, cert-manager, Umami analytics, Prometheus and Grafana; the API is live at `api.onehintaway.com`
-- [ ] **CI/CD**: GitHub Actions tests the API today; next it builds the image, pushes to GHCR and rolls out
+- [x] **CI/CD**: a push to `main` tests the API, builds the image, pushes it to GHCR and rolls it out, with automatic rollback
+- [x] **Operations**: nightly database backups to Cloudflare R2 (restore tested), Prometheus alerts, a runbook
+- [ ] Newsletter (Listmonk + Amazon SES), a sign-up form, an outside uptime check
 
 The site never depends on the cluster: if the API is down, every post still loads, and only the extras pause.
 

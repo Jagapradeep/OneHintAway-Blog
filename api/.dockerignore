@@ -1,0 +1,9 @@
+# What `docker build` may send to the Docker daemon. Everything is refused, then the four
+# things the build needs are let back in. So api/.env (secrets), target/ and anything added
+# later can never end up in an image layer by accident.
+*
+!.mvn/
+!mvnw
+!pom.xml
+!src/
+.mvn/wrapper/maven-wrapper.jar

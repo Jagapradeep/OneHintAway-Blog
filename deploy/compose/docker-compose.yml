@@ -1,0 +1,81 @@
+# The whole stack on one machine: API + PostgreSQL 16 + Umami analytics.
+#
+#   cp .env.example .env      (fill in the blanks)
+#   docker compose up -d --wait
+#
+# Values come from the git-ignored .env beside this file. Each service is handed only the
+# variables it needs. For the database alone (API run from the IDE) use api/compose.yaml.
+name: onehintaway
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-onehintaway}
+      POSTGRES_USER: ${POSTGRES_USER:-onehintaway}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/compose/.env}
+      UMAMI_DB_PASSWORD: ${UMAMI_DB_PASSWORD:?Set UMAMI_DB_PASSWORD in deploy/compose/.env}
+    volumes:
+      # The data outlives the container: `down` keeps it, `down -v` deletes it.
+      - pgdata:/var/lib/postgresql/data
+      # Runs once, when the volume is empty: creates Umami's own database and user.
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    networks: [backend]
+    # No ports: only containers on the network can reach the database.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ../../api
+    image: onehintaway-api:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        # Started is not enough: wait until Postgres answers.
+        condition: service_healthy
+    environment:
+      # "postgres" is the service name: Docker's DNS on the network resolves it.
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-onehintaway}
+      POSTGRES_USER: ${POSTGRES_USER:-onehintaway}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      VISITOR_SALT: ${VISITOR_SALT:?Set VISITOR_SALT in deploy/compose/.env}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-One Hint Away <hello@onehintaway.com>}
+    ports:
+      # This machine only, never the network.
+      - "127.0.0.1:${API_PORT:-8080}:8080"
+    networks: [backend]
+    # Health check: the HEALTHCHECK in api/Dockerfile (readiness endpoint).
+
+  umami:
+    image: ghcr.io/umami-software/umami:3.5.0
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@postgres:5432/umami
+      APP_SECRET: ${UMAMI_APP_SECRET:?Set UMAMI_APP_SECRET in deploy/compose/.env}
+    ports:
+      - "127.0.0.1:${UMAMI_PORT:-3001}:3000"
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/api/heartbeat || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+
+networks:
+  backend:
+
+volumes:
+  pgdata:

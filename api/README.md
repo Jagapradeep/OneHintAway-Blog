@@ -26,6 +26,40 @@ Stop the database with `docker compose stop`; `docker compose down -v` also dele
 Docker must be running: the tests start their own throwaway PostgreSQL 16 and never touch the
 one from `compose.yaml`. The first run downloads the Postgres image.
 
+## Build and run the image
+
+Needs only Docker. Why the image is built this way is in the
+[root README](../README.md#-docker).
+
+```bash
+docker build -t onehintaway-api:local .     # from api/; about 1.5 min the first time, 20 s after a code change
+docker image ls onehintaway-api             # 272 MB unpacked, 128 MB compressed
+docker history onehintaway-api:local        # one line per layer: libraries 60 MB, our classes 53 kB
+```
+
+The image holds no settings. The easy way to run it is the whole stack, which also gives it
+a database:
+
+```bash
+cd ../deploy/compose
+cp .env.example .env                        # fill in the blanks
+docker compose up -d --wait                 # API on 127.0.0.1:8080, Umami on 127.0.0.1:3001
+docker compose logs -f api
+```
+
+To run the image alone against the database from `compose.yaml` here:
+
+```bash
+docker run --rm -p 127.0.0.1:8080:8080 --env-file .env \
+  -e DB_URL=jdbc:postgresql://host.docker.internal:5432/onehintaway onehintaway-api:local
+```
+
+Inside a container `localhost` is the container itself, which is why `DB_URL` is needed.
+The container runs as user 10001 (not root) and reports `healthy` once
+`/actuator/health/readiness` answers. If you move `/actuator` with `MANAGEMENT_SERVER_PORT`,
+the image's health check (port 8080) must change with it. The image build skips the tests;
+run `./mvnw verify` first.
+
 ## Settings
 
 All come from environment variables. Locally they are read from `api/.env`, which is

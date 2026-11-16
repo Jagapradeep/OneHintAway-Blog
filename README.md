@@ -45,6 +45,7 @@ Daily Instagram carousels and a companion blog that teach data structures and al
 - [The post kit](#-the-post-kit-post-kit)
 - [The blog](#-the-blog-site)
 - [The API](#-the-api-api)
+- [Docker](#-docker)
 - [Anatomy of a post](#-anatomy-of-a-post)
 - [Run it locally](#-run-it-locally)
 - [Design system](#-design-system)
@@ -191,6 +192,7 @@ OneHintAway-Blog/
     │   ├── check-posts.mjs       runs before every build; a drifting post fails the build
     │   ├── check-visualizer.mjs  runs before every build; one wrong step fails the build
     │   └── export-posts.mjs      writes the list of posts the API searches, and sends it (sync-posts)
+    ├── Dockerfile                builds the site in a container (for CI; Cloudflare still serves it)
     └── wrangler.jsonc            Cloudflare: serve out/ as static files
 
 api/                              ☕  Spring Boot API: view counts, copy counts, search, sign-ups
@@ -204,9 +206,17 @@ api/                              ☕  Spring Boot API: view counts, copy counts
 │   ├── application.properties    every setting, each read from an environment variable
 │   └── db/migration/             Flyway SQL: the only place the schema is defined
 ├── src/test/                     every endpoint against a real PostgreSQL 16 in Docker
-├── compose.yaml                  Postgres for running the API by hand
+├── Dockerfile                    the API image: build with a JDK, run on a small JRE, as a non-root user
+├── .dockerignore                 lets only the build's four inputs reach Docker
+├── compose.yaml                  Postgres alone, for running the API from the IDE
 ├── .env.example                  the settings to fill in (the real .env is git-ignored)
-└── README.md                     run, test, settings, adding a migration
+└── README.md                     run, test, build the image, settings, adding a migration
+
+deploy/                           🐳  running it all together
+└── compose/
+    ├── docker-compose.yml        the whole stack: API + PostgreSQL 16 + Umami, one private network
+    ├── postgres-init/            runs once on an empty volume: Umami's own database and user
+    └── .env.example              the settings to fill in (the real .env is git-ignored)
 
 .github/workflows/api.yml         runs the API's tests on every push that touches api/
 ```
@@ -342,6 +352,47 @@ Every call goes through [`site/lib/api.ts`](site/lib/api.ts), which gives up aft
 
 <br/>
 
+## ◆ Docker
+
+Two images and one compose file. Together they start the API, its database and the analytics on any machine that has Docker, with one command and nothing else installed. Nothing is pushed to a registry yet, and the public site still comes from Cloudflare.
+
+| Piece | What it is | Size |
+| --- | --- | --- |
+| [`api/Dockerfile`](api/Dockerfile) | The API image: Java 21 runtime on Alpine plus the app | 272 MB unpacked, 128 MB to download |
+| [`site/Dockerfile`](site/Dockerfile) | The site build in a container; the result holds only the finished `out/` files | about 178 MB unpacked (mostly slides and videos) |
+| [`deploy/compose/docker-compose.yml`](deploy/compose/docker-compose.yml) | API + PostgreSQL 16 + Umami on one private network | |
+
+### Why the API image is built this way
+
+**Three stages, one shipped.** The first stage has a full JDK and the Maven wrapper and produces the jar. The second splits the jar into parts. Only the third, a small JRE image, becomes the image: the compiler, Maven, the downloaded build plugins and the source code never leave the first stage.
+
+**Layers ordered by how often they change.** Docker reuses a layer when its instruction and the files it copies are unchanged, and rebuilds everything after the first change. So `pom.xml` is copied and the dependencies downloaded *before* the source code is copied: a code-only change reuses that layer and downloads nothing (a rebuild takes about 18 seconds instead of 97). The same idea shapes the final image: Spring Boot's layered jar puts the libraries (60 MB) in one layer and the app's own classes (53 KB) in another, so a new version of the API is a 53 KB layer to push and pull.
+
+**Not root.** The process runs as user `10001`, which owns nothing. A numeric id, not a name, so Kubernetes can enforce `runAsNonRoot` later.
+
+**It reports its own health.** A `HEALTHCHECK` calls `/actuator/health/readiness`, the same endpoint Kubernetes will probe, so "healthy" means "connected to the database and ready for traffic", not "the process exists".
+
+**Nothing secret, nothing extra.** [`api/.dockerignore`](api/.dockerignore) refuses everything and lets back in only the wrapper, `pom.xml` and `src/`, so `api/.env` can't reach an image layer even by mistake. Every setting arrives as an environment variable when the container starts. The tests don't run inside the image build (they need Docker themselves); CI runs them first.
+
+### The stack
+
+| Service | Image | Reachable from |
+| --- | --- | --- |
+| `api` | built from `api/` | this machine, `127.0.0.1:8080` |
+| `postgres` | `postgres:16-alpine` | the other containers only |
+| `umami` | `ghcr.io/umami-software/umami:3.5.0` | this machine, `127.0.0.1:3001` |
+
+- **One network, names instead of addresses.** The API reaches the database at `postgres:5432`: Docker's DNS turns the service name into the container's address. The database publishes no port at all, and the two that do are bound to `127.0.0.1`, so nothing is open to the network the machine is on.
+- **A named volume holds the data.** Containers are disposable; `pgdata` is not. `docker compose down` keeps it, `down -v` deletes it.
+- **One Postgres, two databases.** A script that runs once on an empty volume creates a separate `umami` database with its own user, so the analytics can't read the blog's tables.
+- **Order by health.** The API and Umami start only after Postgres answers `pg_isready`, and `up --wait` returns only when all three are healthy.
+- **Config from one git-ignored file.** `deploy/compose/.env` holds the values; the compose file hands each container only the variables it needs and refuses to start if a required one is blank.
+- **Every image tag names a version**, never `latest`, so the same file gives the same stack next month.
+
+[`api/compose.yaml`](api/compose.yaml) stays as the database-only file for running the API from the IDE.
+
+<br/>
+
 ## ◆ Anatomy of a post
 
 <table>
@@ -418,6 +469,24 @@ More in [api/README.md](api/README.md).
 </details>
 
 <details>
+<summary><b>The whole stack in Docker</b>: Docker only, no JDK needed</summary>
+
+```bash
+cd deploy/compose
+cp .env.example .env            # then fill in the five blank values (openssl rand -hex 32)
+docker compose up -d --wait     # builds the API image, starts API + PostgreSQL + Umami
+
+curl http://localhost:8080/actuator/health/readiness    # {"status":"UP"}
+(cd ../../site && npm run sync-posts:compose)           # copy the posts into the API
+```
+
+The API is on `http://localhost:8080` and Umami on `http://localhost:3001` (first login `admin` / `umami`: change it). Stop with `docker compose down`; add `-v` to delete the database too.
+
+To build the site in a container: `docker build -t onehintaway-site:local site`.
+
+</details>
+
+<details>
 <summary><b>Post kit</b>: WSL / Linux / macOS</summary>
 
 ```bash
@@ -462,7 +531,7 @@ Slides are 1080 × 1350 (Instagram 4:5) with 80 px side margins.
 - [ ] Visualizer: more kinds of picture (decision tree for binary search, moving cells for sorting, grid, linked list, call stack, heap, graph)
 - [ ] Post kit: studio-quality pass on slides and video, with the video drawn from the visualizer's step format
 - [x] **API**: Spring Boot 4.1 (Java 21) + PostgreSQL 16 for search, view counts and sign-ups: built and tested, live once the cluster exists
-- [ ] **Docker**: images for the API and the site build, and one compose file for the whole stack
+- [x] **Docker**: images for the API and the site build, and one compose file that starts the API, PostgreSQL and Umami with one command
 - [ ] **Cluster**: k3s with Traefik, cert-manager, Umami analytics, Prometheus and Grafana
 - [ ] **CI/CD**: GitHub Actions tests the API today; next it builds the image, pushes to GHCR and rolls out
 

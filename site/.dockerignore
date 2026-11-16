@@ -1,0 +1,12 @@
+# Kept out of the build: things the build makes itself, and anything secret or local.
+node_modules/
+.next/
+out/
+out-docker/
+.wrangler/
+.env*
+posts-index.json
+*.tsbuildinfo
+next-env.d.ts
+Dockerfile
+.dockerignore

@@ -1,0 +1,54 @@
+# Defaults. values-local.yaml (k3d) and values-production.yaml (the server) override them.
+#
+# Secrets are NOT here. The chart reads them from a Kubernetes Secret that is created
+# beside it, never from Git:  deploy/scripts/create-secret.sh <env file>
+secretName: onehintaway-secrets
+
+api:
+  image:
+    repository: onehintaway-api
+    tag: dev                      # CI sets this to the git SHA; never "latest"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  host: api.localhost
+  corsOrigins: http://localhost:3000
+  publicUrl: http://api.localhost:8081
+  mailFrom: "One Hint Away <hello@onehintaway.com>"
+  resources:
+    requests: { cpu: 100m, memory: 384Mi }
+    limits: { memory: 512Mi }
+
+postgres:
+  image: postgres:16-alpine
+  database: onehintaway
+  user: onehintaway
+  storage: 5Gi
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 512Mi }
+
+umami:
+  enabled: true
+  image: ghcr.io/umami-software/umami:3.5.0
+  host: stats.localhost
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { memory: 640Mi }
+
+ingress:
+  className: traefik
+  tls:
+    enabled: false                # true = HTTPS certificates from cert-manager
+    clusterIssuer: letsencrypt
+
+# Nightly pg_dump to an S3-compatible bucket (Cloudflare R2). Needs the Secret
+# "onehintaway-backup" with R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT, R2_BUCKET.
+backup:
+  enabled: false
+  schedule: "30 20 * * *"         # 20:30 UTC = 02:00 in India
+  image: postgres:16-alpine
+  keepDays: 14
+
+# ServiceMonitor for Prometheus (needs kube-prometheus-stack installed).
+metrics:
+  serviceMonitor: false

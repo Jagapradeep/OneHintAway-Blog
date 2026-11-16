@@ -1,0 +1,17 @@
+# The k3s server. CI adds:  --set api.image.tag=<git SHA>
+api:
+  image:
+    repository: ghcr.io/jagapradeep/onehintaway-api
+  host: api.onehintaway.com
+  corsOrigins: https://onehintaway.com
+  publicUrl: https://api.onehintaway.com
+umami:
+  host: stats.onehintaway.com
+ingress:
+  tls:
+    enabled: true
+    clusterIssuer: letsencrypt
+backup:
+  enabled: true
+metrics:
+  serviceMonitor: true

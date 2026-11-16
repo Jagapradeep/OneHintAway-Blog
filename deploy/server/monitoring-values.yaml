@@ -1,0 +1,88 @@
+# kube-prometheus-stack, trimmed for one 4 GB server.
+#   helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+#     -n monitoring --create-namespace -f deploy/server/monitoring-values.yaml
+#
+# Alerts show in Grafana (Alerting) and Prometheus. Nothing sends them anywhere yet:
+# Alertmanager is off to save memory, so the outside uptime check is what pages you.
+alertmanager:
+  enabled: false
+
+# The stock rule set is large; keep the node and Kubernetes basics only.
+defaultRules:
+  create: true
+  rules:
+    etcd: false
+    kubeProxy: false
+    kubeControllerManager: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    windows: false
+
+# k3s runs these inside one process; their separate scrape targets would only show "down".
+kubeEtcd: { enabled: false }
+kubeControllerManager: { enabled: false }
+kubeScheduler: { enabled: false }
+kubeProxy: { enabled: false }
+
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    retentionSize: 3GB
+    resources:
+      requests: { cpu: 50m, memory: 300Mi }
+      limits: { memory: 700Mi }
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+    # Pick up ServiceMonitors and rules from every namespace (the app's live in onehintaway).
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+grafana:
+  # The login is in a Secret created on the server, not in this file.
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  resources:
+    requests: { cpu: 20m, memory: 128Mi }
+    limits: { memory: 300Mi }
+  persistence:
+    enabled: true
+    size: 1Gi
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+    hosts: [grafana.onehintaway.com]
+    tls:
+      - hosts: [grafana.onehintaway.com]
+        secretName: grafana-tls
+
+prometheusOperator:
+  resources:
+    requests: { cpu: 20m, memory: 64Mi }
+    limits: { memory: 200Mi }
+
+additionalPrometheusRulesMap:
+  onehintaway:
+    groups:
+      - name: onehintaway
+        rules:
+          - alert: ApiDown
+            expr: sum(up{namespace="onehintaway", service="api"}) < 1 or absent(up{namespace="onehintaway", service="api"})
+            for: 2m
+            labels: { severity: critical }
+            annotations:
+              summary: No API pod is answering Prometheus.
+          - alert: DiskFillingUp
+            expr: (node_filesystem_avail_bytes{mountpoint="/", fstype!="tmpfs"} / node_filesystem_size_bytes{mountpoint="/", fstype!="tmpfs"}) < 0.15
+            for: 10m
+            labels: { severity: warning }
+            annotations:
+              summary: Less than 15% of the server's disk is free.

@@ -1,0 +1,13 @@
+# k3d on the laptop: the image is imported into the cluster, no HTTPS.
+api:
+  image:
+    repository: onehintaway-api
+    tag: dev
+  host: api.localhost
+  corsOrigins: http://localhost:3000
+  publicUrl: http://api.localhost:8081
+umami:
+  host: stats.localhost
+ingress:
+  tls:
+    enabled: false

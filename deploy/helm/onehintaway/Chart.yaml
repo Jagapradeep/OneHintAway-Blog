@@ -1,0 +1,6 @@
+apiVersion: v2
+name: onehintaway
+description: The One Hint Away backend - Spring Boot API, PostgreSQL 16 and Umami analytics.
+type: application
+version: 0.1.0
+appVersion: "0.0.1"

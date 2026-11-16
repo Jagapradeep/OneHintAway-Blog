@@ -46,6 +46,7 @@ Daily Instagram carousels and a companion blog that teach data structures and al
 - [The blog](#-the-blog-site)
 - [The API](#-the-api-api)
 - [Docker](#-docker)
+- [Kubernetes and production](#-kubernetes-and-production)
 - [Anatomy of a post](#-anatomy-of-a-post)
 - [Run it locally](#-run-it-locally)
 - [Design system](#-design-system)
@@ -213,12 +214,20 @@ api/                              ☕  Spring Boot API: view counts, copy counts
 └── README.md                     run, test, build the image, settings, adding a migration
 
 deploy/                           🐳  running it all together
-└── compose/
-    ├── docker-compose.yml        the whole stack: API + PostgreSQL 16 + Umami, one private network
-    ├── postgres-init/            runs once on an empty volume: Umami's own database and user
-    └── .env.example              the settings to fill in (the real .env is git-ignored)
+├── compose/
+│   ├── docker-compose.yml        the whole stack: API + PostgreSQL 16 + Umami, one private network
+│   ├── postgres-init/            runs once on an empty volume: Umami's own database and user
+│   └── .env.example              the settings to fill in (the real .env is git-ignored)
+├── helm/onehintaway/             ☸️  the Helm chart: one description of the backend for laptop and server
+│   ├── templates/                API, PostgreSQL, Umami, ingress, nightly backup
+│   ├── values.yaml               defaults · values-local.yaml (k3d) · values-production.yaml (server)
+├── server/                       one-time server setup: hardening, k3s, issuer + deploy account, monitoring
+├── scripts/create-secret.sh      makes the chart's Secret from a git-ignored env file
+├── README.md                     the runbook: deploy, roll back, back up, restore, rebuild
+└── LEARN.md                      a hands-on Kubernetes lab on this project
 
-.github/workflows/api.yml         runs the API's tests on every push that touches api/
+.github/workflows/api.yml         test → build image → push to GHCR → helm upgrade on the cluster
+.github/workflows/sync-posts.yml  copies the posts into the API when a post changes
 ```
 
 <br/>
@@ -311,7 +320,7 @@ Each pattern ships as its own small chunk (about 2 KB gzipped) beside the player
 
 ## ◆ The API (`api/`)
 
-A small Spring Boot 4.1 service (Java 21) with PostgreSQL 16. It adds the things a static site can't do alone: count views and code copies, search the posts, and take newsletter sign-ups. **It is built and tested but not deployed yet**: it runs locally and in CI, and goes live with the cluster. Until then the site is built without an API address, and its pages are exactly what they were before the API existed.
+A small Spring Boot 4.1 service (Java 21) with PostgreSQL 16. It adds the things a static site can't do alone: count views and code copies, search the posts, and take newsletter sign-ups. **It is live at `api.onehintaway.com`** since 16 November 2026, on a one-server Kubernetes cluster ([how](#-kubernetes-and-production)). The site reads its address from one build setting; built without it, the pages are exactly what they were before the API existed.
 
 | Method and path | What it does | Answers |
 | --- | --- | --- |
@@ -390,6 +399,36 @@ Two images and one compose file. Together they start the API, its database and t
 - **Every image tag names a version**, never `latest`, so the same file gives the same stack next month.
 
 [`api/compose.yaml`](api/compose.yaml) stays as the database-only file for running the API from the IDE.
+
+<br/>
+
+## ◆ Kubernetes and production
+
+The backend runs on one small cloud server (2 vCPU, 4 GB) with [k3s](https://k3s.io), a full Kubernetes in a single binary. A managed cluster would cost several times more and teach less. The site is not on it: readers get static files from Cloudflare, so if the server is down every post still loads and only the extras pause.
+
+| Address | What answers | |
+| --- | --- | --- |
+| `api.onehintaway.com` | The API, two pods | only `/api` and `/actuator/health` are routed; metrics stay inside |
+| `stats.onehintaway.com` | Umami analytics | cookie-free, self-hosted |
+| `grafana.onehintaway.com` | Dashboards and alerts | behind a login |
+
+**One Helm chart, two places.** [`deploy/helm/onehintaway`](deploy/helm/onehintaway) describes the API, PostgreSQL, Umami, the ingress and the backup job once. `values-local.yaml` runs it on a k3d cluster on the laptop; `values-production.yaml` adds HTTPS, real hostnames and backups. What is tested locally is what ships.
+
+**A deploy can't take the API down.** The API runs as two pods with `maxUnavailable: 0`: a new version starts beside the old one and takes traffic only when its readiness probe passes; only then is an old pod removed. If the new pods never become ready, Helm puts the previous release back by itself. This was tested with a deliberately broken image: the public address answered `200` throughout, and the rollback took 79 seconds.
+
+**Three probes, three questions.** *Startup*: has the JVM finished booting? (up to 150 s, so a slow start is not mistaken for a hang). *Liveness*: is the process stuck? If so, restart it. *Readiness*: can it serve right now (database reachable)? If not, stop sending it requests, but don't restart it.
+
+**PostgreSQL is a StatefulSet** with its own persistent volume: the pod keeps its name and its disk through restarts and upgrades. Every night a CronJob dumps both databases and copies them off the server to Cloudflare R2, keeping 14 days; the [runbook](deploy/README.md#backups) has the restore steps.
+
+**Push to deploy.** [`api.yml`](.github/workflows/api.yml) runs the tests, builds the image, pushes it to GitHub's registry tagged with the commit SHA (never `latest`, so every running pod can be traced to its code and a rollback is just an older tag), then runs `helm upgrade`. It deploys with an account that can change one namespace and nothing else.
+
+**Secrets never touch Git.** They are generated on the server and live in Kubernetes Secrets (encrypted at rest); the chart only names them. The server itself takes SSH keys only, has a firewall that leaves just SSH, web and the Kubernetes API open, and installs security updates by itself.
+
+**HTTPS renews itself.** cert-manager asks Let's Encrypt for a certificate per hostname and renews it a month before expiry.
+
+**Watching it.** Prometheus scrapes the API's metrics from inside the cluster, Grafana shows them, and two alerts are defined: no API pod answering, and less than 15% disk free.
+
+Day-to-day commands are in the runbook, [`deploy/README.md`](deploy/README.md); a hands-on lab that walks through all of this on a local cluster is in [`deploy/LEARN.md`](deploy/LEARN.md).
 
 <br/>
 
@@ -532,7 +571,7 @@ Slides are 1080 × 1350 (Instagram 4:5) with 80 px side margins.
 - [ ] Post kit: studio-quality pass on slides and video, with the video drawn from the visualizer's step format
 - [x] **API**: Spring Boot 4.1 (Java 21) + PostgreSQL 16 for search, view counts and sign-ups: built and tested, live once the cluster exists
 - [x] **Docker**: images for the API and the site build, and one compose file that starts the API, PostgreSQL and Umami with one command
-- [ ] **Cluster**: k3s with Traefik, cert-manager, Umami analytics, Prometheus and Grafana
+- [x] **Cluster**: k3s on one server with Traefik, cert-manager, Umami analytics, Prometheus and Grafana; the API is live at `api.onehintaway.com`
 - [ ] **CI/CD**: GitHub Actions tests the API today; next it builds the image, pushes to GHCR and rolls out
 
 The site never depends on the cluster: if the API is down, every post still loads, and only the extras pause.

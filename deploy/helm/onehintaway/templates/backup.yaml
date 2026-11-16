@@ -1,0 +1,108 @@
+{{- if .Values.backup.enabled }}
+# Every night: pg_dump of both databases, gzipped, copied to the R2 bucket, old ones removed.
+# Run one by hand:  kubectl -n onehintaway create job --from=cronjob/pg-backup pg-backup-manual
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pg-backup
+  labels: {{- include "ohw.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 900
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            seccompProfile: { type: RuntimeDefault }
+          # 1. dump into a shared scratch volume   2. upload it
+          initContainers:
+            - name: dump
+              image: {{ .Values.backup.image }}
+              command: ["sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  stamp=$(date -u +%Y-%m-%dT%H%MZ)
+                  for db in "$POSTGRES_DB" umami; do
+                    pg_dump -h postgres -U "$POSTGRES_USER" -d "$db" --no-owner | gzip > "/backup/$db-$stamp.sql.gz"
+                  done
+                  ls -l /backup
+              env:
+                - name: POSTGRES_DB
+                  value: {{ .Values.postgres.database | quote }}
+                - name: POSTGRES_USER
+                  value: {{ .Values.postgres.user | quote }}
+                - name: PGPASSWORD
+                  valueFrom: { secretKeyRef: { name: {{ .Values.secretName }}, key: POSTGRES_PASSWORD } }
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 70
+                allowPrivilegeEscalation: false
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 20m, memory: 64Mi }
+                limits: { memory: 256Mi }
+              volumeMounts:
+                - { name: backup, mountPath: /backup }
+          containers:
+            - name: upload
+              image: amazon/aws-cli:2.31.30
+              command: ["sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  aws s3 cp /backup/ "s3://$R2_BUCKET/postgres/" --recursive --endpoint-url "$R2_ENDPOINT" --no-progress
+                  cutoff=$(date -u -d "-{{ .Values.backup.keepDays }} days" +%Y-%m-%d)
+                  aws s3 ls "s3://$R2_BUCKET/postgres/" --endpoint-url "$R2_ENDPOINT" | while read -r day _ _ name; do
+                    if [ "$day" \< "$cutoff" ]; then
+                      aws s3 rm "s3://$R2_BUCKET/postgres/$name" --endpoint-url "$R2_ENDPOINT"
+                    fi
+                  done
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom: { secretKeyRef: { name: onehintaway-backup, key: R2_ACCESS_KEY_ID } }
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom: { secretKeyRef: { name: onehintaway-backup, key: R2_SECRET_ACCESS_KEY } }
+                - name: R2_ENDPOINT
+                  valueFrom: { secretKeyRef: { name: onehintaway-backup, key: R2_ENDPOINT } }
+                - name: R2_BUCKET
+                  valueFrom: { secretKeyRef: { name: onehintaway-backup, key: R2_BUCKET } }
+                - name: AWS_DEFAULT_REGION
+                  value: auto
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 20m, memory: 64Mi }
+                limits: { memory: 256Mi }
+              volumeMounts:
+                - { name: backup, mountPath: /backup }
+          volumes:
+            - name: backup
+              emptyDir: {}
+{{- end }}
+{{- if .Values.metrics.serviceMonitor }}
+---
+# Tells Prometheus to scrape every API pod at /actuator/prometheus, from inside the cluster.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: api
+  labels:
+    release: monitoring
+    {{- include "ohw.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 30s
+{{- end }}

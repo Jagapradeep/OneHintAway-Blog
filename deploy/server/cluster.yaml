@@ -1,0 +1,61 @@
+# Cluster-level objects the app chart does not own. Applied once by the admin:
+#   kubectl --kubeconfig <admin kubeconfig> apply -f deploy/server/cluster.yaml
+# (cert-manager must be installed first.)
+
+# Free HTTPS certificates from Let's Encrypt. cert-manager proves we own each host by
+# answering a challenge over http through Traefik, then renews before expiry.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: traefik
+---
+# The account GitHub Actions deploys with. It can change things in the onehintaway
+# namespace only: not other namespaces, not the cluster.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deployer
+  namespace: onehintaway
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deployer
+  namespace: onehintaway
+rules:
+  - apiGroups: ["", "apps", "batch", "networking.k8s.io", "traefik.io", "monitoring.coreos.com"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deployer
+  namespace: onehintaway
+subjects:
+  - kind: ServiceAccount
+    name: deployer
+    namespace: onehintaway
+roleRef:
+  kind: Role
+  name: deployer
+  apiGroup: rbac.authorization.k8s.io
+---
+# A long-lived token for that account (goes into the CI kubeconfig).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: deployer-token
+  namespace: onehintaway
+  annotations:
+    kubernetes.io/service-account.name: deployer
+type: kubernetes.io/service-account-token

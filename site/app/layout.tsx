@@ -7,7 +7,7 @@ import { NavLinks } from "@/components/NavLinks";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SearchBox } from "@/components/SearchBox";
 import { API_URL } from "@/lib/api";
-import { INSTAGRAM_URL } from "@/lib/site";
+import { INSTAGRAM_URL, UMAMI_URL, UMAMI_WEBSITE_ID } from "@/lib/site";
 import { themeScript } from "@/lib/theme";
 import "./globals.css";
 
@@ -40,6 +40,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className={`${sora.variable} ${manrope.variable} ${geistMono.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {UMAMI_URL && UMAMI_WEBSITE_ID && (
+          <script defer src={`${UMAMI_URL}/script.js`} data-website-id={UMAMI_WEBSITE_ID} />
+        )}
       </head>
       <body>
         <a href="#main" className="skip-link">

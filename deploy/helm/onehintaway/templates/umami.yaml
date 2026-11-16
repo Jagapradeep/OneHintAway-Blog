@@ -1,0 +1,68 @@
+{{- if .Values.umami.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: umami
+  labels:
+    app.kubernetes.io/name: umami
+    {{- include "ohw.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: umami
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: umami
+    spec:
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        {{- include "ohw.waitForPostgres" . | nindent 8 }}
+      containers:
+        - name: umami
+          image: {{ .Values.umami.image }}
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: UMAMI_DB_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ .Values.secretName }}, key: UMAMI_DB_PASSWORD } }
+            # $(VAR) is filled in by Kubernetes from the variable above.
+            - name: DATABASE_URL
+              value: postgresql://umami:$(UMAMI_DB_PASSWORD)@postgres:5432/umami
+            - name: APP_SECRET
+              valueFrom: { secretKeyRef: { name: {{ .Values.secretName }}, key: UMAMI_APP_SECRET } }
+          startupProbe:
+            httpGet: { path: /api/heartbeat, port: http }
+            periodSeconds: 5
+            failureThreshold: 36
+          livenessProbe:
+            httpGet: { path: /api/heartbeat, port: http }
+            periodSeconds: 15
+            failureThreshold: 4
+          readinessProbe:
+            httpGet: { path: /api/heartbeat, port: http }
+            periodSeconds: 10
+          resources: {{- toYaml .Values.umami.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: umami
+  labels:
+    app.kubernetes.io/name: umami
+    {{- include "ohw.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/name: umami
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+{{- end }}

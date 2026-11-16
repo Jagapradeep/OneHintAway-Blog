@@ -1,0 +1,32 @@
+name: Sync posts
+
+# Copies the posts' titles and text into the API, so search matches what is published.
+# Runs when a post changes, and can be started by hand (Actions -> Sync posts -> Run workflow).
+on:
+  push:
+    branches: [main]
+    paths: ["site/content/posts/**", ".github/workflows/sync-posts.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: site/.node-version
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/export-posts.mjs --push
+        env:
+          API_URL: https://api.onehintaway.com
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}

@@ -50,6 +50,8 @@ services:
       SITE_URL: ${SITE_URL:-http://localhost:3000}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       MAIL_FROM: ${MAIL_FROM:-One Hint Away <hello@onehintaway.com>}
+      # Accounts: the session cookie is HTTPS-only unless this is false (see api/README.md).
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
     ports:
       # This machine only, never the network.
       - "127.0.0.1:${API_PORT:-8080}:8080"

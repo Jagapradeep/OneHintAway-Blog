@@ -6,9 +6,11 @@ import { BrandMark } from "@/components/BrandMark";
 import { NavLinks } from "@/components/NavLinks";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SearchBox } from "@/components/SearchBox";
+import { AccountMenu } from "@/components/AccountMenu";
+import { ScrollReset } from "@/components/ScrollReset";
 import { API_URL } from "@/lib/api";
 import { SignupForm } from "@/components/SignupForm";
-import { INSTAGRAM_URL, SIGNUP_ON, SITE_URL, UMAMI_URL, UMAMI_WEBSITE_ID } from "@/lib/site";
+import { ACCOUNTS_ON, INSTAGRAM_URL, SIGNUP_ON, SITE_URL, UMAMI_URL, UMAMI_WEBSITE_ID } from "@/lib/site";
 import { themeScript } from "@/lib/theme";
 import "./globals.css";
 
@@ -65,17 +67,19 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           Skip to content
         </a>
         <div className="site-header-wrap">
-          <header className={API_URL ? "site-header has-search" : "site-header"}>
+          <header className={ACCOUNTS_ON ? "site-header has-search has-acct" : API_URL ? "site-header has-search" : "site-header"}>
             <Link href="/" className="brand" aria-label="One Hint Away, home">
               <BrandMark />
               ONE HINT AWAY
             </Link>
             <NavLinks />
             {API_URL && <SearchBox />}
+            {ACCOUNTS_ON && <AccountMenu />}
             <ThemeToggle />
           </header>
         </div>
         <main className="site-main" id="main" tabIndex={-1}>
+          <ScrollReset />
           <BackButton />
           {children}
         </main>
@@ -94,6 +98,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <Link href="/posts/start-here/">Start here</Link>
               <Link href="/patterns/">Patterns</Link>
               <Link href="/about/">About</Link>
+              {ACCOUNTS_ON && <Link href="/privacy/">Privacy</Link>}
             </nav>
             <div className="footer-links">
               <p className="footer-heading">Follow</p>

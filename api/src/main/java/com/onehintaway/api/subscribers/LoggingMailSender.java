@@ -16,4 +16,9 @@ class LoggingMailSender implements MailSender {
 		log.info("No RESEND_API_KEY set. Confirmation link for {}: {}", email, confirmUrl);
 	}
 
+	@Override
+	public void sendSignInLink(String email, String url, boolean forDelete) {
+		log.info("No RESEND_API_KEY set. {} link for {}: {}", forDelete ? "Delete-account" : "Sign-in", email, url);
+	}
+
 }

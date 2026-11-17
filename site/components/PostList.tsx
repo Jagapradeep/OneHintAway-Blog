@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { PostMeta } from "@/lib/posts";
 import { pad2 } from "@/lib/sections";
+import { ACCOUNTS_ON } from "@/lib/site";
+import { DoneTick } from "@/components/MarkDone";
 
 // A list of post cards: number, title, pattern and the one-line summary.
 // `grid` lays the cards out in two columns on wide screens.
@@ -24,6 +26,7 @@ export function PostList({
               <span className="post-card-title">{p.title}</span>
               <span className="post-card-summary">{p.summary}</span>
             </span>
+            {ACCOUNTS_ON && <DoneTick slug={p.slug} />}
             <span className="post-card-arrow" aria-hidden="true">
               →
             </span>

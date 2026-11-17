@@ -26,6 +26,33 @@ Stop the database with `docker compose stop`; `docker compose down -v` also dele
 Docker must be running: the tests start their own throwaway PostgreSQL 16 and never touch the
 one from `compose.yaml`. The first run downloads the Postgres image.
 
+## Sign in locally
+
+Accounts need no setup beyond the steps above. With `RESEND_API_KEY` blank, no email is
+sent: the link is written to the API's log.
+
+1. Start the site with accounts on, in `site/`:
+   `NEXT_PUBLIC_API_URL=http://localhost:8080 NEXT_PUBLIC_ACCOUNTS=on npm run dev`
+2. Press **Sign in** in the header, enter any address, and send.
+3. Find the line `Sign-in link for …: http://localhost:3000/sign-in/#token=…` in the API's
+   log (`docker compose logs api` when it runs in the compose stack) and open that link.
+4. Press **Sign in** on the page. Each link works once and for 15 minutes.
+
+The same by hand. Every request that changes something needs the two headers, or it is
+refused with 403:
+
+```bash
+H='-H Origin:http://localhost:3000 -H X-OHW-CSRF:1 -H Content-Type:application/json'
+curl -i $H -d '{"email":"me@example.com"}' http://localhost:8080/api/v1/auth/link        # 202
+curl -i $H -c jar -d '{"token":"<token from the log>"}' http://localhost:8080/api/v1/auth/session
+curl -b jar http://localhost:8080/api/v1/auth/me
+curl -i $H -b jar -X PUT http://localhost:8080/api/v1/progress/kadane                    # 204
+```
+
+`CORS_ORIGINS` and `SITE_URL` must be the address the site is served from (the default is
+`http://localhost:3000`). The cookie is marked `Secure`; Chrome, Edge and Firefox accept it
+from `http://localhost` anyway. For a browser that does not, set `SESSION_COOKIE_SECURE=false`.
+
 ## Build and run the image
 
 Needs only Docker. Why the image is built this way is in the
@@ -71,22 +98,28 @@ git-ignored; real environment variables win over the file.
 | `DB_URL` | The whole JDBC address, when the database is not on localhost | built from the values above |
 | `VISITOR_SALT` | Secret mixed into visitor hashes. **Required**: the API won't start without it | none |
 | `ADMIN_TOKEN` | Secret for the posts sync. Blank switches the sync off (it answers 503) | blank |
-| `CORS_ORIGINS` | Site addresses allowed to call from a browser, comma-separated | `http://localhost:3000` |
+| `CORS_ORIGINS` | Site addresses allowed to call from a browser, comma-separated. Also the only `Origin` values accepted on account and progress changes (the CSRF check), so list exact origins, never a wildcard | `http://localhost:3000` |
 | `PUBLIC_URL` | The API's own public address, used in confirmation links | `http://localhost:8080` |
-| `SITE_URL` | The site's address. Opening a confirmation link redirects to `/subscribed/` there (or `/subscribed/expired/` for a bad link) | `http://localhost:3000` |
-| `RESEND_API_KEY` | Sends confirmation emails through Resend. Blank writes the link to the log instead | blank |
+| `SITE_URL` | The site's address. Opening a confirmation link redirects to `/subscribed/` there (or `/subscribed/expired/` for a bad link); sign-in links open `/sign-in/` there | `http://localhost:3000` |
+| `RESEND_API_KEY` | Sends confirmation and sign-in emails through Resend. Blank writes the link to the log instead | blank |
 | `MAIL_FROM` | The sender; its domain must be verified in Resend | `One Hint Away <hello@onehintaway.com>` |
+| `SESSION_COOKIE_SECURE` | `true` marks the session cookie HTTPS-only and names it `__Host-ohw_session`. `false` (name `ohw_session`) is only for local runs in a browser that refuses Secure cookies from `http://localhost` | `true` |
+| `LINK_PER_HOUR` | Sign-in links one caller address may ask for in an hour (in memory, per replica) | `10` |
+| `LINK_PER_EMAIL_PER_HOUR` | Sign-in links one email address is sent in an hour (counted in the database) | `3` |
 | `FORWARD_HEADERS` | Set to `native` behind a proxy, or every reader shares the proxy's address and counts as one visitor | `none` |
 | `MANAGEMENT_SERVER_PORT` | Moves `/actuator` to its own port, to keep metrics off the public address | same port |
 
-Rate limits are `app.rate.*` in `application.properties`.
+The other rate limits are `app.rate.*` in `application.properties`. Link lifetime (15 minutes), session lifetime (30 days
+after the last use) and the "fresh" window for deleting an account (15 minutes) are constants in
+`accounts/AccountService.java`.
 
 ## Change the database
 
 The schema is defined only by the SQL files in `src/main/resources/db/migration/`. Flyway runs
 the ones a database hasn't seen yet, in order, when the API starts.
 
-1. Add a new file, `V2__what_it_does.sql` (next number, two underscores).
+1. Add a new file, `V3__what_it_does.sql` (next number, two underscores). `V2__accounts.sql`
+   added `users`, `login_tokens`, `sessions` and `progress`.
 2. Never edit a migration that has already run anywhere: Flyway compares checksums and the API
    will refuse to start. Fix a mistake with another migration.
 3. Change the entity to match. Hibernate only checks (`ddl-auto=validate`), so a mismatch stops
@@ -100,4 +133,8 @@ the ones a database hasn't seen yet, in order, when the API starts.
 - The weekly newsletter is not part of this API. The plan is Listmonk on the cluster, sending
   through Amazon SES (Phase 6); confirmed subscribers are handed to it then, and it provides
   the unsubscribe link.
-- Rate-limit buckets are in memory, so each replica keeps its own count.
+- Rate-limit buckets are in memory, so each replica keeps its own count (the per-email limit on
+  sign-in links is the exception: it is counted in the database).
+- Accounts: no Google sign-in yet; a session has no hard end date as long as it is used at
+  least once every 30 days; expired links and sessions are cleared when someone next asks for
+  a link, not on a timer.

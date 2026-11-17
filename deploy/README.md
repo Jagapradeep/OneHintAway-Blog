@@ -93,6 +93,40 @@ For a real restore, scale the API to 0 (`kubectl -n onehintaway scale deploy/api
 load the dump into an emptied `onehintaway` database the same way, then scale back to 2.
 Do the scratch restore once a month: a backup that has never been restored is a guess.
 
+## Accounts
+
+Nothing new runs on the server: accounts are four tables in the same Postgres
+(`users`, `login_tokens`, `sessions`, `progress`; migration V2 runs by itself at deploy)
+and code inside the API pods. They are in the nightly backup like everything else.
+
+| Setting | Where | Value in production |
+| --- | --- | --- |
+| `CORS_ORIGINS` (`api.corsOrigins`) | `values-production.yaml` | `https://onehintaway.com`, exactly. It is also the only origin allowed to change account data |
+| `SITE_URL` (`api.siteUrl`) | `values-production.yaml` | `https://onehintaway.com`: sign-in links open `/sign-in/` there |
+| `SESSION_COOKIE_SECURE` (`api.sessionCookieSecure`) | `values.yaml` | `true`. Never false here |
+| `RESEND_API_KEY` | `/root/onehintaway.env` | Already set. Without it sign-in links would go to the log, with the reader's address |
+| `NEXT_PUBLIC_ACCOUNTS=on` | Cloudflare, Workers Builds variables | Set it only after the API with V2 is deployed, then rebuild the site. Remove it and rebuild to hide accounts again; the data stays |
+
+Look without printing anyone's address:
+
+```bash
+kubectl -n onehintaway exec -i postgres-0 -- psql -U onehintaway -d onehintaway -c   "select (select count(*) from users) users, (select count(*) from sessions where expires_at > now()) sessions, (select count(*) from progress) progress"
+```
+
+Remove a user who asks by email and can't sign in (deleting the `users` row takes their
+sessions and progress with it). Type the address yourself; never paste query output that
+holds other readers' addresses anywhere:
+
+```bash
+kubectl -n onehintaway exec -i postgres-0 -- psql -U onehintaway -d onehintaway   -c "delete from login_tokens where email = lower('reader@example.com')"   -c "delete from users where email = lower('reader@example.com')"
+```
+
+`DELETE 1` on the second line means the account is gone. Copies stay in the R2 backups
+for up to 14 days. The newsletter list is separate: `delete from subscribers where email = …`.
+
+Sign every reader out at once (a leaked backup, a bug): `truncate table sessions`. Everyone
+signs in again with a new link; nothing else is lost.
+
 ## Secrets
 
 | Secret | Where the values live | Change it |
@@ -108,6 +142,8 @@ database: those are read once, when the data volume is first created. Use `ALTER
 
 | Symptom | Look at | Usual cause |
 | --- | --- | --- |
+| Sign-in says "not available right now" | `kubectl -n onehintaway logs deploy/api --tail 100` | `Resend did not accept a sign-in email`: the Resend key or domain; otherwise the API is down |
+| Reader says the sign-in link "didn't work" | Nothing to fix | Links work once and for 15 minutes; some mail apps open the link in their own small browser, so the reader ends up signed in there, not in their usual browser |
 | Site fine, no view counts or search | `curl https://api.onehintaway.com/actuator/health/readiness` | API or server down; the site hides the extras by design |
 | Pod `CrashLoopBackOff` | `kubectl -n onehintaway logs <pod> --previous` | Bad config or a failed migration |
 | Pod `ImagePullBackOff` | `kubectl -n onehintaway describe pod <pod>` | The GHCR package is private, or the tag doesn't exist |

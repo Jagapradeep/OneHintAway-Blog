@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * Limits every request that writes (POST and PUT), per hashed address. Each address has
+ * Limits every request that writes (POST, PUT and DELETE), per hashed address. Each address has
  * one token bucket per group of endpoints; a request with no token left gets 429 and a
  * Retry-After header.
  *
@@ -49,7 +49,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
 		String method = request.getMethod();
-		if (!method.equals("POST") && !method.equals("PUT")) {
+		if (!method.equals("POST") && !method.equals("PUT") && !method.equals("DELETE")) {
 			return true;
 		}
 		String group = group(request.getRequestURI());
@@ -68,12 +68,16 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 		if (path.startsWith("/api/v1/admin/")) {
 			return "admin";
 		}
+		if (path.startsWith("/api/v1/auth/link")) {
+			return "link";
+		}
 		return path.startsWith("/api/v1/subscribers") ? "subscribe" : "count";
 	}
 
 	private Bucket newBucket(String group) {
 		return switch (group) {
 			case "admin" -> bucket(this.rate.adminPerMinute(), Duration.ofMinutes(1));
+			case "link" -> bucket(this.rate.linkPerHour(), Duration.ofHours(1));
 			case "subscribe" -> bucket(this.rate.subscribePerHour(), Duration.ofHours(1));
 			default -> bucket(this.rate.countPerMinute(), Duration.ofMinutes(1));
 		};

@@ -11,6 +11,7 @@ data:
   PUBLIC_URL: {{ .Values.api.publicUrl | quote }}
   SITE_URL: {{ .Values.api.siteUrl | quote }}
   MAIL_FROM: {{ .Values.api.mailFrom | quote }}
+  SESSION_COOKIE_SECURE: {{ .Values.api.sessionCookieSecure | quote }}
   # Behind Traefik: take the reader's address from X-Forwarded-For.
   FORWARD_HEADERS: native
 ---

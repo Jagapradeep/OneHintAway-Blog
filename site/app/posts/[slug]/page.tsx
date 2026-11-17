@@ -6,6 +6,8 @@ import { PostViews } from "@/components/PostViews";
 import { SlideGallery } from "@/components/SlideGallery";
 import { Visualizer } from "@/components/Visualizer";
 import { API_URL } from "@/lib/api";
+import { ACCOUNTS_ON } from "@/lib/site";
+import { MarkDone } from "@/components/MarkDone";
 import { getAllPosts, getNeighbours, getPost } from "@/lib/posts";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -159,6 +161,9 @@ export default async function PostPage({ params }: Props) {
       )}
 
       {/* 7. Previous / next in roadmap order */}
+      {/* Signed-in readers only; nothing is rendered otherwise */}
+      {ACCOUNTS_ON && <MarkDone slug={post.slug} />}
+
       <nav className="post-nav" aria-label="More posts">
         {prev ? (
           <Link href={`/posts/${prev.slug}/`} className="post-nav-prev">

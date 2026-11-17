@@ -47,6 +47,27 @@ class ResendMailSenderTests {
 	}
 
 	@Test
+	void theSignInEmailCarriesTheLinkAndPlainWords() {
+		String url = "https://onehintaway.com/sign-in/#token=abc&for=delete";
+		this.resend.expect(requestTo("https://api.resend.com/emails"))
+			.andExpect(jsonPath("$.to[0]").value("reader@example.com"))
+			.andExpect(jsonPath("$.subject").value("Delete your One Hint Away account"))
+			.andExpect(jsonPath("$.text", containsString(url)))
+			.andExpect(jsonPath("$.html", containsString("href=\"https://onehintaway.com/sign-in/#token=abc&amp;for=delete\"")))
+			.andExpect(jsonPath("$.html", not(containsString("{{"))))
+			.andRespond(withSuccess("{\"id\": \"1\"}", MediaType.APPLICATION_JSON));
+		this.resend.expect(requestTo("https://api.resend.com/emails"))
+			.andExpect(jsonPath("$.subject").value("Your One Hint Away sign-in link"))
+			.andExpect(jsonPath("$.html", containsString("There is no password.")))
+			.andExpect(jsonPath("$.html", not(containsString("{{"))))
+			.andRespond(withSuccess("{\"id\": \"2\"}", MediaType.APPLICATION_JSON));
+
+		this.sender.sendSignInLink("reader@example.com", url, true);
+		this.sender.sendSignInLink("reader@example.com", "https://onehintaway.com/sign-in/#token=abc", false);
+		this.resend.verify();
+	}
+
+	@Test
 	void aRefusalFromResendBecomesA503() {
 		this.resend.expect(requestTo("https://api.resend.com/emails")).andRespond(withStatus(HttpStatus.FORBIDDEN));
 

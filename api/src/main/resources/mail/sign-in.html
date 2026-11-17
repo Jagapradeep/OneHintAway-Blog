@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>{{heading}}</title>
+</head>
+<!--
+  The sign-in email (also used, with other words, for the link that allows deleting an
+  account). Same look as confirmation.html: tables and inline styles only.
+  ResendMailSender fills {{url}} (HTML-escaped) and the wording placeholders.
+-->
+<body style="margin:0;padding:0;background-color:#08090B;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#08090B;">{{preheader}}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#08090B" style="background-color:#08090B;">
+<tr><td align="center" style="padding:32px 16px;">
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+
+    <!-- brand -->
+    <tr><td style="padding:0 4px 20px 4px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td style="padding-right:12px;"><img src="https://onehintaway.com/apple-icon.png" width="36" height="36" alt="" style="display:block;border:0;border-radius:9px;"></td>
+        <td style="font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:13px;font-weight:bold;letter-spacing:3px;color:#F5F6F8;">ONE HINT AWAY</td>
+      </tr></table>
+    </td></tr>
+
+    <!-- card -->
+    <tr><td bgcolor="#15171C" style="background-color:#15171C;border:1px solid #2B2F37;border-radius:16px;padding:36px 28px 32px 28px;">
+
+      <div style="font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:12px;letter-spacing:2px;color:#A3CDF2;">{{eyebrow}}</div>
+
+      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:30px;line-height:36px;font-weight:800;color:#F5F6F8;padding-top:10px;">{{heading}}</div>
+
+      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:25px;color:#D3D7DE;padding-top:12px;">{{lead}}</div>
+
+      <!-- the button -->
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:28px auto 0 auto;">
+        <tr><td align="center" bgcolor="#F4CF6E" style="background-color:#F4CF6E;border-radius:12px;">
+          <a href="{{url}}" style="display:inline-block;padding:15px 34px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#1A1404;text-decoration:none;border-radius:12px;">{{button}}</a>
+        </td></tr>
+      </table>
+
+      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:22px;color:#A2A8B3;padding-top:14px;text-align:center;">The link works once and for 15 minutes.</div>
+
+    </td></tr>
+
+    <!-- fallback link and footer -->
+    <tr><td style="padding:22px 6px 0 6px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;color:#A2A8B3;">
+      Button not working? Open this link:<br>
+      <a href="{{url}}" style="color:#A3CDF2;word-break:break-all;">{{url}}</a>
+    </td></tr>
+    <tr><td style="padding:18px 6px 0 6px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;color:#666C78;">
+      {{note}}<br>
+      One Hint Away &middot; DSA patterns, one hint at a time &middot; <a href="https://www.instagram.com/onehintaway/" style="color:#A2A8B3;">@onehintaway</a>
+    </td></tr>
+
+  </table>
+
+</td></tr>
+</table>
+</body>
+</html>

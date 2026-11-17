@@ -20,6 +20,7 @@ import org.springframework.validation.annotation.Validated;
  * @param adminToken secret for the posts sync; blank switches the sync off
  * @param publicUrl the API's own public address, used in confirmation links
  * @param siteUrl the site's address; a reader who opens a confirmation link is sent to a page there
+ * @param auth sign-in settings
  * @param mail who emails come from, and the Resend key; a blank key means emails go to the log
  */
 @ConfigurationProperties("app")
@@ -31,12 +32,22 @@ public record AppProperties(
 		@NotBlank String publicUrl,
 		@NotBlank String siteUrl,
 		@NotNull @Valid Rate rate,
+		@NotNull @Valid Auth auth,
 		@NotNull @Valid Mail mail) {
 
 	public record Mail(String resendApiKey, @NotBlank String from) {
 	}
 
-	public record Rate(@Min(1) int countPerMinute, @Min(1) int subscribePerHour, @Min(1) int adminPerMinute) {
+	/** @param cookieSecure false only for plain-http local runs in browsers that refuse Secure cookies there */
+	public record Auth(boolean cookieSecure) {
+	}
+
+	/**
+	 * @param linkPerHour sign-in links one address (IP) may ask for in an hour
+	 * @param linkPerEmailPerHour sign-in links one email address is sent in an hour
+	 */
+	public record Rate(@Min(1) int countPerMinute, @Min(1) int subscribePerHour, @Min(1) int adminPerMinute,
+			@Min(1) int linkPerHour, @Min(1) int linkPerEmailPerHour) {
 	}
 
 }

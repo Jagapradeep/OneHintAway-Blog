@@ -1157,3 +1157,84 @@ body:has(.vz-one) .back-button { display: none; }
 .confirm-steps-status.is-here { color: var(--gold); font-weight: 600; }
 @media (max-width: 420px) { .confirm-steps { gap: 6px; } .confirm-steps-cell { font-size: 0.82rem; } }
 .subscribed h1 { margin-top: 28px; }
+
+/* Accounts (sign in by emailed link, progress). Every class here starts with acct-.
+   Present only when the site is built with NEXT_PUBLIC_ACCOUNTS=on. */
+.site-header.has-search.has-acct { grid-template-columns: 1fr auto auto auto auto; grid-template-areas: "brand nav search acct theme"; }
+.acct { grid-area: acct; }
+.acct-btn {
+  display: flex; align-items: center; justify-content: center; gap: 7px; height: 40px; min-width: 40px; padding: 0 14px 0 11px;
+  border: 1.5px solid var(--border-strong); border-radius: 999px; background: var(--card-top);
+  color: var(--text-2); font: inherit; font-weight: 700; font-size: 0.92rem; white-space: nowrap; cursor: pointer;
+}
+.acct-btn.is-in { padding: 0; width: 40px; color: var(--gold); border-color: var(--accent-border); }
+.acct-btn:hover, .acct-btn[aria-expanded="true"] { color: var(--gold); border-color: var(--accent-border); }
+.acct-btn svg { flex: none; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+/* Hangs from the header, like the search panel, so it can never run off a phone's edge. */
+.acct-panel {
+  position: absolute; z-index: 60; top: calc(100% + 8px);
+  right: max(var(--gutter), env(safe-area-inset-right)); left: max(var(--gutter), env(safe-area-inset-left));
+  max-width: 360px; margin-left: auto; padding: 18px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius);
+  background: var(--card-bottom); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+.acct-title { margin: 0; font-family: var(--title); font-weight: 700; font-size: 1.15rem; color: var(--text); }
+.acct-lead { margin: 6px 0 0; font-size: 0.95rem; color: var(--text-2); }
+.acct-email { margin: 6px 0 0; font-family: var(--mono); font-size: 0.9rem; color: var(--steel); overflow-wrap: anywhere; }
+.acct-form { display: flex; flex-direction: column; margin-top: 14px; max-width: 420px; }
+.acct-label { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--steel); }
+.acct-input {
+  width: 100%; margin-top: 8px; padding: 10px 12px; font: inherit; font-size: 1rem; color: var(--text);
+  background: var(--num-bg); border: 1px solid var(--num-border); border-radius: 10px;
+}
+.acct-input::placeholder { color: var(--muted); }
+.acct-input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.acct-check { display: flex; align-items: center; gap: 9px; margin-top: 12px; font-size: 0.95rem; color: var(--text-2); cursor: pointer; }
+.acct-check input { flex: none; width: 17px; height: 17px; margin: 0; accent-color: var(--gold); }
+.acct-submit {
+  margin-top: 14px; padding: 10px 14px; font: inherit; font-weight: 700; font-size: 0.95rem; cursor: pointer;
+  color: var(--button-text); background: var(--button-bg); border: 1px solid var(--accent-border); border-radius: 10px;
+}
+.acct-submit:hover { color: var(--button-hover-text); }
+.acct-submit:disabled, .acct-actions button:disabled { opacity: 0.6; cursor: default; }
+.acct-note { margin: 10px 0 0; min-height: 1.4em; font-size: 0.9rem; color: var(--text-2); }
+.acct-small { margin: 6px 0 0; font-size: 0.85rem; color: var(--muted); }
+.acct-small a { color: var(--steel); }
+.acct-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.acct-actions button {
+  padding: 9px 12px; font: inherit; font-weight: 600; font-size: 0.95rem; text-align: left; cursor: pointer;
+  color: var(--text); background: var(--card-top); border: 1px solid var(--border-strong); border-radius: 10px;
+}
+.acct-actions button:hover:not(:disabled) { color: var(--gold); border-color: var(--accent-border); }
+/* The pages: /sign-in/, /signed-in/, /privacy/ */
+.acct-page h1 { margin-top: 28px; }
+.acct-page-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.acct-page-actions button.button { font: inherit; font-weight: 700; cursor: pointer; }
+.acct-page-actions button.button:disabled { opacity: 0.6; cursor: default; }
+.acct-wait { color: var(--muted); }
+/* "Mark as done" at the end of a post, and the tick on a post card */
+.acct-done { margin-top: 40px; }
+.acct-done-btn {
+  display: inline-flex; align-items: center; gap: 10px; padding: 10px 18px 10px 12px; font: inherit; font-weight: 700; cursor: pointer;
+  color: var(--text); background: var(--card-top); border: 1.5px solid var(--border-strong); border-radius: 999px;
+}
+.acct-done-btn:hover { border-color: var(--accent-border); }
+.acct-done-btn.is-done { color: var(--gold); border-color: var(--accent-border); }
+.acct-done-box {
+  display: grid; place-items: center; width: 22px; height: 22px; font-size: 0.9rem; line-height: 1;
+  border: 1.5px solid var(--border-strong); border-radius: 6px;
+}
+.acct-done-btn.is-done .acct-done-box { border-color: var(--gold); }
+.acct-tick {
+  flex: none; align-self: center; display: grid; place-items: center; width: 24px; height: 24px;
+  font-size: 0.85rem; font-weight: 700; line-height: 1; color: var(--gold);
+  border: 1.5px solid var(--accent-border); border-radius: 50%;
+}
+@media (max-width: 640px) {
+  .site-header.has-search.has-acct { grid-template-columns: 1fr auto auto auto; grid-template-areas: "brand search acct theme" "nav nav nav nav"; }
+}
+/* Narrow phones: the header button keeps its icon and drops the words (its label stays for screen readers). */
+@media (max-width: 480px) {
+  .acct-btn { padding: 0; width: 40px; }
+  .acct-btn-text { display: none; }
+}

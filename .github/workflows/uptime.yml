@@ -1,0 +1,36 @@
+name: Uptime
+
+# An outside check: every 15 minutes GitHub asks the site, the API and Umami whether they
+# are up. A failed run emails the repository owner (GitHub notification settings ->
+# Actions -> "Send notifications for failed workflows only").
+#
+# Limits worth knowing: GitHub may start a scheduled run several minutes late, and it
+# switches schedules off after 60 days without any commit to the repository.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ask each address
+        run: |
+          fail=0
+          check() {
+            # 3 tries, 10 s apart, so one dropped connection is not an alarm.
+            if curl --fail --silent --show-error --output /dev/null --max-time 15 --retry 2 --retry-delay 10 --retry-all-errors "$2"; then
+              echo "ok    $1"
+            else
+              echo "::error::$1 is not answering ($2)"
+              fail=1
+            fi
+          }
+          check "Site"  https://onehintaway.com/
+          check "API"   https://api.onehintaway.com/actuator/health/readiness
+          check "Umami" https://stats.onehintaway.com/api/heartbeat
+          exit $fail

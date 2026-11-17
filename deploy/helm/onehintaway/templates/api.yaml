@@ -9,6 +9,7 @@ data:
   POSTGRES_USER: {{ .Values.postgres.user | quote }}
   CORS_ORIGINS: {{ .Values.api.corsOrigins | quote }}
   PUBLIC_URL: {{ .Values.api.publicUrl | quote }}
+  SITE_URL: {{ .Values.api.siteUrl | quote }}
   MAIL_FROM: {{ .Values.api.mailFrom | quote }}
   # Behind Traefik: take the reader's address from X-Forwarded-For.
   FORWARD_HEADERS: native

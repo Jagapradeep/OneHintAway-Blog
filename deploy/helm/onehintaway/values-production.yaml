@@ -5,6 +5,7 @@ api:
   host: api.onehintaway.com
   corsOrigins: https://onehintaway.com
   publicUrl: https://api.onehintaway.com
+  siteUrl: https://onehintaway.com
 umami:
   host: stats.onehintaway.com
 ingress:

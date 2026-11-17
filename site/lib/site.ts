@@ -1,5 +1,9 @@
 export const INSTAGRAM_URL = "https://www.instagram.com/onehintaway/";
 
+// The newsletter sign-up form shows only when this is "on" (and the API address is set).
+// Keep it off until the API can really send the confirmation email (RESEND_API_KEY).
+export const SIGNUP_ON = process.env.NEXT_PUBLIC_SIGNUP === "on";
+
 // Umami analytics (self-hosted, no cookies). Both are public values set at build time;
 // leave either one empty and no analytics script is added to the pages.
 export const UMAMI_URL = (process.env.NEXT_PUBLIC_UMAMI_URL ?? "").replace(/\/+$/, "");

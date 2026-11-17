@@ -31,6 +31,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -39,6 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest(properties = { "app.visitor-salt=test-salt", "app.admin-token=test-token",
 		"app.cors-origins=https://onehintaway.com", "app.public-url=https://api.test",
+		"app.site-url=https://onehintaway.com/",
 		"app.rate.subscribe-per-hour=3", "app.rate.admin-per-minute=1000" })
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -168,8 +170,9 @@ class ApiIntegrationTests {
 		assertThat(count("subscribers")).isEqualTo(1);
 
 		String path = link.getValue().substring("https://api.test".length());
-		this.mvc.perform(get(path)).andExpect(status().isOk()).andExpect(content().string("You're subscribed to One Hint Away."));
-		this.mvc.perform(get(path)).andExpect(status().isOk());
+		// The reader is sent to the welcome page on the site; opening the link twice is fine.
+		this.mvc.perform(get(path)).andExpect(status().isSeeOther()).andExpect(redirectedUrl(SITE + "/subscribed/"));
+		this.mvc.perform(get(path)).andExpect(status().isSeeOther()).andExpect(redirectedUrl(SITE + "/subscribed/"));
 		assertThat(subscriberStatus()).isEqualTo("CONFIRMED");
 		assertThat(this.jdbc.sql("select confirmed_at is not null from subscribers").query(Boolean.class).single()).isTrue();
 
@@ -182,7 +185,9 @@ class ApiIntegrationTests {
 	void badAddressesAndBadTokensAreRefused() throws Exception {
 		subscribe("not-an-email", this.address).andExpect(status().isBadRequest());
 		subscribe("", this.address).andExpect(status().isBadRequest());
-		this.mvc.perform(get("/api/v1/subscribers/confirm").param("token", "made-up")).andExpect(status().isNotFound());
+		this.mvc.perform(get("/api/v1/subscribers/confirm").param("token", "made-up"))
+			.andExpect(status().isSeeOther())
+			.andExpect(redirectedUrl(SITE + "/subscribed/expired/"));
 		assertThat(count("subscribers")).isZero();
 	}
 

@@ -37,7 +37,30 @@ export const dynamicParams = false;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = getPost((await params).slug);
-  return post ? { title: `${post.title} | One Hint Away`, description: post.summary } : {};
+  if (!post) return {};
+  // Search title: the post's name, then what the reader gets ("Kadane's algorithm:
+  // Kadane's algorithm in 4 languages" would repeat itself, so the pattern is added
+  // only when it differs from the title).
+  const lead = post.pattern.toLowerCase() === post.title.toLowerCase() ? post.title : `${post.title}: ${post.pattern}`;
+  const title = `${lead} in Java, Python, C++ and JavaScript | One Hint Away`;
+  const url = `/posts/${post.slug}/`;
+  // The cover slide is the link preview, unless slide 1 is the video.
+  const cover = post.video === 1 ? undefined : `/posts/${pad(post.number)}/slide-01.png`;
+  return {
+    title,
+    description: post.summary,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      siteName: "One Hint Away",
+      title: post.title,
+      description: post.summary,
+      url,
+      publishedTime: post.published,
+      ...(cover && { images: [{ url: cover, width: 1080, height: 1350, alt: post.title }] }),
+    },
+    twitter: { card: "summary_large_image" },
+  };
 }
 
 export default async function PostPage({ params }: Props) {

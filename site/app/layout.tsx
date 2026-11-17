@@ -7,7 +7,8 @@ import { NavLinks } from "@/components/NavLinks";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SearchBox } from "@/components/SearchBox";
 import { API_URL } from "@/lib/api";
-import { INSTAGRAM_URL, UMAMI_URL, UMAMI_WEBSITE_ID } from "@/lib/site";
+import { SignupForm } from "@/components/SignupForm";
+import { INSTAGRAM_URL, SIGNUP_ON, SITE_URL, UMAMI_URL, UMAMI_WEBSITE_ID } from "@/lib/site";
 import { themeScript } from "@/lib/theme";
 import "./globals.css";
 
@@ -18,10 +19,25 @@ const sora = Sora({ subsets: ["latin"], weight: ["600", "700", "800"], variable:
 const manrope = Manrope({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-body" });
 const geistMono = Geist_Mono({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-mono" });
 
+const DESCRIPTION =
+  "A free, beginner-friendly way to learn data structures and algorithms: one pattern at a time, with slides, dry runs, tested code in Java, Python, C++ and JavaScript, and practice problems.";
+
 export const metadata: Metadata = {
+  // Makes every relative image and link in the metadata absolute, as link previews need.
+  metadataBase: new URL(SITE_URL),
   title: "One Hint Away · Learn DSA one pattern at a time",
-  description:
-    "A free, beginner-friendly way to learn data structures and algorithms: one pattern at a time, with slides, dry runs, tested code in Java, Python, C++ and JavaScript, and practice problems.",
+  description: DESCRIPTION,
+  // What WhatsApp, LinkedIn, X and others show when a link is shared. Posts override
+  // the image with their own cover slide.
+  openGraph: {
+    type: "website",
+    siteName: "One Hint Away",
+    title: "One Hint Away · Learn DSA one pattern at a time",
+    description: DESCRIPTION,
+    url: "/",
+    images: [{ url: "/posts/00/slide-01.png", width: 1080, height: 1350, alt: "One Hint Away" }],
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 // Phone browser bar colour follows the device theme.
@@ -71,6 +87,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 ONE HINT AWAY
               </Link>
               <p>Learn data structures and algorithms one pattern at a time. Free, with code in four languages.</p>
+              {API_URL && SIGNUP_ON && <SignupForm />}
             </div>
             <nav className="footer-links" aria-label="Footer">
               <p className="footer-heading">Learn</p>

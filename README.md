@@ -574,7 +574,8 @@ Slides are 1080 × 1350 (Instagram 4:5) with 80 px side margins.
 - [x] **Cluster**: k3s on one server with Traefik, cert-manager, Umami analytics, Prometheus and Grafana; the API is live at `api.onehintaway.com`
 - [x] **CI/CD**: a push to `main` tests the API, builds the image, pushes it to GHCR and rolls it out, with automatic rollback
 - [x] **Operations**: nightly database backups to Cloudflare R2 (restore tested), Prometheus alerts, a runbook
-- [ ] Newsletter (Listmonk + Amazon SES), a sign-up form, an outside uptime check
+- [x] An outside uptime check every 15 minutes, link-preview images and search titles on every post, a sign-up form (hidden until email sending is set up)
+- [ ] Newsletter (Listmonk + Amazon SES)
 
 The site never depends on the cluster: if the API is down, every post still loads, and only the extras pause.
 

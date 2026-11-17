@@ -19,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
  * @param visitorSalt secret mixed into visitor hashes; without it hashes could be reversed by guessing addresses
  * @param adminToken secret for the posts sync; blank switches the sync off
  * @param publicUrl the API's own public address, used in confirmation links
+ * @param siteUrl the site's address; a reader who opens a confirmation link is sent to a page there
  * @param mail who emails come from, and the Resend key; a blank key means emails go to the log
  */
 @ConfigurationProperties("app")
@@ -28,6 +29,7 @@ public record AppProperties(
 		@NotBlank String visitorSalt,
 		String adminToken,
 		@NotBlank String publicUrl,
+		@NotBlank String siteUrl,
 		@NotNull @Valid Rate rate,
 		@NotNull @Valid Mail mail) {
 

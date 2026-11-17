@@ -11,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -36,6 +37,9 @@ class ResendMailSenderTests {
 			.andExpect(jsonPath("$.from").value("One Hint Away <hello@onehintaway.com>"))
 			.andExpect(jsonPath("$.to[0]").value("reader@example.com"))
 			.andExpect(jsonPath("$.text", containsString("https://api.test/confirm?token=abc")))
+			.andExpect(jsonPath("$.subject").value("You're one click away"))
+			.andExpect(jsonPath("$.html", containsString("href=\"https://api.test/confirm?token=abc\"")))
+			.andExpect(jsonPath("$.html", not(containsString("{{confirmUrl}}"))))
 			.andRespond(withSuccess("{\"id\": \"1\"}", MediaType.APPLICATION_JSON));
 
 		this.sender.sendConfirmation("reader@example.com", "https://api.test/confirm?token=abc");

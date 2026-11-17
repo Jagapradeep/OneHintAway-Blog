@@ -6,6 +6,7 @@ api:
   host: api.localhost
   corsOrigins: http://localhost:3000
   publicUrl: http://api.localhost:8081
+  siteUrl: http://localhost:3000
 umami:
   host: stats.localhost
 ingress:

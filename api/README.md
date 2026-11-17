@@ -73,6 +73,7 @@ git-ignored; real environment variables win over the file.
 | `ADMIN_TOKEN` | Secret for the posts sync. Blank switches the sync off (it answers 503) | blank |
 | `CORS_ORIGINS` | Site addresses allowed to call from a browser, comma-separated | `http://localhost:3000` |
 | `PUBLIC_URL` | The API's own public address, used in confirmation links | `http://localhost:8080` |
+| `SITE_URL` | The site's address. Opening a confirmation link redirects to `/subscribed/` there (or `/subscribed/expired/` for a bad link) | `http://localhost:3000` |
 | `RESEND_API_KEY` | Sends confirmation emails through Resend. Blank writes the link to the log instead | blank |
 | `MAIL_FROM` | The sender; its domain must be verified in Resend | `One Hint Away <hello@onehintaway.com>` |
 | `FORWARD_HEADERS` | Set to `native` behind a proxy, or every reader shares the proxy's address and counts as one visitor | `none` |

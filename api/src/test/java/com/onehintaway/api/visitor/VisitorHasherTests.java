@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class VisitorHasherTests {
 
 	private static VisitorHasher hasher(String salt, String instant) {
-		AppProperties props = new AppProperties(List.of("https://onehintaway.com"), salt, "", "https://api.test",
+		AppProperties props = new AppProperties(List.of("https://onehintaway.com"), salt, "", "https://api.test", "https://onehintaway.com",
 				new AppProperties.Rate(60, 5, 10), new AppProperties.Mail("", "test@example.com"));
 		return new VisitorHasher(props, Clock.fixed(Instant.parse(instant), ZoneOffset.UTC));
 	}

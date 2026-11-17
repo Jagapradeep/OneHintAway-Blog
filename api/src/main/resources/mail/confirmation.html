@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>Confirm your One Hint Away subscription</title>
+</head>
+<!--
+  The confirmation email. Email apps ignore most modern CSS, so this is tables and inline
+  styles only: no web fonts, no SVG, no flexbox. It is drawn like the site's visualizer:
+  an array of three cells with a pointer on the one the reader is at.
+  {{confirmUrl}} is replaced (HTML-escaped) by ResendMailSender.
+-->
+<body style="margin:0;padding:0;background-color:#08090B;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#08090B;">One click and you're in. Index 1 of 2.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#08090B" style="background-color:#08090B;">
+<tr><td align="center" style="padding:32px 16px;">
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+
+    <!-- brand -->
+    <tr><td style="padding:0 4px 20px 4px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td style="padding-right:12px;"><img src="https://onehintaway.com/apple-icon.png" width="36" height="36" alt="" style="display:block;border:0;border-radius:9px;"></td>
+        <td style="font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:13px;font-weight:bold;letter-spacing:3px;color:#F5F6F8;">ONE HINT AWAY</td>
+      </tr></table>
+    </td></tr>
+
+    <!-- card -->
+    <tr><td bgcolor="#15171C" style="background-color:#15171C;border:1px solid #2B2F37;border-radius:16px;padding:36px 28px 32px 28px;">
+
+      <div style="font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:12px;letter-spacing:2px;color:#A3CDF2;">ONE STEP LEFT</div>
+
+      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:30px;line-height:36px;font-weight:800;color:#F5F6F8;padding-top:10px;">You're one click away.</div>
+
+      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:25px;color:#D3D7DE;padding-top:12px;">Every pattern on the site is walked one step at a time, with a pointer showing where you are. So here is where you are:</div>
+
+      <!-- the array: three cells, a pointer under index 1 -->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding-top:26px;">
+        <tr>
+          <td width="33%" style="padding:0 4px 0 0;">
+            <div style="border:1px solid #3A3F49;border-radius:10px;background-color:#1C1F25;padding:16px 4px;text-align:center;font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:14px;color:#A2A8B3;"><span style="color:#A3CDF2;">&#10003;</span> sign up</div>
+          </td>
+          <td width="34%" style="padding:0 4px;">
+            <div style="border:2px solid #F4CF6E;border-radius:10px;background-color:#241D0D;padding:15px 4px;text-align:center;font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:14px;font-weight:bold;color:#F4CF6E;">confirm</div>
+          </td>
+          <td width="33%" style="padding:0 0 0 4px;">
+            <div style="border:1px dashed #3A3F49;border-radius:10px;padding:16px 4px;text-align:center;font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:14px;color:#666C78;">learn</div>
+          </td>
+        </tr>
+        <tr style="font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:12px;color:#666C78;">
+          <td align="center" style="padding-top:8px;">0</td>
+          <td align="center" style="padding-top:8px;color:#A2A8B3;">1</td>
+          <td align="center" style="padding-top:8px;">2</td>
+        </tr>
+        <tr style="font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;">
+          <td></td>
+          <td align="center" style="padding-top:2px;font-size:13px;line-height:16px;color:#F4CF6E;">&#9650;<br><span style="font-size:12px;letter-spacing:1px;">you</span></td>
+          <td></td>
+        </tr>
+      </table>
+
+      <!-- the button -->
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:28px auto 0 auto;">
+        <tr><td align="center" bgcolor="#F4CF6E" style="background-color:#F4CF6E;border-radius:12px;">
+          <a href="{{confirmUrl}}" style="display:inline-block;padding:15px 34px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#1A1404;text-decoration:none;border-radius:12px;">Move the pointer &nbsp;&rarr;</a>
+        </td></tr>
+      </table>
+
+      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:22px;color:#A2A8B3;padding-top:14px;text-align:center;">That confirms your email. Nothing else happens until you click.</div>
+
+      <!-- the promise, as pseudocode -->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding-top:30px;">
+        <tr><td style="border:1px solid #2B2F37;border-radius:12px;background-color:#0E1013;">
+          <div style="padding:10px 16px;border-bottom:1px solid #2B2F37;font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:11px;letter-spacing:2px;color:#A2A8B3;">WHAT HAPPENS NEXT &middot; PSEUDOCODE</div>
+          <div style="padding:14px 16px 16px 16px;font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:14px;line-height:23px;color:#D3D7DE;">
+            <span style="color:#F4CF6E;">if</span> you confirm<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;send each new pattern, and nothing else<br>
+            <span style="color:#F4CF6E;">else</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;send nothing, ever
+          </div>
+        </td></tr>
+      </table>
+
+    </td></tr>
+
+    <!-- fallback link and footer -->
+    <tr><td style="padding:22px 6px 0 6px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;color:#A2A8B3;">
+      Button not working? Open this link:<br>
+      <a href="{{confirmUrl}}" style="color:#A3CDF2;word-break:break-all;">{{confirmUrl}}</a>
+    </td></tr>
+    <tr><td style="padding:18px 6px 0 6px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;color:#666C78;">
+      You got this because someone entered this address at <a href="https://onehintaway.com" style="color:#A2A8B3;">onehintaway.com</a>. Not you? Ignore it and you won't hear from us.<br>
+      One Hint Away &middot; DSA patterns, one hint at a time &middot; <a href="https://www.instagram.com/onehintaway/" style="color:#A2A8B3;">@onehintaway</a>
+    </td></tr>
+
+  </table>
+
+</td></tr>
+</table>
+</body>
+</html>

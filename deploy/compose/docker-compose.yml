@@ -47,6 +47,7 @@ services:
       ADMIN_TOKEN: ${ADMIN_TOKEN:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+      SITE_URL: ${SITE_URL:-http://localhost:3000}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       MAIL_FROM: ${MAIL_FROM:-One Hint Away <hello@onehintaway.com>}
     ports:

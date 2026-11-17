@@ -10,11 +10,11 @@
 <!--
   The confirmation email. Email apps ignore most modern CSS, so this is tables and inline
   styles only: no web fonts, no SVG, no flexbox. It is drawn like the site's visualizer:
-  an array of three cells with a pointer on the one the reader is at.
+  three steps in a row, with the one the reader is on lit up and labelled.
   {{confirmUrl}} is replaced (HTML-escaped) by ResendMailSender.
 -->
 <body style="margin:0;padding:0;background-color:#08090B;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#08090B;">One click and you're in. Index 1 of 2.</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#08090B;">Confirm your email to get new patterns from One Hint Away.</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#08090B" style="background-color:#08090B;">
 <tr><td align="center" style="padding:32px 16px;">
 
@@ -35,41 +35,36 @@
 
       <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:30px;line-height:36px;font-weight:800;color:#F5F6F8;padding-top:10px;">You're one click away.</div>
 
-      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:25px;color:#D3D7DE;padding-top:12px;">Every pattern on the site is walked one step at a time, with a pointer showing where you are. So here is where you are:</div>
+      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:25px;color:#D3D7DE;padding-top:12px;">Thanks for signing up. There is one step left: confirm that this email address is yours.</div>
 
-      <!-- the array: three cells, a pointer under index 1 -->
+      <!-- three steps: done, you are here, next -->
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding-top:26px;">
         <tr>
           <td width="33%" style="padding:0 4px 0 0;">
-            <div style="border:1px solid #3A3F49;border-radius:10px;background-color:#1C1F25;padding:16px 4px;text-align:center;font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:14px;color:#A2A8B3;"><span style="color:#A3CDF2;">&#10003;</span> sign up</div>
+            <div style="border:1px solid #3A3F49;border-radius:10px;background-color:#1C1F25;padding:16px 4px;text-align:center;font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:14px;color:#A2A8B3;"><span style="color:#A3CDF2;">&#10003;</span> Signed up</div>
           </td>
           <td width="34%" style="padding:0 4px;">
-            <div style="border:2px solid #F4CF6E;border-radius:10px;background-color:#241D0D;padding:15px 4px;text-align:center;font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:14px;font-weight:bold;color:#F4CF6E;">confirm</div>
+            <div style="border:2px solid #F4CF6E;border-radius:10px;background-color:#241D0D;padding:15px 4px;text-align:center;font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:14px;font-weight:bold;color:#F4CF6E;">Confirm email</div>
           </td>
           <td width="33%" style="padding:0 0 0 4px;">
-            <div style="border:1px dashed #3A3F49;border-radius:10px;padding:16px 4px;text-align:center;font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:14px;color:#666C78;">learn</div>
+            <div style="border:1px dashed #3A3F49;border-radius:10px;padding:16px 4px;text-align:center;font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:14px;color:#666C78;">Start learning</div>
           </td>
         </tr>
-        <tr style="font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:12px;color:#666C78;">
-          <td align="center" style="padding-top:8px;">0</td>
-          <td align="center" style="padding-top:8px;color:#A2A8B3;">1</td>
-          <td align="center" style="padding-top:8px;">2</td>
-        </tr>
-        <tr style="font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;">
-          <td></td>
-          <td align="center" style="padding-top:2px;font-size:13px;line-height:16px;color:#F4CF6E;">&#9650;<br><span style="font-size:12px;letter-spacing:1px;">you</span></td>
-          <td></td>
+        <tr style="font-family:Consolas,'SFMono-Regular',Menlo,'Liberation Mono',monospace;font-size:11px;letter-spacing:1px;">
+          <td align="center" style="padding-top:8px;color:#A2A8B3;">DONE</td>
+          <td align="center" style="padding-top:8px;color:#F4CF6E;font-weight:bold;">&#9650; YOU ARE HERE</td>
+          <td align="center" style="padding-top:8px;color:#666C78;">NEXT</td>
         </tr>
       </table>
 
       <!-- the button -->
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:28px auto 0 auto;">
         <tr><td align="center" bgcolor="#F4CF6E" style="background-color:#F4CF6E;border-radius:12px;">
-          <a href="{{confirmUrl}}" style="display:inline-block;padding:15px 34px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#1A1404;text-decoration:none;border-radius:12px;">Move the pointer &nbsp;&rarr;</a>
+          <a href="{{confirmUrl}}" style="display:inline-block;padding:15px 34px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#1A1404;text-decoration:none;border-radius:12px;">Confirm my email</a>
         </td></tr>
       </table>
 
-      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:22px;color:#A2A8B3;padding-top:14px;text-align:center;">That confirms your email. Nothing else happens until you click.</div>
+      <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:22px;color:#A2A8B3;padding-top:14px;text-align:center;">One click, and you're subscribed.</div>
 
       <!-- the promise, as pseudocode -->
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding-top:30px;">

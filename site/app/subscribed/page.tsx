@@ -13,7 +13,7 @@ export default function SubscribedPage() {
   return (
     <article className="prose subscribed">
       <h1 className="chrome">You&apos;re in.</h1>
-      <p className="lead">Your email is confirmed, and the pointer has moved.</p>
+      <p className="lead">Your email is confirmed. You&apos;re subscribed.</p>
 
       <ConfirmSteps at={2} />
 

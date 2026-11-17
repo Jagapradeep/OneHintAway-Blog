@@ -13,7 +13,7 @@ export default function ExpiredPage() {
   return (
     <article className="prose subscribed">
       <h1 className="chrome">That link didn&apos;t work.</h1>
-      <p className="lead">The pointer is still on confirm.</p>
+      <p className="lead">Your email is not confirmed yet.</p>
 
       <ConfirmSteps at={1} />
 

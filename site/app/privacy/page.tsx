@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       <h2>What is stored when you sign in</h2>
       <ul>
         <li>
-          <strong>Your email address.</strong> It is how you sign in: we email you a link, and there is no password.
+          <strong>Your email address.</strong> It is how you sign in: we email you a code, and there is no password.
         </li>
         <li>
           <strong>The lessons you marked as done</strong>, and when you marked each one.
@@ -35,15 +35,16 @@ export default function PrivacyPage() {
           The stored copy can&apos;t be turned back into the code.
         </li>
         <li>
-          <strong>Sign-in links, for a short time.</strong> Each link is kept as a scrambled copy next to your email
-          address. A link stops working after 15 minutes or after one use, and old ones are removed.
+          <strong>Sign-in codes, for a short time.</strong> Each code is kept as a scrambled copy next to your email
+          address. A code stops working after 15 minutes, after one use or after five wrong tries, and old ones are
+          removed.
         </li>
       </ul>
       <p>Nothing else: no name, no password, and no list of the pages you read.</p>
 
       <h2>Why</h2>
       <p>
-        The email address is needed to send the sign-in link and to know it is you next time. The finished lessons
+        The email address is needed to send the sign-in code and to know it is you next time. The finished lessons
         are what you asked the site to remember. The device record is what keeps you signed in for 30 days after
         your last visit. Your address is not sold or shared, and signing in does not put you on any mailing list.
       </p>
@@ -58,9 +59,15 @@ export default function PrivacyPage() {
 
       <h2>The newsletter is separate</h2>
       <p>
-        You get new patterns by email only if you ask for them with the form at the bottom of the page, and then
-        confirm through the email we send. Signing in does not sign you up. Deleting your account does not change the
-        newsletter. To stop it, write to <a href="mailto:hello@onehintaway.com">hello@onehintaway.com</a>.
+        You get new patterns by email only if you ask for them. Signed out, enter your email at the bottom of any page
+        and tap the button in the email we send. Signed in, one click on Subscribe is enough, because signing in already
+        proved the address is yours. Signing in alone does not sign you up, and deleting your account does not change
+        the newsletter.
+      </p>
+      <p>
+        To stop: signed in, click Unsubscribe at the bottom of the page or in the account menu. Signed out, enter your
+        email at the bottom of the page and we email you an unsubscribe link. Unsubscribing removes your address from
+        the list.
       </p>
 
       <h2>Visits and counts</h2>
@@ -79,7 +86,7 @@ export default function PrivacyPage() {
       <h2>How to delete it all</h2>
       <ol>
         <li>Sign in, open the account button at the top right, and choose Delete account.</li>
-        <li>We email you a fresh link, to make sure it is you. Open it and confirm.</li>
+        <li>We email you a code, to make sure it is you. Type it in and confirm.</li>
       </ol>
       <p>
         That removes your email address, every device record and your finished lessons straight away. Nightly backups

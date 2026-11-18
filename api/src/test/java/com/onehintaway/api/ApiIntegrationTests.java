@@ -176,9 +176,24 @@ class ApiIntegrationTests {
 		assertThat(subscriberStatus()).isEqualTo("CONFIRMED");
 		assertThat(this.jdbc.sql("select confirmed_at is not null from subscribers").query(Boolean.class).single()).isTrue();
 
-		// Already confirmed: same answer to the caller, no third email.
+		// Already confirmed: same answer to the caller; no third confirmation, but a note to
+		// the address's owner with a way to unsubscribe (the page on the site posts the token).
 		subscribe("reader@example.com", this.address).andExpect(status().isAccepted());
 		verify(this.mail, times(2)).sendConfirmation(any(), any());
+		ArgumentCaptor<String> out = ArgumentCaptor.forClass(String.class);
+		verify(this.mail).sendAlreadySubscribed(eq("reader@example.com"), out.capture());
+		String token = link.getValue().substring(link.getValue().indexOf("token=") + 6);
+		assertThat(out.getValue()).isEqualTo(SITE + "/unsubscribe/#token=" + token);
+
+		// The unsubscribe page posts the token: the address leaves the list. Twice is fine.
+		for (int i = 0; i < 2; i++) {
+			this.mvc.perform(post("/api/v1/subscribers/unsubscribe").with(from("203.0.113.200", "Firefox"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"token\": \"" + token + "\"}")).andExpect(status().isNoContent());
+		}
+		assertThat(count("subscribers")).isZero();
+		// Opening the link with GET does nothing.
+		this.mvc.perform(get("/api/v1/subscribers/unsubscribe").param("token", token)).andExpect(status().is4xxClientError());
 	}
 
 	@Test

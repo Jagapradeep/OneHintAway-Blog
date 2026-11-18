@@ -41,11 +41,11 @@ class AuthController {
 		this.cookie = cookie;
 	}
 
-	/** {@code purpose} is "delete" when a signed-in reader asks for the link that allows deleting the account. */
-	record LinkRequest(@Email @Size(max = 254) String email, @Pattern(regexp = "delete") String purpose) {
+	/** {@code purpose} is "delete" when a signed-in reader asks for the code that allows deleting the account. */
+	record CodeRequest(@Email @Size(max = 254) String email, @Pattern(regexp = "delete") String purpose) {
 	}
 
-	record TokenRequest(@NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{43}") String token) {
+	record CodeAnswer(@NotBlank @Email @Size(max = 254) String email, @NotBlank @Pattern(regexp = "[0-9]{6}") String code) {
 	}
 
 	record Me(String email) {
@@ -55,28 +55,28 @@ class AuthController {
 	}
 
 	/**
-	 * Always 202 for a well-formed address, known or not. The delete link goes only to the
+	 * Always 202 for a well-formed address, known or not. The delete code goes only to the
 	 * signed-in reader's own address, so it can't be used to send alarming email to others.
 	 */
-	@PostMapping("/link")
+	@PostMapping("/code")
 	@ResponseStatus(HttpStatus.ACCEPTED)
-	void link(@RequestBody @Valid LinkRequest body, HttpServletRequest request, HttpServletResponse response) {
+	void code(@RequestBody @Valid CodeRequest body, HttpServletRequest request, HttpServletResponse response) {
 		if (body.purpose() != null) {
-			this.accounts.sendLink(this.cookie.require(request, response).email(), Purpose.DELETE_ACCOUNT);
+			this.accounts.sendCode(this.cookie.require(request, response).email(), Purpose.DELETE_ACCOUNT);
 			return;
 		}
 		if (body.email() == null || body.email().isBlank()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "An email address is needed");
 		}
-		this.accounts.sendLink(body.email(), Purpose.SIGN_IN);
+		this.accounts.sendCode(body.email(), Purpose.SIGN_IN);
 	}
 
-	/** Trades a link token for a session cookie. One answer for wrong, expired and used tokens. */
+	/** Trades an emailed code for a session cookie. One answer for wrong, expired, used and dead codes. */
 	@PostMapping("/session")
-	SignedInAnswer exchange(@RequestBody @Valid TokenRequest body, HttpServletResponse response) {
+	SignedInAnswer exchange(@RequestBody @Valid CodeAnswer body, HttpServletResponse response) {
 		response.setHeader("Cache-Control", "no-store");
-		SignedIn signedIn = this.accounts.exchange(body.token())
-			.orElseThrow(() -> new ResponseStatusException(HttpStatus.GONE, "This link has expired or was already used"));
+		SignedIn signedIn = this.accounts.exchange(body.email(), body.code())
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.GONE, "This code is wrong, expired or already used"));
 		this.cookie.set(response, signedIn.sessionToken());
 		return new SignedInAnswer(signedIn.email(), signedIn.purpose() == Purpose.DELETE_ACCOUNT ? "delete" : "sign-in");
 	}

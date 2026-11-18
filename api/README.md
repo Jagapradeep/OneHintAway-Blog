@@ -29,14 +29,18 @@ one from `compose.yaml`. The first run downloads the Postgres image.
 ## Sign in locally
 
 Accounts need no setup beyond the steps above. With `RESEND_API_KEY` blank, no email is
-sent: the link is written to the API's log.
+sent: the code is written to the API's log.
 
 1. Start the site with accounts on, in `site/`:
    `NEXT_PUBLIC_API_URL=http://localhost:8080 NEXT_PUBLIC_ACCOUNTS=on npm run dev`
 2. Press **Sign in** in the header, enter any address, and send.
-3. Find the line `Sign-in link for …: http://localhost:3000/sign-in/#token=…` in the API's
-   log (`docker compose logs api` when it runs in the compose stack) and open that link.
-4. Press **Sign in** on the page. Each link works once and for 15 minutes.
+3. Find the line `Sign-in code for …: 123456` in the API's log (`docker compose logs api`
+   when it runs in the compose stack) and type the code in the panel. Each code works once,
+   for 15 minutes, and dies after five wrong tries.
+
+The footer's newsletter form works the same way: without `RESEND_API_KEY` the confirmation
+link (`Confirmation link for …`) or, for an address already subscribed, the unsubscribe link
+(`Already subscribed: unsubscribe link for …`) is written to the log.
 
 The same by hand. Every request that changes something needs the two headers, or it is
 refused with 403:
@@ -104,8 +108,8 @@ git-ignored; real environment variables win over the file.
 | `RESEND_API_KEY` | Sends confirmation and sign-in emails through Resend. Blank writes the link to the log instead | blank |
 | `MAIL_FROM` | The sender; its domain must be verified in Resend | `One Hint Away <hello@onehintaway.com>` |
 | `SESSION_COOKIE_SECURE` | `true` marks the session cookie HTTPS-only and names it `__Host-ohw_session`. `false` (name `ohw_session`) is only for local runs in a browser that refuses Secure cookies from `http://localhost` | `true` |
-| `LINK_PER_HOUR` | Sign-in links one caller address may ask for in an hour (in memory, per replica) | `10` |
-| `LINK_PER_EMAIL_PER_HOUR` | Sign-in links one email address is sent in an hour (counted in the database) | `3` |
+| `LINK_PER_HOUR` | Sign-in codes one caller address may ask for in an hour (in memory, per replica; the name dates from links) | `10` |
+| `LINK_PER_EMAIL_PER_HOUR` | Sign-in codes one email address is sent in an hour (counted in the database) | `3` |
 | `FORWARD_HEADERS` | Set to `native` behind a proxy, or every reader shares the proxy's address and counts as one visitor | `none` |
 | `MANAGEMENT_SERVER_PORT` | Moves `/actuator` to its own port, to keep metrics off the public address | same port |
 
@@ -134,7 +138,7 @@ the ones a database hasn't seen yet, in order, when the API starts.
   through Amazon SES (Phase 6); confirmed subscribers are handed to it then, and it provides
   the unsubscribe link.
 - Rate-limit buckets are in memory, so each replica keeps its own count (the per-email limit on
-  sign-in links is the exception: it is counted in the database).
+  sign-in codes is the exception: it is counted in the database).
 - Accounts: no Google sign-in yet; a session has no hard end date as long as it is used at
-  least once every 30 days; expired links and sessions are cleared when someone next asks for
-  a link, not on a timer.
+  least once every 30 days; expired codes and sessions are cleared when someone next asks for
+  a code, not on a timer.

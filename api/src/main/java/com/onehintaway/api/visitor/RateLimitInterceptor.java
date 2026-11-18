@@ -68,8 +68,12 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 		if (path.startsWith("/api/v1/admin/")) {
 			return "admin";
 		}
-		if (path.startsWith("/api/v1/auth/link")) {
+		if (path.startsWith("/api/v1/auth/code")) {
 			return "link";
+		}
+		// A signed-in reader switching the newsletter on or off sends no email: an ordinary limit.
+		if (path.startsWith("/api/v1/subscribers/me")) {
+			return "count";
 		}
 		return path.startsWith("/api/v1/subscribers") ? "subscribe" : "count";
 	}

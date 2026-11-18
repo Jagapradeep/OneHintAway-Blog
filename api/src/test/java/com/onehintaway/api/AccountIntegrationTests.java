@@ -56,7 +56,6 @@ class AccountIntegrationTests {
 
 	private static final String COOKIE = "__Host-ohw_session";
 
-	private static final String LINK_START = SITE + "/sign-in/#token=";
 
 	private static final AtomicInteger nextAddress = new AtomicInteger(1);
 
@@ -74,7 +73,7 @@ class AccountIntegrationTests {
 	@BeforeEach
 	void cleanDatabase() throws Exception {
 		this.address = "198.51.100." + nextAddress.getAndIncrement();
-		this.jdbc.sql("truncate table users, login_tokens, sessions, progress, posts").update();
+		this.jdbc.sql("truncate table users, login_tokens, sessions, progress, posts, subscribers").update();
 		this.mvc
 			.perform(put("/api/v1/admin/posts").header(HttpHeaders.AUTHORIZATION, "Bearer test-token")
 				.contentType(MediaType.APPLICATION_JSON)
@@ -90,14 +89,15 @@ class AccountIntegrationTests {
 	// --- the emailed link ---
 
 	@Test
-	void aFirstLinkCreatesTheAccountAndSetsALockedDownCookie() throws Exception {
-		String token = requestLink("  Reader@Example.com ".strip());
+	void aFirstCodeCreatesTheAccountAndSetsALockedDownCookie() throws Exception {
+		String code = requestCode("  Reader@Example.com ".strip());
+		assertThat(code).matches("[0-9]{6}");
 		assertThat(count("users")).isZero();
 		// Only the hash is stored.
 		String stored = this.jdbc.sql("select token_hash from login_tokens").query(String.class).single();
-		assertThat(stored).matches("[0-9a-f]{64}").isNotEqualTo(token);
+		assertThat(stored).matches("[0-9a-f]{64}").doesNotContain(code);
 
-		MvcResult result = exchange(token).andExpect(status().isOk())
+		MvcResult result = exchange("READER@example.com", code).andExpect(status().isOk())
 			.andExpect(jsonPath("$.email").value("reader@example.com"))
 			.andExpect(jsonPath("$.purpose").value("sign-in"))
 			.andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
@@ -124,39 +124,48 @@ class AccountIntegrationTests {
 	}
 
 	@Test
-	void openingTheLinkWithGetNeitherSignsInNorUsesItUp() throws Exception {
-		String token = requestLink("reader@example.com");
-		// What a mail scanner does: GET, with every guess at where the token might go.
-		this.mvc.perform(get("/api/v1/auth/session").param("token", token)).andExpect(status().isMethodNotAllowed());
-		this.mvc.perform(get("/api/v1/auth/session/" + token)).andExpect(status().isNotFound());
-		this.mvc.perform(get("/api/v1/auth/link").param("token", token)).andExpect(status().isMethodNotAllowed());
-		this.mvc.perform(get("/api/v1/auth/me").param("token", token)).andExpect(status().isUnauthorized());
+	void aCodeWorksOnlyForItsOwnAddressAndOnlyByPost() throws Exception {
+		String code = requestCode("reader@example.com");
+		this.mvc.perform(get("/api/v1/auth/session").param("code", code)).andExpect(status().isMethodNotAllowed());
+		exchange("other@example.com", code).andExpect(status().isGone());
 		assertThat(count("sessions")).isZero();
-		assertThat(count("users")).isZero();
-		// The reader's own click still works afterwards.
-		exchange(token).andExpect(status().isOk());
+		exchange("reader@example.com", code).andExpect(status().isOk());
 	}
 
 	@Test
-	void aUsedExpiredOrForgedLinkIsRefusedTheSameWay() throws Exception {
-		String used = requestLink("reader@example.com");
-		exchange(used).andExpect(status().isOk());
-		exchange(used).andExpect(status().isGone()).andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+	void aUsedExpiredOrWrongCodeIsRefusedTheSameWay() throws Exception {
+		String used = requestCode("reader@example.com");
+		exchange("reader@example.com", used).andExpect(status().isOk());
+		exchange("reader@example.com", used).andExpect(status().isGone())
+			.andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
 
-		String expired = requestLink("reader@example.com");
+		String expired = requestCode("reader@example.com");
 		this.jdbc.sql("update login_tokens set expires_at = now() - interval '1 second' where used_at is null").update();
-		exchange(expired).andExpect(status().isGone()).andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+		exchange("reader@example.com", expired).andExpect(status().isGone())
+			.andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
 
-		exchange("A".repeat(43)).andExpect(status().isGone());
-		exchange(used.substring(0, 42) + (used.endsWith("A") ? "B" : "A")).andExpect(status().isGone());
-		exchange("short").andExpect(status().isBadRequest());
-		exchange("x".repeat(500)).andExpect(status().isBadRequest());
+		exchange("reader@example.com", "12345").andExpect(status().isBadRequest());
+		exchange("reader@example.com", "12345a").andExpect(status().isBadRequest());
+		exchange("not-an-email", "123456").andExpect(status().isBadRequest());
 		assertThat(count("sessions")).isEqualTo(1);
 	}
 
 	@Test
-	void theLinkLastsFifteenMinutes() throws Exception {
-		requestLink("reader@example.com");
+	void aCodeDiesAfterFiveWrongTries() throws Exception {
+		String code = requestCode("reader@example.com");
+		String wrong = code.equals("000000") ? "111111" : "000000";
+		for (int i = 0; i < 5; i++) {
+			exchange("reader@example.com", wrong).andExpect(status().isGone());
+		}
+		// Even the right code is refused now: five guesses in a million, then a new code.
+		exchange("reader@example.com", code).andExpect(status().isGone());
+		assertThat(count("sessions")).isZero();
+		exchange("reader@example.com", requestCode("reader@example.com")).andExpect(status().isOk());
+	}
+
+	@Test
+	void theCodeLastsFifteenMinutes() throws Exception {
+		requestCode("reader@example.com");
 		long seconds = this.jdbc.sql("select extract(epoch from (expires_at - created_at)) from login_tokens")
 			.query(Long.class)
 			.single();
@@ -175,24 +184,24 @@ class AccountIntegrationTests {
 			.getResponse()
 			.getContentAsString();
 		assertThat(known).isEqualTo(unknown).isEmpty();
-		verify(this.mail, times(2)).sendSignInLink(eq("known@example.com"), any(), eq(false));
-		verify(this.mail).sendSignInLink(eq("stranger@example.com"), any(), eq(false));
+		verify(this.mail, times(2)).sendSignInCode(eq("known@example.com"), any(), eq(false));
+		verify(this.mail).sendSignInCode(eq("stranger@example.com"), any(), eq(false));
 		link("not-an-email", this.address).andExpect(status().isBadRequest());
 		link("", this.address).andExpect(status().isBadRequest());
 	}
 
 	@Test
-	void oneEmailAddressGetsAtMostThreeLinksAnHourWhoeverAsks() throws Exception {
+	void oneEmailAddressGetsAtMostThreeCodesAnHourWhoeverAsks() throws Exception {
 		for (int i = 0; i < 5; i++) {
 			// A different caller each time, so only the per-email limit is in play.
 			link("reader@example.com", "192.0.2." + (100 + i)).andExpect(status().isAccepted());
 		}
-		verify(this.mail, times(3)).sendSignInLink(eq("reader@example.com"), any(), anyBoolean());
+		verify(this.mail, times(3)).sendSignInCode(eq("reader@example.com"), any(), anyBoolean());
 		assertThat(count("login_tokens")).isEqualTo(3);
 	}
 
 	@Test
-	void oneCallerGetsAtMostSixLinkRequestsAnHour() throws Exception {
+	void oneCallerGetsAtMostSixCodeRequestsAnHour() throws Exception {
 		for (int i = 0; i < 6; i++) {
 			link("reader" + i + "@example.com", this.address).andExpect(status().isAccepted());
 		}
@@ -263,9 +272,9 @@ class AccountIntegrationTests {
 			for (MockHttpServletRequestBuilder request : new MockHttpServletRequestBuilder[] {
 					put("/api/v1/progress/kadane"), delete("/api/v1/progress/kadane"), post("/api/v1/auth/sign-out"),
 					post("/api/v1/auth/sign-out-everywhere"), delete("/api/v1/auth/account"),
-					post("/api/v1/auth/link").contentType(MediaType.APPLICATION_JSON).content("{\"purpose\":\"delete\"}"),
+					post("/api/v1/auth/code").contentType(MediaType.APPLICATION_JSON).content("{\"purpose\":\"delete\"}"),
 					post("/api/v1/auth/session").contentType(MediaType.APPLICATION_JSON)
-						.content("{\"token\":\"" + "A".repeat(43) + "\"}") }) {
+						.content("{\"email\":\"reader@example.com\",\"code\":\"123456\"}") }) {
 				request.cookie(cookie).header("X-OHW-CSRF", "1");
 				if (origin != null) {
 					request.header(HttpHeaders.ORIGIN, origin);
@@ -279,7 +288,7 @@ class AccountIntegrationTests {
 		this.mvc.perform(delete("/api/v1/auth/account").cookie(cookie).header(HttpHeaders.ORIGIN, SITE))
 			.andExpect(status().isForbidden());
 		this.mvc
-			.perform(post("/api/v1/auth/link").header(HttpHeaders.ORIGIN, SITE)
+			.perform(post("/api/v1/auth/code").header(HttpHeaders.ORIGIN, SITE)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"email\":\"a@example.com\"}"))
 			.andExpect(status().isForbidden());
@@ -288,7 +297,7 @@ class AccountIntegrationTests {
 		assertThat(count("progress")).isZero();
 		assertThat(count("users")).isEqualTo(1);
 		me(session).andExpect(status().isOk());
-		verify(this.mail, times(1)).sendSignInLink(any(), any(), anyBoolean());
+		verify(this.mail, times(1)).sendSignInCode(any(), any(), anyBoolean());
 	}
 
 	@Test
@@ -344,10 +353,50 @@ class AccountIntegrationTests {
 		this.mvc.perform(site(delete("/api/v1/progress/kadane"))).andExpect(status().isUnauthorized());
 	}
 
+	// --- new patterns by email, for a signed-in reader ---
+
+	@Test
+	void aSignedInReaderSubscribesAndUnsubscribesInOneClickWithNoEmail() throws Exception {
+		Cookie reader = new Cookie(COOKIE, signIn("reader@example.com"));
+
+		this.mvc.perform(get("/api/v1/subscribers/me").cookie(reader))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.subscribed").value(false))
+			.andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"));
+
+		// The sign-in link proved the address: confirmed at once, no confirmation email.
+		this.mvc.perform(site(put("/api/v1/subscribers/me")).cookie(reader)).andExpect(status().isNoContent());
+		this.mvc.perform(site(put("/api/v1/subscribers/me")).cookie(reader)).andExpect(status().isNoContent());
+		this.mvc.perform(get("/api/v1/subscribers/me").cookie(reader)).andExpect(jsonPath("$.subscribed").value(true));
+		assertThat(this.jdbc.sql("select status from subscribers where email = 'reader@example.com'").query(String.class).single())
+			.isEqualTo("CONFIRMED");
+		verify(this.mail, never()).sendConfirmation(any(), any());
+
+		// A pending sign-up from the footer is confirmed the same way.
+		this.jdbc.sql("update subscribers set status = 'PENDING', confirmed_at = null").update();
+		this.mvc.perform(site(put("/api/v1/subscribers/me")).cookie(reader)).andExpect(status().isNoContent());
+		this.mvc.perform(get("/api/v1/subscribers/me").cookie(reader)).andExpect(jsonPath("$.subscribed").value(true));
+
+		// Unsubscribing removes the address; twice is fine.
+		this.mvc.perform(site(delete("/api/v1/subscribers/me")).cookie(reader)).andExpect(status().isNoContent());
+		this.mvc.perform(site(delete("/api/v1/subscribers/me")).cookie(reader)).andExpect(status().isNoContent());
+		this.mvc.perform(get("/api/v1/subscribers/me").cookie(reader)).andExpect(jsonPath("$.subscribed").value(false));
+		assertThat(count("subscribers")).isZero();
+
+		// Signed out: nothing to read or change. Another site, or no custom header: refused.
+		this.mvc.perform(get("/api/v1/subscribers/me")).andExpect(status().isUnauthorized());
+		this.mvc.perform(site(put("/api/v1/subscribers/me"))).andExpect(status().isUnauthorized());
+		this.mvc.perform(put("/api/v1/subscribers/me").cookie(reader).header(HttpHeaders.ORIGIN, "https://evil.example")
+			.header("X-OHW-CSRF", "1")).andExpect(status().isForbidden());
+		this.mvc.perform(put("/api/v1/subscribers/me").cookie(reader).header(HttpHeaders.ORIGIN, SITE))
+			.andExpect(status().isForbidden());
+		assertThat(count("subscribers")).isZero();
+	}
+
 	// --- delete my account ---
 
 	@Test
-	void deletingTheAccountNeedsAFreshLinkAndRemovesEverything() throws Exception {
+	void deletingTheAccountNeedsAFreshCodeAndRemovesEverything() throws Exception {
 		String old = signIn("reader@example.com");
 		Cookie oldCookie = new Cookie(COOKIE, old);
 		Cookie other = new Cookie(COOKIE, signIn("other@example.com"));
@@ -360,26 +409,24 @@ class AccountIntegrationTests {
 		this.mvc.perform(site(delete("/api/v1/auth/account")).cookie(oldCookie)).andExpect(status().isForbidden());
 		assertThat(count("users")).isEqualTo(2);
 
-		// The delete link can't be sent to anyone but the signed-in reader.
+		// The delete code can't be sent to anyone but the signed-in reader.
 		this.mvc
-			.perform(site(post("/api/v1/auth/link")).contentType(MediaType.APPLICATION_JSON)
+			.perform(site(post("/api/v1/auth/code")).contentType(MediaType.APPLICATION_JSON)
 				.content("{\"email\":\"victim@example.com\",\"purpose\":\"delete\"}"))
 			.andExpect(status().isUnauthorized());
 		this.mvc
-			.perform(site(post("/api/v1/auth/link")).cookie(oldCookie)
+			.perform(site(post("/api/v1/auth/code")).cookie(oldCookie)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"email\":\"victim@example.com\",\"purpose\":\"delete\"}"))
 			.andExpect(status().isAccepted());
-		verify(this.mail, never()).sendSignInLink(eq("victim@example.com"), any(), anyBoolean());
-		ArgumentCaptor<String> url = ArgumentCaptor.forClass(String.class);
-		verify(this.mail).sendSignInLink(eq("reader@example.com"), url.capture(), eq(true));
-		assertThat(url.getValue()).startsWith(LINK_START).endsWith("&for=delete");
-		String token = url.getValue().substring(LINK_START.length(), LINK_START.length() + 43);
+		verify(this.mail, never()).sendSignInCode(eq("victim@example.com"), any(), anyBoolean());
+		ArgumentCaptor<String> code = ArgumentCaptor.forClass(String.class);
+		verify(this.mail).sendSignInCode(eq("reader@example.com"), code.capture(), eq(true));
 
-		MvcResult result = exchange(token).andExpect(status().isOk())
+		MvcResult result = exchange("reader@example.com", code.getValue()).andExpect(status().isOk())
 			.andExpect(jsonPath("$.purpose").value("delete"))
 			.andReturn();
-		// Opening the link deletes nothing by itself.
+		// Typing the code deletes nothing by itself.
 		assertThat(count("users")).isEqualTo(2);
 		Cookie fresh = new Cookie(COOKIE, result.getResponse().getCookie(COOKIE).getValue());
 
@@ -409,7 +456,7 @@ class AccountIntegrationTests {
 	}
 
 	private ResultActions link(String email, String from) throws Exception {
-		return this.mvc.perform(post("/api/v1/auth/link").header(HttpHeaders.ORIGIN, SITE)
+		return this.mvc.perform(post("/api/v1/auth/code").header(HttpHeaders.ORIGIN, SITE)
 			.header("X-OHW-CSRF", "1")
 			.with(r -> {
 				r.setRemoteAddr(from);
@@ -419,25 +466,28 @@ class AccountIntegrationTests {
 			.content("{\"email\": \"" + email + "\"}"));
 	}
 
-	/** Asks for a link and returns the token from the email that went out last. */
-	private String requestLink(String email) throws Exception {
+	/** Asks for a code and returns the one in the email that went out last. */
+	private String requestCode(String email) throws Exception {
 		link(email, "192.0.2." + nextAddress.getAndIncrement()).andExpect(status().isAccepted());
-		ArgumentCaptor<String> url = ArgumentCaptor.forClass(String.class);
-		verify(this.mail, atLeastOnce()).sendSignInLink(eq(email.toLowerCase()), url.capture(), eq(false));
-		assertThat(url.getValue()).startsWith(LINK_START).hasSize(LINK_START.length() + 43);
-		return url.getValue().substring(LINK_START.length());
+		ArgumentCaptor<String> code = ArgumentCaptor.forClass(String.class);
+		verify(this.mail, atLeastOnce()).sendSignInCode(eq(email.toLowerCase()), code.capture(), eq(false));
+		return code.getValue();
 	}
 
-	private ResultActions exchange(String token) throws Exception {
+	private ResultActions exchange(String email, String code) throws Exception {
 		return this.mvc.perform(site(post("/api/v1/auth/session")).contentType(MediaType.APPLICATION_JSON)
-			.content("{\"token\": \"" + token + "\"}"));
+			.content("{\"email\": \"" + email + "\", \"code\": \"" + code + "\"}"));
 	}
 
 	/** The whole flow; returns the session cookie's value. */
 	private String signIn(String email) throws Exception {
-		// Each sign-in uses up one of the address's three links an hour.
+		// Each sign-in uses up one of the address's three codes an hour.
 		this.jdbc.sql("update login_tokens set created_at = created_at - interval '2 hours'").update();
-		return exchange(requestLink(email)).andExpect(status().isOk()).andReturn().getResponse().getCookie(COOKIE).getValue();
+		return exchange(email, requestCode(email)).andExpect(status().isOk())
+			.andReturn()
+			.getResponse()
+			.getCookie(COOKIE)
+			.getValue();
 	}
 
 	private ResultActions me(String session) throws Exception {

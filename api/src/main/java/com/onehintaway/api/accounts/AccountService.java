@@ -21,11 +21,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Sign-in by emailed link, and the sessions that follow.
+ * Sign-in by emailed code, and the sessions that follow.
  *
- * <p>There are no passwords. A reader proves an email address is theirs by opening a link
- * sent to it; the first time, that also creates the account. Both the link token and the
- * session token are 32 random bytes, and only their SHA-256 is stored, so a copy of the
+ * <p>There are no passwords. A reader proves an email address is theirs by typing the
+ * 6-digit code sent to it; the first time, that also creates the account. Codes are stored
+ * as SHA-256 of "email:code", work once for 15 minutes and die after five wrong tries.
+ * Session tokens are 32 random bytes, stored as their SHA-256 only, so a copy of the
  * database can't be used to sign in. Everything lives in Postgres, so it works the same
  * on every API replica.
  */
@@ -33,7 +34,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class AccountService {
 
 	/** How long an emailed link works. */
-	static final Duration LINK_LIFE = Duration.ofMinutes(15);
+	static final Duration CODE_LIFE = Duration.ofMinutes(15);
+
+	/** Wrong tries a code survives: five guesses out of a million. */
+	static final int MAX_ATTEMPTS = 5;
 
 	/** How long a session lasts after it was last used. */
 	static final Duration SESSION_LIFE = Duration.ofDays(30);
@@ -64,9 +68,7 @@ public class AccountService {
 
 	private final Clock clock;
 
-	private final String siteUrl;
-
-	private final int linksPerEmailPerHour;
+	private final int codesPerEmailPerHour;
 
 	private final SecureRandom random = new SecureRandom();
 
@@ -74,21 +76,20 @@ public class AccountService {
 		this.jdbc = jdbc;
 		this.mail = mail;
 		this.clock = clock;
-		this.siteUrl = props.siteUrl().replaceAll("/+$", "");
-		this.linksPerEmailPerHour = props.rate().linkPerEmailPerHour();
+		this.codesPerEmailPerHour = props.rate().linkPerEmailPerHour();
 	}
 
 	/**
-	 * Emails a link. It does the same thing whether or not the address has an account, so
+	 * Emails a code. It does the same thing whether or not the address has an account, so
 	 * the caller learns nothing about who is registered. Past the hourly limit for one
 	 * address it sends nothing and still returns normally, for the same reason. The count
 	 * is read from the table, so it is exact across replicas.
 	 */
 	@Transactional
-	public void sendLink(String rawEmail, Purpose purpose) {
+	public void sendCode(String rawEmail, Purpose purpose) {
 		String email = normalise(rawEmail);
 		Instant now = this.clock.instant();
-		// Housekeeping: links and sessions that ended more than a day ago.
+		// Housekeeping: codes and sessions that ended more than a day ago.
 		Timestamp dayAgo = Timestamp.from(now.minus(Duration.ofDays(1)));
 		this.jdbc.sql("delete from login_tokens where expires_at < :t").param("t", dayAgo).update();
 		this.jdbc.sql("delete from sessions where expires_at < :t").param("t", dayAgo).update();
@@ -98,48 +99,58 @@ public class AccountService {
 			.param("since", Timestamp.from(now.minus(Duration.ofHours(1))))
 			.query(Integer.class)
 			.single();
-		if (recent >= this.linksPerEmailPerHour) {
+		if (recent >= this.codesPerEmailPerHour) {
 			return;
 		}
-		String token = newToken();
-		this.jdbc.sql("""
+		// Two codes for one address can come out equal (one in a million): draw again.
+		String code;
+		do {
+			code = "%06d".formatted(this.random.nextInt(1_000_000));
+		}
+		while (this.jdbc.sql("""
 				insert into login_tokens (token_hash, email, purpose, created_at, expires_at)
 				values (:hash, :email, :purpose, :now, :expires)
+				on conflict (token_hash) do nothing
 				""")
-			.param("hash", sha256(token))
+			.param("hash", codeHash(email, code))
 			.param("email", email)
 			.param("purpose", purpose.name())
 			.param("now", Timestamp.from(now))
-			.param("expires", Timestamp.from(now.plus(LINK_LIFE)))
-			.update();
-		// The token is in the part after "#": browsers never send that part to any server,
-		// so it stays out of access logs, analytics and Referer headers.
-		String url = this.siteUrl + "/sign-in/#token=" + token + (purpose == Purpose.DELETE_ACCOUNT ? "&for=delete" : "");
-		this.mail.sendSignInLink(email, url, purpose == Purpose.DELETE_ACCOUNT);
+			.param("expires", Timestamp.from(now.plus(CODE_LIFE)))
+			.update() == 0);
+		this.mail.sendSignInCode(email, code, purpose == Purpose.DELETE_ACCOUNT);
 	}
 
 	/**
-	 * Uses a link token once. The single UPDATE both checks and spends it, so two requests
-	 * with the same token can't both win. A wrong, expired or used token all give empty:
-	 * the caller can't tell which.
+	 * Uses a code once. The single UPDATE both checks and spends it, so two requests with
+	 * the same code can't both win. A wrong code counts against every live code of that
+	 * address (five wrong tries and they are dead). Wrong, expired, used and dead codes all
+	 * give empty: the caller can't tell which.
 	 */
 	@Transactional
-	public Optional<SignedIn> exchange(String token) {
+	public Optional<SignedIn> exchange(String rawEmail, String code) {
+		String email = normalise(rawEmail);
 		Instant now = this.clock.instant();
 		Timestamp ts = Timestamp.from(now);
 		Optional<LinkRow> link = this.jdbc.sql("""
 				update login_tokens set used_at = :now
-				where token_hash = :hash and used_at is null and expires_at > :now
+				where token_hash = :hash and email = :email and used_at is null and expires_at > :now
+				  and attempts < :max
 				returning email, purpose
 				""")
 			.param("now", ts)
-			.param("hash", sha256(token))
+			.param("hash", codeHash(email, code))
+			.param("email", email)
+			.param("max", MAX_ATTEMPTS)
 			.query((rs, n) -> new LinkRow(rs.getString("email"), Purpose.valueOf(rs.getString("purpose"))))
 			.optional();
 		if (link.isEmpty()) {
+			this.jdbc.sql("""
+					update login_tokens set attempts = attempts + 1
+					where email = :email and used_at is null and expires_at > :now
+					""").param("email", email).param("now", ts).update();
 			return Optional.empty();
 		}
-		String email = link.get().email();
 		// First sign-in creates the account; later ones only note the time.
 		long userId = this.jdbc.sql("""
 				insert into users (email, created_at, last_sign_in_at) values (:email, :now, :now)
@@ -224,7 +235,12 @@ public class AccountService {
 		return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
 	}
 
-	/** Plain SHA-256 is enough here: the input is 256 random bits, so there is nothing to guess. */
+	/** A code is stored tied to its address, so the same six digits for two readers are two rows. */
+	private static String codeHash(String email, String code) {
+		return sha256(email + ":" + code);
+	}
+
+	/** Plain SHA-256 is enough for session tokens: 256 random bits, nothing to guess. */
 	static String sha256(String token) {
 		try {
 			return HexFormat.of()

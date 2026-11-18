@@ -17,8 +17,13 @@ class LoggingMailSender implements MailSender {
 	}
 
 	@Override
-	public void sendSignInLink(String email, String url, boolean forDelete) {
-		log.info("No RESEND_API_KEY set. {} link for {}: {}", forDelete ? "Delete-account" : "Sign-in", email, url);
+	public void sendSignInCode(String email, String code, boolean forDelete) {
+		log.info("No RESEND_API_KEY set. {} code for {}: {}", forDelete ? "Delete-account" : "Sign-in", email, code);
+	}
+
+	@Override
+	public void sendAlreadySubscribed(String email, String unsubscribeUrl) {
+		log.info("No RESEND_API_KEY set. Already subscribed: unsubscribe link for {}: {}", email, unsubscribeUrl);
 	}
 
 }

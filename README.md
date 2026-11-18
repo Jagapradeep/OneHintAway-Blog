@@ -202,7 +202,7 @@ api/                              ☕  Spring Boot API: view counts, copy counts
 │   ├── visitor/                  the anonymous visitor id and the rate limiter
 │   ├── posts/                    the posts table, the sync endpoint, search
 │   ├── stats/                    view and copy counters
-│   ├── accounts/                 sign-in by emailed link, sessions, CSRF check, progress
+│   ├── accounts/                 sign-in by emailed code, sessions, CSRF check, progress
 │   └── subscribers/              newsletter sign-up with double opt-in
 ├── src/main/resources/
 │   ├── application.properties    every setting, each read from an environment variable
@@ -331,8 +331,10 @@ A small Spring Boot 4.1 service (Java 21) with PostgreSQL 16. It adds the things
 | `GET /api/v1/search?q=` | Searches titles, patterns and page text; best 20, best first | JSON list |
 | `POST /api/v1/subscribers` | Starts a newsletter sign-up | 202 |
 | `GET /api/v1/subscribers/confirm?token=` | The link in the confirmation email | redirect to the site |
-| `POST /api/v1/auth/link` | Emails a sign-in link (first time: registers). Body `{"email"}`; `{"purpose":"delete"}` when signed in, for the link that allows deleting the account | 202 |
-| `POST /api/v1/auth/session` | Trades the link's token for a session cookie. Body `{"token"}` | JSON, or 410 for a used, expired or wrong token |
+| `POST /api/v1/subscribers/unsubscribe` | The page the email's Unsubscribe button opens posts the token | 204 |
+| `GET`, `PUT`, `DELETE /api/v1/subscribers/me` | A signed-in reader's own subscription: read it, subscribe in one click (no confirmation email), unsubscribe | 200 · 204 · 204, 401 signed out |
+| `POST /api/v1/auth/code` | Emails a 6-digit sign-in code (first time: registers). Body `{"email"}`; `{"purpose":"delete"}` when signed in, for the code that allows deleting the account | 202 |
+| `POST /api/v1/auth/session` | Trades the code for a session cookie. Body `{"email", "code"}` | JSON, or 410 for a wrong, used, expired or dead code |
 | `GET /api/v1/auth/me` | Who is signed in | JSON, or 401 |
 | `POST /api/v1/auth/sign-out` | Ends this device's session | 204 |
 | `POST /api/v1/auth/sign-out-everywhere` | Ends every session of this reader | 204 |
@@ -354,43 +356,43 @@ A small Spring Boot 4.1 service (Java 21) with PostgreSQL 16. It adds the things
 
 **The posts table is a copy, and the MDX files stay the truth.** `npm run sync-posts` in `site/` reads every post's frontmatter and its text without code, and sends the whole list in one `PUT`. In one transaction the API saves every post in the list and deletes the ones missing from it; an empty list is refused, so a broken export can't wipe the table. The caller proves itself with a shared secret, compared in constant time. View and copy history has no foreign key to posts, so removing a post never deletes its numbers.
 
-**A sign-up only counts after the email link is opened** (double opt-in). Signing up stores the address as `PENDING` with a random 32-byte token and emails a link holding that token; opening it sets `CONFIRMED`. So nobody can subscribe someone else, and the list only holds addresses that work. The answer to a sign-up is always the same `202`, whether or not the address was already known, so the form can't be used to find out who is subscribed. The email goes out through [Resend](https://resend.com)'s HTTP API when a key is set; without one (local runs) the link is written to the log instead. Both sit behind one `MailSender` interface. If Resend refuses the email, the sign-up fails with a `503` and nothing is stored, so nobody is left pending with no email on the way. The weekly newsletter itself is a later, separate piece: Listmonk on the cluster, sending through Amazon SES.
+**A sign-up only counts after the email link is opened** (double opt-in). Signing up stores the address as `PENDING` with a random 32-byte token and emails a link holding that token; opening it sets `CONFIRMED`. So nobody can subscribe someone else, and the list only holds addresses that work. The answer to a sign-up is always the same `202`, whether or not the address was already known, so the form can't be used to find out who is subscribed. The email goes out through [Resend](https://resend.com)'s HTTP API when a key is set; without one (local runs) the link is written to the log instead. Both sit behind one `MailSender` interface. If Resend refuses the email, the sign-up fails with a `503` and nothing is stored, so nobody is left pending with no email on the way. The email asks one question, "Get new patterns by email?", with a **Yes, subscribe me** button and a short "what you get" box; the link lands on the site's `/subscribed/` page. An address that is already subscribed gets a note instead, with an **Unsubscribe** button that opens `/unsubscribe/` (the page posts the token; unsubscribing deletes the row). A signed-in reader skips the email: one click subscribes or unsubscribes their own address, which the sign-in link already proved. Nothing is sent to the list yet: whether to run a newsletter (the plan was Listmonk on the cluster, sending through Amazon SES) is decided once there are subscriber numbers.
 
 **Only the site's pages may call it from a browser** (CORS limited to the site's address), every input is validated (bad input is a `400` with a problem-JSON body), and the schema changes only through numbered Flyway migrations; Hibernate just checks that the code matches it.
 
-### Accounts: sign in by emailed link
+### Accounts: sign in by emailed code
 
 A reader can make an account to keep track of finished lessons. Reading never needs one.
 
-**There are no passwords.** A password is a secret this small site would have to store, protect, reset and one day leak; and most people reuse theirs. Instead, the reader types an email address and the API emails a link. Opening it proves the address is theirs, which is all a password reset would ask anyway. Register and sign in are the same flow: the first sign-in creates the account, and there is one account per email address.
+**There are no passwords.** A password is a secret this small site would have to store, protect, reset and one day leak; and most people reuse theirs. Instead, the reader types an email address and the API emails a 6-digit code. Typing it on the site proves the address is theirs, which is all a password reset would ask anyway. Register and sign in are the same flow: the first sign-in creates the account, and there is one account per email address.
 
-**The link.** It holds a random 32-byte token, works once and for 15 minutes, and the database stores only its SHA-256. The token sits after `#` in the link (`/sign-in/#token=…`), a part of an address browsers never send to any server, so it reaches no access log, analytics or `Referer` header; the page also takes it out of the address bar at once.
+**The code.** Six random digits that work once and for 15 minutes, for that address only; the database stores only the SHA-256 of `email:code`. A code is short enough to guess, so every wrong try counts against the address's live codes and five wrong tries kill them: five guesses in a million, and at most three codes an hour per address.
 
-**Opening the link does not sign anyone in.** Mail scanners and link previews open every link in an email with a `GET`. So the link opens a static page on the site with a **Sign in** button, and only that button's `POST` hands the token to the API. There is no `GET` anywhere that uses a token.
+**No link in the email, on purpose.** The reader types the code in the same panel and stays on the page. Company mail filters that open every link in an email (some even run the page's script) can't use a code up, and the reader is signed in in the browser they are using, not in a mail app's small built-in one.
 
-**The answer never says who has an account.** Asking for a link is always `202`, known address or not (both get an email: one signs in, the other registers). Requests are limited per caller (10 an hour, in memory) and per email address (3 an hour, counted in Postgres, so it holds across both replicas); over the per-email limit the API sends nothing and still answers `202`.
+**The answer never says who has an account.** Asking for a code is always `202`, known address or not (both get an email: one signs in, the other registers). Requests are limited per caller (10 an hour, in memory) and per email address (3 an hour, counted in Postgres, so it holds across both replicas); over the per-email limit the API sends nothing and still answers `202`.
 
 **Sessions live in Postgres**, because there are two API replicas and nothing may live in one pod's memory. A session is another random 32-byte token, stored hashed, sent as a cookie that is `HttpOnly` (scripts can't read it), `Secure`, `SameSite=Lax`, named with the `__Host-` prefix (no other onehintaway.com address can set or overwrite it) and good for 30 days after its last use. **Sign out** deletes that one row; **sign out everywhere** deletes all of the reader's rows, so a copied cookie stops working the moment either is pressed.
 
 **CSRF.** The site and the API are different origins but the same site, so the browser sends the cookie on the site's `fetch` calls (`credentials: "include"`), and CORS allows credentials for the exact site origin only. Every request that changes something on the account and progress paths must carry the site's `Origin` and a custom header, `X-OHW-CSRF`; anything else is `403`. That is enough here because browsers set `Origin` themselves, a form can't add a custom header, and a script that tries triggers a preflight that only the site's origin passes.
 
-**Deleting the account** asks for a fresh emailed link first (sent only to the signed-in reader's own address), then a confirm button. The API allows it only for a session that began in the last 15 minutes, and removes the user, every session and all progress in one go.
+**Deleting the account** asks for a fresh emailed code first (sent only to the signed-in reader's own address), then a confirm button. The API allows it only for a session that began in the last 15 minutes, and removes the user, every session and all progress in one go.
 
 **Progress** is one row per reader and finished post, only for posts the site has synced.
 
 **Room for a second sign-in method.** `users` holds only the email, and `sessions` says nothing about how the reader signed in. Google sign-in would add one table (provider, Google's user id, `users.id`) and one endpoint that ends by creating the same kind of session; neither existing table changes.
 
-**On the site** all of this is behind a second build setting, `NEXT_PUBLIC_ACCOUNTS=on`: a Sign in button in the header, the page the link opens, an account menu, **Mark as done** on each post, ticks on the home and patterns lists, and a [privacy page](https://onehintaway.com/privacy/). A reader who has never signed in makes no account request at all; signed out, or with the API down, the pages are the same as without accounts. Every open tab follows a sign-in or sign-out made in another tab of the same browser, and the header shows the reader's initial once signed in. The newsletter stays a separate list with its own form in the footer: signing in never subscribes anyone.
+**On the site** all of this is behind a second build setting, `NEXT_PUBLIC_ACCOUNTS=on`: a Sign in button in the header that opens the email-and-code panel (also at `/sign-in/`), an account menu, **Mark as done** on each post, ticks on the home and patterns lists, and a [privacy page](https://onehintaway.com/privacy/). A reader who has never signed in makes no account request at all; signed out, or with the API down, the pages are the same as without accounts. Every open tab follows a sign-in or sign-out made in another tab of the same browser, and the header shows the reader's initial once signed in. The newsletter stays a separate list with its own form in the footer: signing in never subscribes anyone.
 
 ### How the site uses it, and how it fails
 
-The site reads one build-time setting, `NEXT_PUBLIC_API_URL`. Empty, as in production today, and nothing API-related is rendered or called. Set, and three things appear: a view count in each post's meta row, a search button in the header, and a silent count when a reader copies code.
+The site reads one build-time setting, `NEXT_PUBLIC_API_URL` (set in production). Empty, and nothing API-related is rendered or called. Set, and four things appear: a view count in each post's meta row, a search button in the header, a silent count when a reader copies code, and the "Get new patterns by email" form in the footer (`NEXT_PUBLIC_SIGNUP=off` hides that one).
 
 Every call goes through [`site/lib/api.ts`](site/lib/api.ts), which gives up after four seconds and returns nothing instead of throwing. So with the API slow, failing or gone, a post page looks exactly like a page with no count, search says it isn't available right now, and no error reaches the screen.
 
 ### How it is tested
 
-`./mvnw verify` starts a throwaway PostgreSQL 16 in Docker (Testcontainers), applies the real migrations and calls every endpoint: counting once per visitor, the stored hash holding no address, per-language copies, search by word and by half-typed title, the sync's token and delete rules, the whole double opt-in, the rate limit, CORS and the probes. Accounts have their own test class: the whole sign-in flow, expired, reused and forged links, a link opened with `GET` only (must not sign in or be used up), a copied cookie after sign out and after sign out everywhere, session renewal, every CSRF refusal, progress, and deleting an account. GitHub Actions runs the same command on every push that touches `api/`.
+`./mvnw verify` starts a throwaway PostgreSQL 16 in Docker (Testcontainers), applies the real migrations and calls every endpoint: counting once per visitor, the stored hash holding no address, per-language copies, search by word and by half-typed title, the sync's token and delete rules, the whole double opt-in, the rate limit, CORS and the probes. Accounts have their own test class: the whole sign-in flow, expired, reused and wrong codes, a code for another address, a code dying after five wrong tries, a copied cookie after sign out and after sign out everywhere, session renewal, every CSRF refusal, progress, and deleting an account. GitHub Actions runs the same command on every push that touches `api/`.
 
 <br/>
 
@@ -536,7 +538,7 @@ npm run sync-posts                                       # copy the posts into t
 NEXT_PUBLIC_API_URL=http://localhost:8080 npm run dev    # PowerShell: $env:NEXT_PUBLIC_API_URL="http://localhost:8080"; npm run dev
 ```
 
-Add `NEXT_PUBLIC_ACCOUNTS=on` to try accounts. No email is sent locally: ask for a sign-in link on the site, then copy it from the API's log (`Sign-in link for …`) into the browser.
+Add `NEXT_PUBLIC_ACCOUNTS=on` to try accounts. No email is sent locally: ask for a code on the site, then copy it from the API's log (`Sign-in code for …`) into the code field.
 
 More in [api/README.md](api/README.md).
 
@@ -609,8 +611,8 @@ Slides are 1080 × 1350 (Instagram 4:5) with 80 px side margins.
 - [x] **Cluster**: k3s on one server with Traefik, cert-manager, Umami analytics, Prometheus and Grafana; the API is live at `api.onehintaway.com`
 - [x] **CI/CD**: a push to `main` tests the API, builds the image, pushes it to GHCR and rolls it out, with automatic rollback
 - [x] **Operations**: nightly database backups to Cloudflare R2 (restore tested), Prometheus alerts, a runbook
-- [x] An outside uptime check every 15 minutes, link-preview images and search titles on every post, a sign-up form (hidden until email sending is set up)
-- [x] **Accounts**: sign in by emailed link (no passwords), sessions in Postgres, progress ticks, a privacy page: built and tested; shown on the site once `NEXT_PUBLIC_ACCOUNTS=on` is set
+- [x] An outside uptime check every 15 minutes, link-preview images and search titles on every post, the newsletter sign-up form in the footer, with a confirmation email through Resend
+- [x] **Accounts**: sign in by emailed code (no passwords), sessions in Postgres, progress ticks, a privacy page: built and tested; shown on the site once `NEXT_PUBLIC_ACCOUNTS=on` is set
 - [ ] Sign in with Google (the tables are ready for it)
 - [ ] Newsletter (Listmonk + Amazon SES)
 

@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { SignInForm } from "@/components/SignInForm";
-import { type LinkResult, requestDeleteLink, signOut, useAccount } from "@/lib/account";
+import { type CodeResult, deleteAccount, enterCode, requestDeleteCode, setNewsletter, signOut, useAccount } from "@/lib/account";
 
-const DELETE_NOTE: Record<LinkResult, string> = {
-  sent: "Check your inbox and open the link to continue. Nothing is deleted until you confirm there.",
+const DELETE_NOTE: Record<Exclude<CodeResult, "sent">, string> = {
   invalid: "That did not work. Please try again.",
   busy: "Too many tries from here. Please try again later.",
   down: "This is not available right now.",
@@ -20,10 +19,13 @@ const DELETE_NOTE: Record<LinkResult, string> = {
 // page's script has loaded still goes somewhere useful; once loaded, it opens the panel.
 // Only rendered when the site was built with accounts on (see app/layout.tsx).
 export function AccountMenu() {
-  const { ready, email, done } = useAccount();
+  const { ready, email, done, news } = useAccount();
   const status = email ? "in" : ready ? "out" : "checking";
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState<"menu" | "delete">("menu");
+  // Deleting: "delete" asks for a code, "code" takes it, "confirm" asks once more.
+  const [view, setView] = useState<"menu" | "delete" | "code" | "confirm">("menu");
+  const [code, setCode] = useState("");
+  const codeId = useId();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -55,10 +57,43 @@ export function AccountMenu() {
     else setNote("Could not sign out right now. Please try again.");
   }
 
-  async function askDeleteLink() {
+  async function switchNews() {
+    if (news === null) return;
     setBusy(true);
-    setNote(DELETE_NOTE[await requestDeleteLink()]);
+    const ok = await setNewsletter(!news);
     setBusy(false);
+    setNote(ok ? (news ? "Done. No more emails." : "Done. You'll get an email for each new pattern.") : "That didn't work. Please try again.");
+  }
+
+  async function askDeleteCode() {
+    setBusy(true);
+    const result = await requestDeleteCode();
+    setBusy(false);
+    if (result === "sent") {
+      setView("code");
+      setNote("");
+    } else setNote(DELETE_NOTE[result]);
+  }
+
+  async function checkDeleteCode(event: React.FormEvent) {
+    event.preventDefault();
+    if (!email || !/^\d{6}$/.test(code)) return;
+    setBusy(true);
+    const result = await enterCode(email, code);
+    setBusy(false);
+    setCode("");
+    if (result === "delete") {
+      setView("confirm");
+      setNote("");
+    } else setNote(result === "down" ? "This is not available right now." : "That code didn't work. Please try again.");
+  }
+
+  async function reallyDelete() {
+    setBusy(true);
+    const result = await deleteAccount();
+    setBusy(false);
+    if (result === "deleted") setOpen(false);
+    else setNote(result === "stale" ? "Too much time has passed. Ask for a new code." : "This is not available right now.");
   }
 
   return (
@@ -115,6 +150,9 @@ export function AccountMenu() {
                 {done.size} {done.size === 1 ? "lesson" : "lessons"} done
               </p>
               <div className="acct-actions">
+                <button type="button" disabled={busy || news === null} onClick={switchNews}>
+                  {news ? "Stop new-pattern emails" : "Email me new patterns"}
+                </button>
                 <button type="button" disabled={busy} onClick={() => leave(false)}>
                   Sign out
                 </button>
@@ -135,21 +173,61 @@ export function AccountMenu() {
               </p>
             </>
           )}
-          {email && view === "delete" && (
+          {email && view !== "menu" && (
             <>
               <p className="acct-title">Delete your account</p>
-              <p className="acct-lead">
-                This removes your email address, your sign-ins on every device and your list of finished lessons. To
-                make sure it is you, we first email a fresh link to {email}.
-              </p>
-              <div className="acct-actions">
-                <button type="button" disabled={busy} onClick={askDeleteLink}>
-                  Email me the link
-                </button>
-                <button type="button" disabled={busy} onClick={() => (setView("menu"), setNote(""))}>
-                  Keep my account
-                </button>
-              </div>
+              {view === "delete" && (
+                <>
+                  <p className="acct-lead">
+                    This removes your email address, your sign-ins on every device and your list of finished lessons.
+                    To make sure it is you, we first email a code to {email}.
+                  </p>
+                  <div className="acct-actions">
+                    <button type="button" disabled={busy} onClick={askDeleteCode}>
+                      Email me a code
+                    </button>
+                    <button type="button" disabled={busy} onClick={() => (setView("menu"), setNote(""))}>
+                      Keep my account
+                    </button>
+                  </div>
+                </>
+              )}
+              {view === "code" && (
+                <form className="acct-form" onSubmit={checkDeleteCode}>
+                  <label className="acct-label" htmlFor={codeId}>
+                    Code from your email
+                  </label>
+                  <input
+                    id={codeId}
+                    className="acct-input acct-code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    placeholder="123456"
+                    required
+                    autoFocus
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  />
+                  <button type="submit" className="acct-submit" disabled={busy || code.length !== 6}>
+                    Continue
+                  </button>
+                </form>
+              )}
+              {view === "confirm" && (
+                <>
+                  <p className="acct-lead">This can&apos;t be undone.</p>
+                  <div className="acct-actions">
+                    <button type="button" disabled={busy} onClick={reallyDelete}>
+                      Delete my account
+                    </button>
+                    <button type="button" disabled={busy} onClick={() => (setView("menu"), setNote(""))}>
+                      Keep my account
+                    </button>
+                  </div>
+                </>
+              )}
               <p className="acct-note" role="status" aria-live="polite">
                 {note}
               </p>

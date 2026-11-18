@@ -2,56 +2,98 @@
 
 import Link from "next/link";
 import { useId, useState } from "react";
-import { type LinkResult, requestLink } from "@/lib/account";
+import { type CodeResult, enterCode, requestCode } from "@/lib/account";
 
-const NOTE: Record<Exclude<LinkResult, "sent">, string> = {
+const SEND_NOTE: Record<Exclude<CodeResult, "sent">, string> = {
   invalid: "That email address doesn't look right.",
   busy: "Too many tries from here. Please try again later.",
   down: "Sign-in is not available right now.",
 };
 
-// The email field. Signing in and registering are the same thing: the API emails a link,
-// and a first sign-in creates the account. Used in the header panel and on /sign-in/.
-// The newsletter is not offered here: it has its own form in the footer.
+// Sign in, or create an account, in two steps without leaving the page: the reader types
+// their email, the API emails a 6-digit code, the reader types the code. Used in the
+// header panel and on /sign-in/. Once the code is right, the account store switches every
+// open tab to signed in, so this form simply gives way to whatever shows a signed-in reader.
 export function SignInForm({ autoFocus = false }: { autoFocus?: boolean }) {
   const id = useId();
   const [email, setEmail] = useState("");
-  const [sentTo, setSentTo] = useState("");
-  const [state, setState] = useState<"idle" | "sending" | LinkResult>("idle");
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
 
-  async function submit(event: React.FormEvent) {
+  async function sendCode(event: React.FormEvent) {
     event.preventDefault();
     const value = email.trim(); // the API refuses surrounding spaces
     if (!value) return;
-    setState("sending");
-    const result = await requestLink(value);
-    setState(result);
-    if (result === "sent") setSentTo(value);
+    setBusy(true);
+    const result = await requestCode(value);
+    setBusy(false);
+    if (result === "sent") {
+      setSentTo(value);
+      setNote("");
+    } else setNote(SEND_NOTE[result]);
   }
 
-  // After sending, the form gives way to one clear next step. If the link is opened in
-  // this browser, every open tab switches to signed in by itself (lib/account.ts).
-  if (state === "sent") {
+  async function checkCode(event: React.FormEvent) {
+    event.preventDefault();
+    if (!sentTo || !/^\d{6}$/.test(code)) return;
+    setBusy(true);
+    const result = await enterCode(sentTo, code);
+    setBusy(false);
+    if (result === "wrong") {
+      setCode("");
+      setNote("That code didn't work. Check the newest email, or ask for a new code.");
+    } else if (result === "down") setNote("Sign-in is not available right now.");
+  }
+
+  function startOver() {
+    setSentTo(null);
+    setCode("");
+    setNote("");
+  }
+
+  if (sentTo) {
     return (
-      <div className="acct-sent" role="status">
-        <p className="acct-sent-title">Check your inbox</p>
-        <p className="acct-lead">
-          We sent a sign-in link to <strong>{sentTo}</strong>. Open it in this browser and press <b>Sign in</b>. This
-          page updates by itself once you are in.
+      <form className="acct-form" onSubmit={checkCode}>
+        <label className="acct-label" htmlFor={`${id}-code`}>
+          Code from your email
+        </label>
+        <p className="acct-small">
+          We sent a 6-digit code to <strong>{sentTo}</strong>. It works for 15 minutes.
+        </p>
+        <input
+          id={`${id}-code`}
+          className="acct-input acct-code"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          pattern="[0-9]{6}"
+          maxLength={6}
+          placeholder="123456"
+          required
+          autoFocus
+          value={code}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+        />
+        <button type="submit" className="acct-submit" disabled={busy || code.length !== 6}>
+          {busy ? "Checking" : "Sign in"}
+        </button>
+        <p className="acct-note" role="status" aria-live="polite">
+          {note}
         </p>
         <p className="acct-small">
-          The link works once, for 15 minutes. Nothing after a few minutes? Check your spam folder, or{" "}
-          <button type="button" className="acct-linkbtn" onClick={() => setState("idle")}>
-            try again
+          No email? Check spam, or{" "}
+          <button type="button" className="acct-linkbtn" onClick={startOver}>
+            use a different email
           </button>
           .
         </p>
-      </div>
+      </form>
     );
   }
 
   return (
-    <form className="acct-form" onSubmit={submit}>
+    <form className="acct-form" onSubmit={sendCode}>
       <label className="acct-label" htmlFor={`${id}-email`}>
         Your email
       </label>
@@ -68,14 +110,14 @@ export function SignInForm({ autoFocus = false }: { autoFocus?: boolean }) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-      <button type="submit" className="acct-submit" disabled={state === "sending"}>
-        {state === "sending" ? "Sending" : "Email me a sign-in link"}
+      <button type="submit" className="acct-submit" disabled={busy}>
+        {busy ? "Sending" : "Email me a code"}
       </button>
       <p className="acct-note" role="status" aria-live="polite">
-        {state !== "idle" && state !== "sending" ? NOTE[state] : ""}
+        {note}
       </p>
       <p className="acct-small">
-        New here? This link also creates your account. <Link href="/privacy/">What we store</Link>
+        New here? The code also creates your account. <Link href="/privacy/">What we store</Link>
       </p>
     </form>
   );

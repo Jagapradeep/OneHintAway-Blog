@@ -11,7 +11,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 class WebConfig implements WebMvcConfigurer {
 
-	private static final String[] ACCOUNT_PATHS = { "/api/v1/auth/**", "/api/v1/progress/**" };
+	private static final String[] ACCOUNT_PATHS = { "/api/v1/auth/**", "/api/v1/progress/**", "/api/v1/subscribers/me" };
 
 	private final AppProperties props;
 

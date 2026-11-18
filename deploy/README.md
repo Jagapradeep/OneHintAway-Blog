@@ -102,9 +102,9 @@ and code inside the API pods. They are in the nightly backup like everything els
 | Setting | Where | Value in production |
 | --- | --- | --- |
 | `CORS_ORIGINS` (`api.corsOrigins`) | `values-production.yaml` | `https://onehintaway.com`, exactly. It is also the only origin allowed to change account data |
-| `SITE_URL` (`api.siteUrl`) | `values-production.yaml` | `https://onehintaway.com`: sign-in links open `/sign-in/` there |
+| `SITE_URL` (`api.siteUrl`) | `values-production.yaml` | `https://onehintaway.com`: where the confirm and unsubscribe links land |
 | `SESSION_COOKIE_SECURE` (`api.sessionCookieSecure`) | `values.yaml` | `true`. Never false here |
-| `RESEND_API_KEY` | `/root/onehintaway.env` | Already set. Without it sign-in links would go to the log, with the reader's address |
+| `RESEND_API_KEY` | `/root/onehintaway.env` | Already set. Without it sign-in codes would go to the log, with the reader's address |
 | `NEXT_PUBLIC_ACCOUNTS=on` | Cloudflare, Workers Builds variables | Set it only after the API with V2 is deployed, then rebuild the site. Remove it and rebuild to hide accounts again; the data stays |
 
 Look without printing anyone's address:
@@ -143,7 +143,7 @@ database: those are read once, when the data volume is first created. Use `ALTER
 | Symptom | Look at | Usual cause |
 | --- | --- | --- |
 | Sign-in says "not available right now" | `kubectl -n onehintaway logs deploy/api --tail 100` | `Resend did not accept a sign-in email`: the Resend key or domain; otherwise the API is down |
-| Reader says the sign-in link "didn't work" | Nothing to fix | Links work once and for 15 minutes; some mail apps open the link in their own small browser, so the reader ends up signed in there, not in their usual browser |
+| Reader says the sign-in code "didn't work" | Nothing to fix | A code works once, for 15 minutes, only the newest few are live, and five wrong tries kill it: ask for a new one |
 | Site fine, no view counts or search | `curl https://api.onehintaway.com/actuator/health/readiness` | API or server down; the site hides the extras by design |
 | Pod `CrashLoopBackOff` | `kubectl -n onehintaway logs <pod> --previous` | Bad config or a failed migration |
 | Pod `ImagePullBackOff` | `kubectl -n onehintaway describe pod <pod>` | The GHCR package is private, or the tag doesn't exist |

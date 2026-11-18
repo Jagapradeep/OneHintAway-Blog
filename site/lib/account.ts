@@ -20,16 +20,14 @@ import { ACCOUNT_FLAG, ACCOUNTS_ON } from "@/lib/site";
 const FLAG = ACCOUNT_FLAG;
 const TIMEOUT_MS = 8000;
 
-export type SignInLink = { token: string; forDelete: boolean };
-
 type State = {
   ready: boolean; // false until the first check has finished
   email: string | null; // null = signed out (or the API could not be reached)
   done: ReadonlySet<string>;
-  link: SignInLink | null; // the token from an emailed link, on /sign-in/ only
+  news: boolean | null; // on the newsletter list? null = not known (signed out, or not loaded yet)
 };
 
-const SERVER: State = { ready: false, email: null, done: new Set(), link: null };
+const SERVER: State = { ready: false, email: null, done: new Set(), news: null };
 let state: State = SERVER;
 const listeners = new Set<() => void>();
 let started = false;
@@ -77,46 +75,33 @@ async function call(method: string, path: string, body?: unknown): Promise<{ sta
 
 function signedOut() {
   flag(false);
-  set({ ready: true, email: null, done: new Set() });
+  set({ ready: true, email: null, done: new Set(), news: null });
 }
 
+// After signing in: the finished lessons and whether the reader gets new patterns by email.
 async function loadProgress() {
-  const res = await call("GET", "/api/v1/progress");
+  const [res, news] = await Promise.all([call("GET", "/api/v1/progress"), call("GET", "/api/v1/subscribers/me")]);
   const done = (res.json as { done?: unknown } | null)?.done;
   if (res.status === 200 && Array.isArray(done)) set({ done: new Set(done as string[]) });
-}
-
-// The token arrives after "#" in the emailed link. An inline script on /sign-in/ has
-// usually moved it to window.__ohwLink already (see app/sign-in/page.tsx); this also
-// reads the address itself, and takes the token out of it either way.
-function readLink(): SignInLink | null {
-  const w = window as unknown as { __ohwLink?: string };
-  const hash = w.__ohwLink ?? window.location.hash;
-  delete w.__ohwLink;
-  const token = /[#&]token=([A-Za-z0-9_-]{43})(?:&|$)/.exec(hash)?.[1];
-  if (window.location.hash.includes("token=")) {
-    window.history.replaceState(null, "", window.location.pathname);
-  }
-  return token ? { token, forDelete: /[#&]for=delete(?:&|$)/.test(hash) } : null;
+  const subscribed = (news.json as { subscribed?: unknown } | null)?.subscribed;
+  if (news.status === 200 && typeof subscribed === "boolean") set({ news: subscribed });
 }
 
 // Another tab signed in or out: the cookie is shared, so follow it here.
 function onStorage(event: StorageEvent) {
   if (event.key !== FLAG && event.key !== null) return;
   if (hasFlag()) void check();
-  else set({ ready: true, email: null, done: new Set() });
+  else set({ ready: true, email: null, done: new Set(), news: null });
 }
 
 async function start() {
   if (started) return;
   started = true;
   window.addEventListener("storage", onStorage);
-  const link = window.location.pathname.startsWith("/sign-in") ? readLink() : null;
   if (!hasFlag()) {
-    set({ ready: true, link });
+    set({ ready: true });
     return;
   }
-  set({ link });
   await check();
 }
 
@@ -149,40 +134,37 @@ export function useAccount(): State {
   return snapshot;
 }
 
-export type LinkResult = "sent" | "invalid" | "busy" | "down";
+export type CodeResult = "sent" | "invalid" | "busy" | "down";
 
-function linkResult(status: number): LinkResult {
+function codeResult(status: number): CodeResult {
   return status === 202 ? "sent" : status === 400 ? "invalid" : status === 429 ? "busy" : "down";
 }
 
-// Sign in and register are the same request. The API answers the same way whether or
-// not the address has an account.
-export async function requestLink(email: string): Promise<LinkResult> {
-  return linkResult((await call("POST", "/api/v1/auth/link", { email })).status);
+// Sign in and register are the same request: the API emails a 6-digit code. It answers
+// the same way whether or not the address has an account.
+export async function requestCode(email: string): Promise<CodeResult> {
+  return codeResult((await call("POST", "/api/v1/auth/code", { email })).status);
 }
 
-// The link a signed-in reader needs before deleting the account. It goes to their own address.
-export async function requestDeleteLink(): Promise<LinkResult> {
-  const { status } = await call("POST", "/api/v1/auth/link", { purpose: "delete" });
+// The code a signed-in reader needs before deleting the account. It goes to their own address.
+export async function requestDeleteCode(): Promise<CodeResult> {
+  const { status } = await call("POST", "/api/v1/auth/code", { purpose: "delete" });
   if (status === 401) signedOut();
-  return linkResult(status);
+  return codeResult(status);
 }
 
-// The "Sign in" button on the page the emailed link opens. Only this POST uses the token.
-export async function spendLink(link: SignInLink): Promise<"in" | "delete" | "gone" | "down"> {
-  const res = await call("POST", "/api/v1/auth/session", { token: link.token });
+// The reader types the code from the email. "wrong" covers wrong, expired and used codes
+// (the API does not say which); a code dies after five wrong tries.
+export async function enterCode(email: string, code: string): Promise<"in" | "delete" | "wrong" | "down"> {
+  const res = await call("POST", "/api/v1/auth/session", { email, code });
   const body = res.json as { email?: unknown; purpose?: unknown } | null;
   if (res.status === 200 && typeof body?.email === "string") {
     flag(true);
-    set({ ready: true, email: body.email, link: null });
+    set({ ready: true, email: body.email });
     void loadProgress();
     return body.purpose === "delete" ? "delete" : "in";
   }
-  if (res.status === 410 || res.status === 400) {
-    set({ link: null });
-    return "gone";
-  }
-  return "down";
+  return res.status === 410 || res.status === 400 ? "wrong" : "down";
 }
 
 export async function signOut(everywhere = false): Promise<boolean> {
@@ -203,6 +185,18 @@ export async function deleteAccount(): Promise<"deleted" | "stale" | "down"> {
   }
   if (status === 401) signedOut();
   return status === 403 || status === 401 ? "stale" : "down";
+}
+
+// New patterns by email, for a signed-in reader: one click, no confirmation email (the
+// sign-in link already proved the address). Shown at once, taken back if not saved.
+export async function setNewsletter(on: boolean): Promise<boolean> {
+  const before = state.news;
+  set({ news: on });
+  const { status } = await call(on ? "PUT" : "DELETE", "/api/v1/subscribers/me");
+  if (status === 204) return true;
+  if (status === 401) signedOut();
+  else set({ news: before });
+  return false;
 }
 
 // Shows the change at once and takes it back if the API did not save it.

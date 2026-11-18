@@ -59,7 +59,7 @@ class ResendMailSenderTests {
 			.andRespond(withSuccess("{\"id\": \"1\"}", MediaType.APPLICATION_JSON));
 		this.resend.expect(requestTo("https://api.resend.com/emails"))
 			.andExpect(jsonPath("$.subject").value("042917 is your One Hint Away sign-in code"))
-			.andExpect(jsonPath("$.html", containsString("email-logo.png")))
+			.andExpect(jsonPath("$.html", containsString("email-brand.png")))
 			.andExpect(jsonPath("$.html", not(containsString("{{"))))
 			.andRespond(withSuccess("{\"id\": \"2\"}", MediaType.APPLICATION_JSON));
 
@@ -76,7 +76,7 @@ class ResendMailSenderTests {
 			.andExpect(jsonPath("$.text", containsString(url)))
 			.andExpect(jsonPath("$.html", containsString("href=\"" + url + "\"")))
 			.andExpect(jsonPath("$.html", containsString(">Unsubscribe</a>")))
-			.andExpect(jsonPath("$.html", containsString("email-logo.png")))
+			.andExpect(jsonPath("$.html", containsString("email-brand.png")))
 			.andExpect(jsonPath("$.html", not(containsString("{{"))))
 			.andRespond(withSuccess("{\"id\": \"3\"}", MediaType.APPLICATION_JSON));
 		this.sender.sendAlreadySubscribed("reader@example.com", url);

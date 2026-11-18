@@ -120,3 +120,15 @@ def test_inputs():
 def expected(line):
     k, rest = line.split("|")
     return two_dp(exact([int(x) for x in rest.split()], int(k)))
+
+
+def halving_greedy(stations, k):
+    """The trap: give each new pump to the middle of the longest piece right now."""
+    import heapq as _h
+    pieces = [-Fraction(stations[i] - stations[i - 1]) for i in range(1, len(stations))]
+    _h.heapify(pieces)
+    for _ in range(k):
+        p = -_h.heappop(pieces)
+        _h.heappush(pieces, -(p / 2))
+        _h.heappush(pieces, -(p / 2))
+    return fmt(float(-pieces[0]))

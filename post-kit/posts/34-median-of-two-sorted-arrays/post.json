@@ -409,7 +409,7 @@
       "pattern": "Binary search the cut in the shorter array, in O(log(min(m, n))): the left parts together hold half the values.",
       "problems": [
         {
-          "platform": "GFG",
+          "platform": "GeeksforGeeks",
           "difficulty": "Medium",
           "id": "K-th element of two Arrays",
           "title": "",

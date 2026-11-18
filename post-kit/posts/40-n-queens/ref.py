@@ -150,3 +150,8 @@ def expected(line):
 def safe_cols(queens, row, n):
     cols = [c for c in range(n) if safe(queens, row, c)]
     return " and ".join(map(str, cols)) if cols else "none"
+
+
+def columns_only(n):
+    """The trap: a safe test that checks columns but forgets the diagonals."""
+    return sum(1 for _ in _perms(range(n)))

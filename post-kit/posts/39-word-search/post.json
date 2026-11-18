@@ -382,7 +382,7 @@
   "blog": {
     "pattern": "Backtracking",
     "section": "Backtracking",
-    "summary": "Does a path of touching cells spell the word? Mark each cell in use, explore its neighbours, unmark it when you step back.",
+    "summary": "To find a word in a grid of touching cells, mark each cell in use, explore its neighbours and unmark it when you step back.",
     "tags": [
       "backtracking",
       "matrix",

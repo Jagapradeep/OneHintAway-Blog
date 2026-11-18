@@ -29,6 +29,8 @@ Quick check: if the top row gives 1 value to the left half, the bottom gives **{
 
 {{PSEUDOCODE}}
 
+**The trap:** averaging the two middle values with whole-number division. In Java and C++, `(leftMax + rightMin) / 2` on two `int`s drops the half: for [1, 2] and [3, 4] it gives {{int_average([1, 2], [3, 4])}} instead of {{show(median([1, 2], [3, 4]))}}. Divide by 2.0, or turn one side into a `double` first, as the code below does.
+
 {{CODE}}
 
 In Java and C++ the missing edges use the smallest and largest 32-bit integers, which are safely outside the −10⁶ to 10⁶ range of the values.

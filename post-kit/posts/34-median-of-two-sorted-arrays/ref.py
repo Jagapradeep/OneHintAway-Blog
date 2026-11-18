@@ -132,3 +132,10 @@ def test_inputs():
 def expected(line):
     x, y = line.split("|")
     return show(brute([int(v) for v in x.split()], [int(v) for v in y.split()]))
+
+
+def int_average(a, b):
+    """The trap: average the two middle values with whole-number division."""
+    c = sorted(a + b)
+    n = len(c)
+    return (c[n // 2 - 1] + c[n // 2]) // 2

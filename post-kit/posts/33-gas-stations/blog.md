@@ -31,6 +31,8 @@ Quick check: with 5 new pumps, can the longest gap be 2? Yes: `d` = 2 needs exac
 
 {{PSEUDOCODE}}
 
+**The trap:** giving each new pump to the middle of the longest piece. On gaps 2, 9 and 4 that halves the 9, then halves one 4.5, then the other, and leaves a longest gap of {{halving_greedy(STATIONS, K)}}. Sharing the pumps evenly inside each gap, as the count does, reaches {{fmt(float(exact(STATIONS, K)))}}.
+
 {{CODE}}
 
 `pumpsNeeded` can return a very large count when `d` is tiny, so Java and C++ keep it in a 64-bit integer.

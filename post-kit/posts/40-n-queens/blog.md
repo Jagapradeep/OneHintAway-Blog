@@ -34,6 +34,8 @@ Quick check: with queens at row 0 column 0 and row 1 column 2, the safe columns 
 
 {{PSEUDOCODE}}
 
+**The trap:** checking the columns but forgetting the diagonals. Every order of columns then passes, so n = 4 returns {{columns_only(4)}} boards instead of {{len(SOLS)}}. Both diagonals need the `c ± (row − r)` test.
+
 {{CODE}}
 
 ## Complexity

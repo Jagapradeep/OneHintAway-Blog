@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { type CodeResult, enterCode, requestCode } from "@/lib/account";
+import { clearDraft, codeSent, expireIfOld, startOver, typeCode, typeEmail, useSignInDraft } from "@/lib/sign-in-draft";
 
 const SEND_NOTE: Record<Exclude<CodeResult, "sent">, string> = {
   invalid: "That email address doesn't look right.",
@@ -14,13 +15,22 @@ const SEND_NOTE: Record<Exclude<CodeResult, "sent">, string> = {
 // their email, the API emails a 6-digit code, the reader types the code. Used in the
 // header panel and on /sign-in/. Once the code is right, the account store switches every
 // open tab to signed in, so this form simply gives way to whatever shows a signed-in reader.
+// Which step the reader is on is kept in lib/sign-in-draft.ts, not here, so closing the
+// panel and opening it again comes back to the same step (the code step for 15 minutes).
 export function SignInForm({ autoFocus = false }: { autoFocus?: boolean }) {
   const id = useId();
-  const [email, setEmail] = useState("");
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [code, setCode] = useState("");
+  const { email, sentTo, sentAt, code, expired } = useSignInDraft();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
+
+  // Back to the email step once the code has run out, also while the form stays open.
+  useEffect(() => {
+    if (!sentTo) return;
+    const left = expireIfOld();
+    if (!left) return;
+    const timer = window.setTimeout(() => expireIfOld(), left + 500);
+    return () => window.clearTimeout(timer);
+  }, [sentTo, sentAt]);
 
   async function sendCode(event: React.FormEvent) {
     event.preventDefault();
@@ -30,7 +40,7 @@ export function SignInForm({ autoFocus = false }: { autoFocus?: boolean }) {
     const result = await requestCode(value);
     setBusy(false);
     if (result === "sent") {
-      setSentTo(value);
+      codeSent(value);
       setNote("");
     } else setNote(SEND_NOTE[result]);
   }
@@ -41,15 +51,15 @@ export function SignInForm({ autoFocus = false }: { autoFocus?: boolean }) {
     setBusy(true);
     const result = await enterCode(sentTo, code);
     setBusy(false);
-    if (result === "wrong") {
-      setCode("");
+    if (result === "in" || result === "delete") clearDraft();
+    else if (result === "wrong") {
+      typeCode("");
       setNote("That code didn't work. Check the newest email, or ask for a new code.");
     } else if (result === "down") setNote("Sign-in is not available right now.");
   }
 
-  function startOver() {
-    setSentTo(null);
-    setCode("");
+  function differentEmail() {
+    startOver();
     setNote("");
   }
 
@@ -73,7 +83,7 @@ export function SignInForm({ autoFocus = false }: { autoFocus?: boolean }) {
           required
           autoFocus
           value={code}
-          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          onChange={(e) => typeCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
         />
         <button type="submit" className="acct-submit" disabled={busy || code.length !== 6}>
           {busy ? "Checking" : "Sign in"}
@@ -83,7 +93,7 @@ export function SignInForm({ autoFocus = false }: { autoFocus?: boolean }) {
         </p>
         <p className="acct-small">
           No email? Check spam, or{" "}
-          <button type="button" className="acct-linkbtn" onClick={startOver}>
+          <button type="button" className="acct-linkbtn" onClick={differentEmail}>
             use a different email
           </button>
           .
@@ -108,13 +118,13 @@ export function SignInForm({ autoFocus = false }: { autoFocus?: boolean }) {
         required
         autoFocus={autoFocus}
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        onChange={(e) => typeEmail(e.target.value)}
       />
       <button type="submit" className="acct-submit" disabled={busy}>
         {busy ? "Sending" : "Email me a code"}
       </button>
       <p className="acct-note" role="status" aria-live="polite">
-        {note}
+        {note || (expired ? "That code has run out. Ask for a new one." : "")}
       </p>
       <p className="acct-small">
         New here? The code also creates your account. <Link href="/privacy/">What we store</Link>

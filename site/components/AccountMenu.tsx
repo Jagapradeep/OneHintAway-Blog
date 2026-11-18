@@ -31,9 +31,16 @@ export function AccountMenu() {
   const { ready, email, done, news } = useAccount();
   const status = email ? "in" : ready ? "out" : "checking";
   const [open, setOpen] = useState(false);
-  // Deleting: "delete" asks for a code, "code" takes it, "confirm" asks once more.
+  // Deleting: "delete" asks for a code, "code" takes it, "confirm" asks once more. Closing
+  // the panel keeps the step (like the sign-in steps); a different reader starts at the menu.
   const [view, setView] = useState<"menu" | "delete" | "code" | "confirm">("menu");
   const [code, setCode] = useState("");
+  const [viewFor, setViewFor] = useState(email);
+  if (viewFor !== email) {
+    setViewFor(email);
+    setView("menu");
+    setCode("");
+  }
   const codeId = useId();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -47,7 +54,6 @@ export function AccountMenu() {
       onOpenSignIn(() => {
         fromPage.current = true;
         setOpen(true);
-        setView("menu");
         setNote("");
       }),
     [],
@@ -73,10 +79,10 @@ export function AccountMenu() {
     };
   }, [open]);
 
+  // Opening again returns to where the reader was (see SignInForm and the delete steps).
   function toggle() {
     fromPage.current = false;
     setOpen((o) => !o);
-    setView("menu");
     setNote("");
   }
 
@@ -244,6 +250,11 @@ export function AccountMenu() {
                   <button type="submit" className="acct-submit" disabled={busy || code.length !== 6}>
                     Continue
                   </button>
+                  <p className="acct-small">
+                    <button type="button" className="acct-linkbtn" disabled={busy} onClick={() => (setView("menu"), setCode(""), setNote(""))}>
+                      Keep my account
+                    </button>
+                  </p>
                 </form>
               )}
               {view === "confirm" && (

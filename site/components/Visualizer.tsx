@@ -1,8 +1,10 @@
 import { createHighlighter, type Highlighter } from "shiki";
 import pseudo from "@/lib/shiki/pseudo.tmLanguage.json";
 import intellijLight from "@/lib/shiki/intellij-light.json";
+import { ACCOUNTS_ON } from "@/lib/site";
 import { isLocked } from "@/visualizer/access.ts";
 import { patternById, patterns } from "@/visualizer/registry.ts";
+import { VisualizerGate } from "./VisualizerGate";
 import { VisualizerLazy } from "./VisualizerLazy";
 
 // Server side of <Visualizer pattern="two-pointers" />. It colours the
@@ -24,5 +26,11 @@ export async function Visualizer({ pattern }: { pattern: string }) {
   if (!p) {
     throw new Error(`<Visualizer pattern="${pattern}" />: no such pattern. Known: ${patterns.map((x) => x.id).join(", ")}`);
   }
-  return <VisualizerLazy patternId={p.id} codeHtml={await colour(p.pseudocode.join("\n"))} locked={isLocked(p)} />;
+  const codeHtml = await colour(p.pseudocode.join("\n"));
+  // With accounts on, the player is for signed-in readers (VisualizerGate). With them off,
+  // the page is built exactly as before.
+  if (ACCOUNTS_ON) {
+    return <VisualizerGate patternId={p.id} codeHtml={codeHtml} tier={p.tier} title={p.title} problem={p.problem} blurb={p.blurb} />;
+  }
+  return <VisualizerLazy patternId={p.id} codeHtml={codeHtml} locked={isLocked(p)} />;
 }

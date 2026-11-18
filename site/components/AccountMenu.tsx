@@ -3,7 +3,16 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { SignInForm } from "@/components/SignInForm";
-import { type CodeResult, deleteAccount, enterCode, requestDeleteCode, setNewsletter, signOut, useAccount } from "@/lib/account";
+import {
+  type CodeResult,
+  deleteAccount,
+  enterCode,
+  onOpenSignIn,
+  requestDeleteCode,
+  setNewsletter,
+  signOut,
+  useAccount,
+} from "@/lib/account";
 
 const DELETE_NOTE: Record<Exclude<CodeResult, "sent">, string> = {
   invalid: "That did not work. Please try again.",
@@ -29,6 +38,27 @@ export function AccountMenu() {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  // Opened from elsewhere on the page (the visualizer's sign-in card): close again once the
+  // reader is signed in, so the panel does not cover what just unlocked.
+  const fromPage = useRef(false);
+
+  useEffect(
+    () =>
+      onOpenSignIn(() => {
+        fromPage.current = true;
+        setOpen(true);
+        setView("menu");
+        setNote("");
+      }),
+    [],
+  );
+
+  useEffect(() => {
+    if (email && fromPage.current) {
+      fromPage.current = false;
+      setOpen(false);
+    }
+  }, [email]);
 
   // Close on Escape or a click outside.
   useEffect(() => {
@@ -44,6 +74,7 @@ export function AccountMenu() {
   }, [open]);
 
   function toggle() {
+    fromPage.current = false;
     setOpen((o) => !o);
     setView("menu");
     setNote("");

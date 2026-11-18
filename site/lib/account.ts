@@ -11,6 +11,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { API_URL } from "@/lib/api";
 import { ACCOUNT_FLAG, ACCOUNTS_ON } from "@/lib/site";
+import type { SignIn } from "@/visualizer/access.ts";
 
 // Not a secret and not the session (that is an HttpOnly cookie scripts can't read):
 // only a note that this browser has signed in before, so it is worth asking the API.
@@ -25,9 +26,10 @@ type State = {
   email: string | null; // null = signed out (or the API could not be reached)
   done: ReadonlySet<string>;
   news: boolean | null; // on the newsletter list? null = not known (signed out, or not loaded yet)
+  down: boolean; // the API did not answer the last account call (signed-in state unknown)
 };
 
-const SERVER: State = { ready: false, email: null, done: new Set(), news: null };
+const SERVER: State = { ready: false, email: null, done: new Set(), news: null, down: false };
 let state: State = SERVER;
 const listeners = new Set<() => void>();
 let started = false;
@@ -75,7 +77,7 @@ async function call(method: string, path: string, body?: unknown): Promise<{ sta
 
 function signedOut() {
   flag(false);
-  set({ ready: true, email: null, done: new Set(), news: null });
+  set({ ready: true, email: null, done: new Set(), news: null, down: false });
 }
 
 // After signing in: the finished lessons and whether the reader gets new patterns by email.
@@ -91,7 +93,7 @@ async function loadProgress() {
 function onStorage(event: StorageEvent) {
   if (event.key !== FLAG && event.key !== null) return;
   if (hasFlag()) void check();
-  else set({ ready: true, email: null, done: new Set(), news: null });
+  else set({ ready: true, email: null, done: new Set(), news: null, down: false });
 }
 
 async function start() {
@@ -109,13 +111,14 @@ async function check() {
   const me = await call("GET", "/api/v1/auth/me");
   const email = (me.json as { email?: unknown } | null)?.email;
   if (me.status === 200 && typeof email === "string") {
-    set({ ready: true, email });
+    set({ ready: true, email, down: false });
     void loadProgress();
   } else if (me.status === 401) {
     signedOut();
   } else {
-    // API down or slow: look signed out for now, and ask again on the next page.
-    set({ ready: true });
+    // API down or slow: look signed out for now, and ask again on the next page. The
+    // visualizer fails open on this (signInStatus says "unknown", not "out").
+    set({ ready: true, down: true });
   }
 }
 
@@ -134,9 +137,40 @@ export function useAccount(): State {
   return snapshot;
 }
 
+// in / out / checking (first answer not in yet) / unknown (the API did not answer).
+export function signInStatus(s: State): SignIn {
+  if (s.email) return "in";
+  if (!s.ready) return "checking";
+  return s.down ? "unknown" : "out";
+}
+
+// A way for any component (the visualizer's sign-in card) to open the header's sign-in
+// panel, so there is only one sign-in form. AccountMenu listens; openSignIn() returns
+// false when nothing is listening (then the caller lets its plain /sign-in/ form submit).
+const openers = new Set<() => void>();
+
+export function onOpenSignIn(fn: () => void): () => void {
+  openers.add(fn);
+  return () => {
+    openers.delete(fn);
+  };
+}
+
+export function openSignIn(): boolean {
+  openers.forEach((fn) => fn());
+  return openers.size > 0;
+}
+
 export type CodeResult = "sent" | "invalid" | "busy" | "down";
 
+// The API did not answer (or failed): the visualizer then opens up instead of asking
+// the reader to sign in through something that is not working.
+function noteDown(status: number) {
+  if (status === 0 || status >= 500) set({ down: true });
+}
+
 function codeResult(status: number): CodeResult {
+  noteDown(status);
   return status === 202 ? "sent" : status === 400 ? "invalid" : status === 429 ? "busy" : "down";
 }
 
@@ -160,10 +194,11 @@ export async function enterCode(email: string, code: string): Promise<"in" | "de
   const body = res.json as { email?: unknown; purpose?: unknown } | null;
   if (res.status === 200 && typeof body?.email === "string") {
     flag(true);
-    set({ ready: true, email: body.email });
+    set({ ready: true, email: body.email, down: false });
     void loadProgress();
     return body.purpose === "delete" ? "delete" : "in";
   }
+  noteDown(res.status);
   return res.status === 410 || res.status === 400 ? "wrong" : "down";
 }
 

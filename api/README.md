@@ -47,8 +47,8 @@ refused with 403:
 
 ```bash
 H='-H Origin:http://localhost:3000 -H X-OHW-CSRF:1 -H Content-Type:application/json'
-curl -i $H -d '{"email":"me@example.com"}' http://localhost:8080/api/v1/auth/link        # 202
-curl -i $H -c jar -d '{"token":"<token from the log>"}' http://localhost:8080/api/v1/auth/session
+curl -i $H -d '{"email":"me@example.com"}' http://localhost:8080/api/v1/auth/code        # 202
+curl -i $H -c jar -d '{"email":"me@example.com","code":"<code from the log>"}' http://localhost:8080/api/v1/auth/session
 curl -b jar http://localhost:8080/api/v1/auth/me
 curl -i $H -b jar -X PUT http://localhost:8080/api/v1/progress/kadane                    # 204
 ```
@@ -104,8 +104,8 @@ git-ignored; real environment variables win over the file.
 | `ADMIN_TOKEN` | Secret for the posts sync. Blank switches the sync off (it answers 503) | blank |
 | `CORS_ORIGINS` | Site addresses allowed to call from a browser, comma-separated. Also the only `Origin` values accepted on account and progress changes (the CSRF check), so list exact origins, never a wildcard | `http://localhost:3000` |
 | `PUBLIC_URL` | The API's own public address, used in confirmation links | `http://localhost:8080` |
-| `SITE_URL` | The site's address. Opening a confirmation link redirects to `/subscribed/` there (or `/subscribed/expired/` for a bad link); sign-in links open `/sign-in/` there | `http://localhost:3000` |
-| `RESEND_API_KEY` | Sends confirmation and sign-in emails through Resend. Blank writes the link to the log instead | blank |
+| `SITE_URL` | The site's address. Opening a confirmation link redirects to `/subscribed/` there (or `/subscribed/expired/` for a bad link); the unsubscribe link opens `/unsubscribe/` there | `http://localhost:3000` |
+| `RESEND_API_KEY` | Sends confirmation and sign-in emails through Resend. Blank writes the code or link to the log instead | blank |
 | `MAIL_FROM` | The sender; its domain must be verified in Resend | `One Hint Away <hello@onehintaway.com>` |
 | `SESSION_COOKIE_SECURE` | `true` marks the session cookie HTTPS-only and names it `__Host-ohw_session`. `false` (name `ohw_session`) is only for local runs in a browser that refuses Secure cookies from `http://localhost` | `true` |
 | `LINK_PER_HOUR` | Sign-in codes one caller address may ask for in an hour (in memory, per replica; the name dates from links) | `10` |
@@ -116,6 +116,14 @@ git-ignored; real environment variables win over the file.
 The other rate limits are `app.rate.*` in `application.properties`. Link lifetime (15 minutes), session lifetime (30 days
 after the last use) and the "fresh" window for deleting an account (15 minutes) are constants in
 `accounts/AccountService.java`.
+
+## Preview the emails
+
+`./mvnw -q test -Dtest=MailPreviewTests` writes every email, exactly as the API would send it, to
+`target/mail-preview/` (sign-in code, delete code, confirmation, already subscribed). Open the
+files in a browser; the logo is taken from `site/public/` so it shows before a deploy. No email
+is sent. The header is one image, 180 px wide on purpose: Gmail's dark mode on Android inverts
+any image up to 64 px.
 
 ## Change the database
 
@@ -131,12 +139,9 @@ the ones a database hasn't seen yet, in order, when the API starts.
 
 ## Not done yet
 
-- Confirmation emails go through Resend once `RESEND_API_KEY` is set and `onehintaway.com` is
-  verified there (SPF and DKIM records in Cloudflare DNS). The code is tested against a fake
-  server only: no real email has been sent yet.
-- The weekly newsletter is not part of this API. The plan is Listmonk on the cluster, sending
-  through Amazon SES (Phase 6); confirmed subscribers are handed to it then, and it provides
-  the unsubscribe link.
+- Nothing is sent to the subscriber list yet. Whether to run a newsletter (the plan was
+  Listmonk on the cluster, sending through Amazon SES) is decided once there are subscriber
+  numbers; subscribing, confirming and unsubscribing already work.
 - Rate-limit buckets are in memory, so each replica keeps its own count (the per-email limit on
   sign-in codes is the exception: it is counted in the database).
 - Accounts: no Google sign-in yet; a session has no hard end date as long as it is used at

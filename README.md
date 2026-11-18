@@ -313,7 +313,12 @@ Readers step through an algorithm on their own numbers at [`/visualize/`](https:
 | `post-kit/viz/<id>/ref.py` | The same algorithm in Python with a brute force and 1,000+ test inputs. `npm run viz-fixtures` saves its answers, so the cloud build never needs Python. |
 | `scripts/check-visualizer.mjs` | Fails the build unless TypeScript and Python agree on every input, every step obeys the schema and the pattern's own rules, the example's trace matches step for step, and the pseudocode equals the post's. |
 
-Each pattern ships as its own small chunk (about 2 KB gzipped) beside the player (about 4 KB), loaded only on pages that show one. Patterns today: two pointers, sliding window, monotonic stack. Adding one is two files and two list entries: see [`post-kit/README.md`](post-kit/README.md#website-visualizer-step-by-step).
+Each pattern ships as its own small chunk (about 2 KB gzipped) beside the player (about 4 KB), loaded only on pages that show one. Patterns today: 25, from two pointers to binary search on answers (`visualizer/registry.ts` is the list). Adding one is two files and two list entries: see [`post-kit/README.md`](post-kit/README.md#website-visualizer-step-by-step).
+
+**Sign in to play (when accounts are on, as on the live site).** With `NEXT_PUBLIC_ACCOUNTS=on`, the player plays only for a signed-in reader, on every pattern, free or paid. A signed-out reader still gets the title, the problem, the one-line idea and the pseudocode, all in the built HTML, and in place of the player a card, "Sign in to try it on your own input", with a Sign in button that opens the header's sign-in panel. After the code is typed in, the card turns into the player on the same page with no reload, and other open tabs follow. In the gallery, each card shows a small padlock in its corner (the same mark can later stand for a paid pattern). Signed-out readers never download the player or pattern chunks. The gate fails open: if the API is down or the sign-in check gets no answer within its 8-second timeout, the player shows. While the check runs, the space is kept at about the player's height and the card is not shown. The rule is one function, `canPlay()` in `visualizer/access.ts`, which then applies the free and paid tiers as before (`PAYWALL_ON` is still off). With accounts off, the visualizer is built exactly as before.
+
+> [!NOTE]
+> This gate is a reason to sign up, not protection. It works only in the browser: the player and pattern chunks are public static files, and anyone can fetch them or change the page's script. Keeping paid patterns from non-paying readers needs a server check (see the paywall plan).
 
 **Deploy:** a push to `main` triggers **Cloudflare Workers Builds** (root directory `site`), which builds and publishes `out/` to [onehintaway.com](https://onehintaway.com).
 
@@ -356,7 +361,7 @@ A small Spring Boot 4.1 service (Java 21) with PostgreSQL 16. It adds the things
 
 **The posts table is a copy, and the MDX files stay the truth.** `npm run sync-posts` in `site/` reads every post's frontmatter and its text without code, and sends the whole list in one `PUT`. In one transaction the API saves every post in the list and deletes the ones missing from it; an empty list is refused, so a broken export can't wipe the table. The caller proves itself with a shared secret, compared in constant time. View and copy history has no foreign key to posts, so removing a post never deletes its numbers.
 
-**A sign-up only counts after the email link is opened** (double opt-in). Signing up stores the address as `PENDING` with a random 32-byte token and emails a link holding that token; opening it sets `CONFIRMED`. So nobody can subscribe someone else, and the list only holds addresses that work. The answer to a sign-up is always the same `202`, whether or not the address was already known, so the form can't be used to find out who is subscribed. The email goes out through [Resend](https://resend.com)'s HTTP API when a key is set; without one (local runs) the link is written to the log instead. Both sit behind one `MailSender` interface. If Resend refuses the email, the sign-up fails with a `503` and nothing is stored, so nobody is left pending with no email on the way. The email asks one question, "Get new patterns by email?", with a **Yes, subscribe me** button and a short "what you get" box; the link lands on the site's `/subscribed/` page. An address that is already subscribed gets a note instead, with an **Unsubscribe** button that opens `/unsubscribe/` (the page posts the token; unsubscribing deletes the row). A signed-in reader skips the email: one click subscribes or unsubscribes their own address, which the sign-in link already proved. Nothing is sent to the list yet: whether to run a newsletter (the plan was Listmonk on the cluster, sending through Amazon SES) is decided once there are subscriber numbers.
+**A sign-up only counts after the email link is opened** (double opt-in). Signing up stores the address as `PENDING` with a random 32-byte token and emails a link holding that token; opening it sets `CONFIRMED`. So nobody can subscribe someone else, and the list only holds addresses that work. The answer to a sign-up is always the same `202`, whether or not the address was already known, so the form can't be used to find out who is subscribed. The email goes out through [Resend](https://resend.com)'s HTTP API when a key is set; without one (local runs) the link is written to the log instead. Both sit behind one `MailSender` interface. If Resend refuses the email, the sign-up fails with a `503` and nothing is stored, so nobody is left pending with no email on the way. The email asks one question, "Get new patterns by email?", with a **Yes, subscribe me** button and a short "what you get" box; the link lands on the site's `/subscribed/` page. An address that is already subscribed gets a note instead, with an **Unsubscribe** button that opens `/unsubscribe/` (the page posts the token; unsubscribing deletes the row). A signed-in reader skips the email: one click subscribes or unsubscribes their own address, which the sign-in code already proved. Nothing is sent to the list yet: whether to run a newsletter (the plan was Listmonk on the cluster, sending through Amazon SES) is decided once there are subscriber numbers.
 
 **Only the site's pages may call it from a browser** (CORS limited to the site's address), every input is validated (bad input is a `400` with a problem-JSON body), and the schema changes only through numbered Flyway migrations; Hibernate just checks that the code matches it.
 
@@ -382,7 +387,7 @@ A reader can make an account to keep track of finished lessons. Reading never ne
 
 **Room for a second sign-in method.** `users` holds only the email, and `sessions` says nothing about how the reader signed in. Google sign-in would add one table (provider, Google's user id, `users.id`) and one endpoint that ends by creating the same kind of session; neither existing table changes.
 
-**On the site** all of this is behind a second build setting, `NEXT_PUBLIC_ACCOUNTS=on`: a Sign in button in the header that opens the email-and-code panel (also at `/sign-in/`), an account menu, **Mark as done** on each post, ticks on the home and patterns lists, and a [privacy page](https://onehintaway.com/privacy/). A reader who has never signed in makes no account request at all; signed out, or with the API down, the pages are the same as without accounts. Every open tab follows a sign-in or sign-out made in another tab of the same browser, and the header shows the reader's initial once signed in. The newsletter stays a separate list with its own form in the footer: signing in never subscribes anyone.
+**On the site** all of this is behind a second build setting, `NEXT_PUBLIC_ACCOUNTS=on`: a Sign in button in the header that opens the email-and-code panel (also at `/sign-in/`), an account menu, **Mark as done** on each post, ticks on the home and patterns lists, and a [privacy page](https://onehintaway.com/privacy/). A reader who has never signed in makes no account request at all; signed out, or with the API down, the pages are the same as without accounts, except the visualizer: signed out, it asks the reader to sign in ([details](#the-pattern-visualizer)); with the API down, it plays for everyone. Every open tab follows a sign-in or sign-out made in another tab of the same browser, and the header shows the reader's initial once signed in. The newsletter stays a separate list with its own form in the footer: signing in never subscribes anyone.
 
 ### How the site uses it, and how it fails
 
@@ -463,7 +468,7 @@ The backend runs on one small cloud server (2 vCPU, 4 GB) with [k3s](https://k3s
 
 **Watching it.** Prometheus scrapes the API's metrics from inside the cluster, Grafana shows them, and two alerts are defined: no API pod answering, and less than 15% disk free.
 
-Day-to-day commands are in the runbook, [`deploy/README.md`](deploy/README.md); a hands-on lab that walks through all of this on a local cluster is in [`deploy/LEARN.md`](deploy/LEARN.md).
+Day-to-day commands are in the runbook, [`deploy/README.md`](deploy/README.md); a hands-on learning lab for the whole project (site, API, Docker, Kubernetes, CI/CD, DNS and email, operations), with something to break on purpose in each part, is in [`deploy/LEARN.md`](deploy/LEARN.md).
 
 <br/>
 
@@ -602,8 +607,8 @@ Slides are 1080 × 1350 (Instagram 4:5) with 80 px side margins.
 
 - [x] Post kit: content in, finished post out, tested in four languages
 - [x] Blog live at [onehintaway.com](https://onehintaway.com) on Cloudflare Workers static assets
-- [x] Posts 00–24 on the blog; batches of ten drafted ahead
-- [x] Interactive pattern visualizer: three patterns, checked against a brute force on every build
+- [x] Posts 00–32 on the blog; batches of ten drafted ahead
+- [x] Interactive pattern visualizer: 25 patterns, checked against a brute force on every build; with accounts on, it plays for signed-in readers (padlock on each gallery card)
 - [ ] Visualizer: more kinds of picture (decision tree for binary search, moving cells for sorting, grid, linked list, call stack, heap, graph)
 - [ ] Post kit: studio-quality pass on slides and video, with the video drawn from the visualizer's step format
 - [x] **API**: Spring Boot 4.1 (Java 21) + PostgreSQL 16 for search, view counts and sign-ups: built and tested, live once the cluster exists
@@ -612,7 +617,7 @@ Slides are 1080 × 1350 (Instagram 4:5) with 80 px side margins.
 - [x] **CI/CD**: a push to `main` tests the API, builds the image, pushes it to GHCR and rolls it out, with automatic rollback
 - [x] **Operations**: nightly database backups to Cloudflare R2 (restore tested), Prometheus alerts, a runbook
 - [x] An outside uptime check every 15 minutes, link-preview images and search titles on every post, the newsletter sign-up form in the footer, with a confirmation email through Resend
-- [x] **Accounts**: sign in by emailed code (no passwords), sessions in Postgres, progress ticks, a privacy page: built and tested; shown on the site once `NEXT_PUBLIC_ACCOUNTS=on` is set
+- [x] **Accounts**: sign in by emailed code (no passwords), sessions in Postgres, progress ticks, a privacy page: built, tested and live (`NEXT_PUBLIC_ACCOUNTS=on` in Workers Builds)
 - [ ] Sign in with Google (the tables are ready for it)
 - [ ] Newsletter (Listmonk + Amazon SES)
 

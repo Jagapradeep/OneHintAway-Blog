@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LockBadge } from "@/components/VisualizerGate";
+import { ACCOUNTS_ON } from "@/lib/site";
 import { PAYWALL_ON } from "@/visualizer/access.ts";
 import { patterns } from "@/visualizer/registry.ts";
 
@@ -28,6 +30,7 @@ export default function VisualizePage() {
                   <strong>{p.title}</strong>
                   <span>{p.blurb}</span>
                   {PAYWALL_ON && <em className="vz-badge">{p.tier === "paid" ? "Preview" : "Free"}</em>}
+                  {ACCOUNTS_ON && <LockBadge tier={p.tier} />}
                 </Link>
               ))}
           </div>

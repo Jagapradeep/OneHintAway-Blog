@@ -106,6 +106,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <a href={INSTAGRAM_URL} target="_blank" rel="noopener">
                 Instagram · @onehintaway
               </a>
+              <a href="mailto:hello@onehintaway.com">Email · hello@onehintaway.com</a>
             </div>
           </footer>
         </div>

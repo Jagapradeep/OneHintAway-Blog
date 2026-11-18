@@ -105,7 +105,7 @@ and code inside the API pods. They are in the nightly backup like everything els
 | `SITE_URL` (`api.siteUrl`) | `values-production.yaml` | `https://onehintaway.com`: where the confirm and unsubscribe links land |
 | `SESSION_COOKIE_SECURE` (`api.sessionCookieSecure`) | `values.yaml` | `true`. Never false here |
 | `RESEND_API_KEY` | `/root/onehintaway.env` | Already set. Without it sign-in codes would go to the log, with the reader's address |
-| `NEXT_PUBLIC_ACCOUNTS=on` | Cloudflare, Workers Builds variables | Set it only after the API with V2 is deployed, then rebuild the site. Remove it and rebuild to hide accounts again; the data stays |
+| `NEXT_PUBLIC_ACCOUNTS=on` | Cloudflare, Workers Builds variables | Set (accounts are live). It also makes the visualizer play only for signed-in readers. Remove it and rebuild to hide accounts and open the visualizer to everyone again; the data stays |
 
 Look without printing anyone's address:
 

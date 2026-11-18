@@ -424,6 +424,7 @@
     }
   ],
   "blog": {
+    "visualizer": "median-two-arrays",
     "pattern": "Binary search",
     "section": "Binary search",
     "summary": "Median of two sorted arrays: binary search how many values the shorter one gives to the left half, then read the edges.",

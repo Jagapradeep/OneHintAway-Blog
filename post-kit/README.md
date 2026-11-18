@@ -185,11 +185,9 @@ The blog has an interactive player where a reader steps through a pattern on the
 
 ```
 post-kit/viz/
-  two-pointers/ref.py      sorted array, find the pair (post 06)
-  sliding-window/ref.py    longest run within a budget (post 08)
-  monotonic-stack/ref.py   next greater number (no post yet)
+  <pattern>/ref.py         one folder per pattern (35, listed below)
 site/visualizer/
-  schema.ts                the step format (version 1), shared by the site and this kit
+  schema.ts                the step format (version 2), shared by the site and this kit
   patterns/<pattern>.ts    the same algorithm in TypeScript, one file per pattern
   registry.ts              the list of patterns the build checks
   loaders.ts               how the browser fetches each pattern, one small file each
@@ -207,11 +205,11 @@ From `site/`:
 npm run check-viz
 ```
 
-It prints one `ok` line per pattern and ends with `3 pattern(s), 3947 test inputs, all steps valid`. `npm run build` runs this check every time, right after `check-posts`. For each pattern it checks:
+It prints one `ok` line per pattern and ends with a total, such as `35 pattern(s), 42189 test inputs, all steps valid, 25 post(s) with a player`. `npm run build` runs this check every time, right after `check-posts`. For each pattern it checks:
 
 - **Answers:** the TypeScript answer matches the Python brute force on every test input (1,300+ per pattern).
 - **Every step:** pointers stay inside the array, the window's total is its real sum, the stack really is in order, and the narration only mentions numbers that are true at that step.
-- **The example:** the step-by-step trace of the post's example is exactly what `viz_steps()` produces here.
+- **The example:** when `ref.py` has `viz_steps()`, the step-by-step trace of the post's example is exactly what it produces here; otherwise the example's answer is compared.
 - **Pseudocode:** it is the same as the `## Pseudocode` block of the pattern's post.
 
 While working, `npm run check-viz -- --sample 50` checks 50 inputs per pattern and takes a second.
@@ -252,10 +250,10 @@ A post with a player must use the same pseudocode as the pattern. If you change 
    | --- | --- |
    | `PATTERN` | The pattern's name; must equal the folder name |
    | `EXAMPLE` | The post's tiny example, as the default input |
-   | `PSEUDOCODE` | The post's pseudocode, one string per line |
-   | `solve(inp)` | The real algorithm |
+   | `PSEUDOCODE` | The post's pseudocode, one string per line (only with `viz_steps`) |
+   | `solve(inp)` | Optional: the real algorithm, checked against `brute` |
    | `brute(inp)` | The slow, obviously correct answer |
-   | `viz_steps(inp)` | The list of steps (format below) |
+   | `viz_steps(inp)` | Optional: the list of steps (format below), compared with the TypeScript step for step |
    | `test_inputs()` | At least 1,000 inputs: edge cases plus random ones |
    | `same(inp, got, want)` | Optional: only when more than one answer is correct |
 
@@ -264,28 +262,72 @@ A post with a player must use the same pseudocode as the pattern. If you change 
 4. **Test.** From `site/`: `npm run viz-fixtures`, then `npm run build`. A mismatch names the input, the step and the two versions.
 5. **Look.** `npm run dev` and open `/visualize/<pattern>/`: try your own input, bad input, both themes and a phone-sized window. On a laptop the whole player should fit on one screen.
 
-No change to the player is needed unless the pattern needs a new kind of picture (a grid, a tree). Arrays, pointers, one window, one stack and named values are already drawn.
+Most patterns since 13 November have only `EXAMPLE`, `brute` and `test_inputs` (the step twin was dropped to save work); patterns that bring a new kind of picture keep `viz_steps`, so the picture's shape exists in Python too (`reverse-list`, `fast-slow-pointers`).
 
-### The step format (version 1)
+No change to the player is needed unless the pattern needs a new kind of picture. Seven kinds are drawn (next section).
 
-Each step is a complete picture, not a change from the step before, so the player can jump to any step. `viz_steps()` returns a list of these:
+### The patterns
 
-```python
-{
-    "line": 5,                                  # index into PSEUDOCODE, counted from 0
-    "say": "3 joins the window: total is 6.",   # one plain sentence, at most 110 characters
-    "cells": [{"v": 2, "state": "steel"}, ...], # the array; same states as the slides
-    "pointers": [{"id": "left", "label": "left", "at": 0}],
-    "window": {"lo": 0, "hi": 2},               # optional; lo == hi + 1 means empty
-    "stack": [{"id": "s0", "v": 2, "from": 0}], # optional; bottom first
-    "vars": [{"name": "total", "value": 6}],    # optional; "" means not set yet
-}
-```
+Posts marked "kit only" are in `posts/` here but not on the site yet. Their `post.json` already has `"visualizer"`, so the exported MDX carries the line: once the post is added to the site, its page shows the player, and the build stops if its pseudocode differs from the pattern's.
 
-Cell states are the slides' own: `gold` (the current focus), `steel` (done or compared), `dim` (out of play), `ghost` (a gap), `dash` (an empty slot, value `""`), and `plain`. Keep each `id` the same from step to step: that is how the player knows to slide a pointer or pop a stack item instead of redrawing it.
+| Pattern | Post | Pictures | Tier |
+| --- | --- | --- | --- |
+| `hash-two-sum` | 05 | array, map | paid |
+| `two-pointers` | 06 | array | free |
+| `fixed-window` | 07 | array | paid |
+| `sliding-window` | 08 | array | free |
+| `min-window` | 09 | array, map | paid |
+| `prefix-sum` | 10 | array | paid |
+| `prefix-sum-hash-map` | 11 | array, map | paid |
+| `kadane` | 12 | array | paid |
+| `three-way-partition` | 13 | array | paid |
+| `moores-voting` | 14 | array | paid |
+| `cyclic-sort` | 15 | array | paid |
+| `next-permutation` | 17 | array | paid |
+| `trapping-rain-water` | 18 | bars | paid |
+| `recursion` | 21 | stack | free |
+| `insertion-sort` | 22 | array | paid |
+| `selection-sort` | 23 | array | paid |
+| `bubble-sort` | 24 | array | free |
+| `merge-sort` | 25 | array | paid |
+| `quick-sort` | 26 | array | paid |
+| `binary-search` | 28 | array, tree | free |
+| `lower-bound` | 29 | array | paid |
+| `rotated-sorted-array` | 30 | array | paid |
+| `search-2d-matrix` | 31 | grid | paid |
+| `binary-search-on-answers` | 32 | array | paid |
+| `gas-stations` | 33 | array | paid |
+| `median-two-arrays` | 34 (kit only) | array | paid |
+| `spiral-matrix` | 35 (kit only) | grid, array | free |
+| `anagram` | 36 (kit only) | array, map | paid |
+| `subsets` | 37 (kit only) | tree, map | free |
+| `permutations` | 38 (kit only) | tree, array | paid |
+| `word-search` | 39 (kit only) | grid, array | paid |
+| `n-queens` | 40 (kit only) | grid | paid |
+| `reverse-list` | 41 (kit only) | list | free |
+| `fast-slow-pointers` | 42 (kit only) | list | paid |
+| `monotonic-stack` | none yet | array, stack | paid |
+
+### The step format (version 2)
+
+Each step is a complete picture, not a change from the step before, so the player can jump to any step: `line` (index into the pseudocode, from 0), `say` (one plain sentence, at most 110 characters), `views` (a list of typed pictures, the same kinds and ids in the same order on every step) and optional `vars` (named values; `""` means not set yet). The kinds:
+
+| Kind | What it draws | Rules the build checks |
+| --- | --- | --- |
+| `array` | cells with stable ids (they slide when they move), pointers above and below, an optional window frame, optional label, `hideIndex` | cells never appear or disappear; pointers and window in bounds |
+| `stack` | items bottom first, each may say which array cell it came from | ids unique |
+| `tree` | nodes with a parent; with `side` (left/right) it is laid out in order under the array (binary search); with no sides it is a compact decision tree, leaves side by side, each parent over its children (subsets, permutations) | one root, no cycles, the tree never changes shape |
+| `map` | key and value chips that come and go | ids unique |
+| `bars` | walls with water, pointers | heights never change |
+| `grid` | rows of cells (values may change, such as `#` in word search) | cells never move |
+| `list` | linked-list nodes in fixed places, each with `next` (a node id or none); straight arrows to a neighbour, an arc for a link that loops back; pointers stand on a node or on none, each in its own row | nodes never move or change value; every `next` and pointer names a real node or none |
+
+States are the slides' own: `gold` (the current focus), `steel` (done or compared), `dim` (out of play), `plain`, plus `ghost` and `dash` (an empty slot, value `""`) for cells. Keep each `id` the same from step to step: that is how the player slides a pointer or pops a stack item instead of redrawing it.
+
+**Adding a kind of picture:** one member of the `View` union and one generic check in `site/visualizer/schema.ts` (wired into `checkStep`), one component in `site/components/views/` (lazily loaded), one branch in `VisualizerPlayer.tsx`'s `step.views.map`, the numbers it shows in `_lib.ts`'s `facts()`, and the same shape from a `viz_steps()` in the first pattern's `ref.py`.
 
 ### What is still separate, and what is planned
 
 - **The video and the website do not share code yet.** The slide video (`kit/video.py`) still uses its own step words from the **Video** section above, and a post's story is written twice: `video_steps()` in `posts/NN-slug/ref.py` for the video, `viz_steps()` in `viz/<pattern>/ref.py` for the website. Drawing the video from this format is planned, after the format's version 2.
-- **Version 2 of the format** will make a step a list of typed pictures (array, tree, grid, linked list, call stack, heap, graph), so patterns that are not arrays can be shown. Nothing in this section changes until then.
+- **Still to come:** heap and graph pictures, when the roadmap reaches them.
 - **Free and paid.** Each pattern's file says `tier: "free"` or `"paid"`. It has no effect while `PAYWALL_ON` in `site/visualizer/access.ts` is `false`. Switching it on only hides the reader's own input on paid patterns; keeping paid patterns truly private needs a server check, which is not built. Separately, when the site is built with accounts on (as in production), every pattern, free or paid, plays only for a signed-in reader, and the gallery shows a padlock on each card; `canPlay()` in the same file holds both rules.

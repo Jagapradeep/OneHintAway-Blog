@@ -308,12 +308,12 @@ Readers step through an algorithm on their own numbers at [`/visualize/`](https:
 
 | Piece | What it does |
 | --- | --- |
-| `visualizer/patterns/<id>.ts` | The algorithm as a generator that yields one step at a time: array, pointers, window, stack, named values, one sentence of narration and the pseudocode line. No DOM. |
+| `visualizer/patterns/<id>.ts` | The algorithm as a generator that yields one step at a time: a list of typed pictures (array with pointers and a window, stack, tree, map, bars, grid, linked list), named values, one sentence of narration and the pseudocode line. No DOM. |
 | `components/VisualizerPlayer.tsx` | Draws any pattern's steps. Motion is CSS transforms only. One-screen layout: input on top, picture left, pseudocode right scrolling in its own box; tabs on phones. |
 | `post-kit/viz/<id>/ref.py` | The same algorithm in Python with a brute force and 1,000+ test inputs. `npm run viz-fixtures` saves its answers, so the cloud build never needs Python. |
 | `scripts/check-visualizer.mjs` | Fails the build unless TypeScript and Python agree on every input, every step obeys the schema and the pattern's own rules, the example's trace matches step for step, and the pseudocode equals the post's. |
 
-Each pattern ships as its own small chunk (about 2 KB gzipped) beside the player (about 4 KB), loaded only on pages that show one. Patterns today: 25, from two pointers to binary search on answers (`visualizer/registry.ts` is the list). Adding one is two files and two list entries: see [`post-kit/README.md`](post-kit/README.md#website-visualizer-step-by-step).
+Each pattern ships as its own small chunk (about 2 KB gzipped) beside the player (about 4 KB), loaded only on pages that show one; a post without a player carries only a few hundred bytes for it (`components/VisualizerSlot.tsx`). Patterns today: 35, from two pointers to fast and slow pointers (`visualizer/registry.ts` is the list). Seven kinds of picture: array, stack, tree (a binary-search tree lined up with the array, or a compact decision tree for backtracking), map, bars, grid and linked list (arrows that turn or loop back, pointers that can stand on none). Adding one is two files and two list entries: see [`post-kit/README.md`](post-kit/README.md#website-visualizer-step-by-step).
 
 **Sign in to play (when accounts are on, as on the live site).** With `NEXT_PUBLIC_ACCOUNTS=on`, the player plays only for a signed-in reader, on every pattern, free or paid. A signed-out reader still gets the title, the problem, the one-line idea and the pseudocode, all in the built HTML, and in place of the player a card, "Sign in to try it on your own input", with a Sign in button that opens the header's sign-in panel. After the code is typed in, the card turns into the player on the same page with no reload, and other open tabs follow. In the gallery, each card shows a small padlock in its corner (the same mark can later stand for a paid pattern). Signed-out readers never download the player or pattern chunks. The gate fails open: if the API is down or the sign-in check gets no answer within its 8-second timeout, the player shows. While the check runs, the space is kept at about the player's height and the card is not shown. The rule is one function, `canPlay()` in `visualizer/access.ts`, which then applies the free and paid tiers as before (`PAYWALL_ON` is still off). With accounts off, the visualizer is built exactly as before.
 
@@ -608,8 +608,9 @@ Slides are 1080 × 1350 (Instagram 4:5) with 80 px side margins.
 - [x] Post kit: content in, finished post out, tested in four languages
 - [x] Blog live at [onehintaway.com](https://onehintaway.com) on Cloudflare Workers static assets
 - [x] Posts 00–32 on the blog; batches of ten drafted ahead
-- [x] Interactive pattern visualizer: 25 patterns, checked against a brute force on every build; with accounts on, it plays for signed-in readers (padlock on each gallery card)
-- [ ] Visualizer: more kinds of picture (decision tree for binary search, moving cells for sorting, grid, linked list, call stack, heap, graph)
+- [x] Interactive pattern visualizer: 35 patterns, checked against a brute force on every build; with accounts on, it plays for signed-in readers (padlock on each gallery card)
+- [x] Visualizer pictures: decision trees (binary search, subsets, permutations), moving cells for sorting, grid, map, bars, call stack, linked list
+- [ ] Visualizer: heap and graph pictures (when the roadmap reaches them)
 - [ ] Post kit: studio-quality pass on slides and video, with the video drawn from the visualizer's step format
 - [x] **API**: Spring Boot 4.1 (Java 21) + PostgreSQL 16 for search, view counts and sign-ups: built and tested, live once the cluster exists
 - [x] **Docker**: images for the API and the site build, and one compose file that starts the API, PostgreSQL and Umami with one command

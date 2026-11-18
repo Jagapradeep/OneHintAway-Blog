@@ -900,9 +900,10 @@ pre.shiki { background: var(--code-bg) !important; }
   font-size: clamp(8.5px, calc(100cqw / var(--n) * 0.36), 14px);
   transition: color var(--vz-dur), border-color var(--vz-dur), background-color var(--vz-dur), box-shadow var(--vz-dur), transform var(--vz-dur);
 }
-.vz-node.vz-gold span { background: linear-gradient(var(--active-bg), var(--active-bg)) var(--card-bottom); transform: none; }
-.vz-node.vz-steel span { background: linear-gradient(var(--glow-steel), var(--glow-steel)) var(--card-bottom); }
-.vz-node.vz-dim span { background: var(--card-bottom); transform: scale(0.82); }
+/* Border and text follow the state, as on cells (.vz-node span above would otherwise win). */
+.vz-node.vz-gold span { background: linear-gradient(var(--active-bg), var(--active-bg)) var(--card-bottom); transform: none; border-color: var(--gold); color: var(--gold); box-shadow: 0 0 0 3px var(--glow-gold); }
+.vz-node.vz-steel span { background: linear-gradient(var(--glow-steel), var(--glow-steel)) var(--card-bottom); border-color: var(--steel); color: var(--steel); }
+.vz-node.vz-dim span { background: var(--card-bottom); transform: scale(0.82); border-style: dashed; color: var(--muted); }
 
 /* Map, bars and grid views (components/views/MoreViews.tsx). */
 /* The chips start at the left edge of the cells and may run on to the right edge of the picture. */
@@ -926,6 +927,40 @@ pre.shiki { background: var(--code-bg) !important; }
 .vz-wall { height: calc(var(--h) / var(--max) * 100%); background: var(--muted); border-radius: 3px 3px 0 0; }
 .vz-b-gold .vz-wall { background: var(--gold); }
 .vz-b-dim .vz-wall { opacity: 0.45; }
+
+/* List view (components/views/ListView.tsx). Nodes are cells in fixed columns, slimmer
+   than a cell so an arrow fits in the gap; the top 14px hold arcs (links that loop back).
+   Arrows only fade in and out: nothing here moves except the pointers. */
+.vz-lrow { position: relative; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); padding-top: 14px; contain: layout; }
+.vz-lrow .vz-cell { aspect-ratio: auto; padding: 2px 15%; }
+.vz-lrow .vz-cell span { height: auto; aspect-ratio: 1; font-size: clamp(9px, calc(100cqw / var(--n) * 0.26), 17px); }
+.vz-lrow .vz-lnone span { border: 1.5px dashed var(--border-strong); background: none; color: var(--muted); font-size: clamp(8px, calc(100cqw / var(--n) * 0.17), 11px); letter-spacing: 0; }
+.vz-link {
+  position: absolute; top: calc(50% + 2px); left: calc((var(--at) + 0.85) * 100% / var(--n)); width: calc(30% / var(--n)); height: 2px;
+  background: var(--steel); transition: opacity var(--vz-dur);
+}
+.vz-link::after { content: ""; position: absolute; top: -4px; right: -2px; border: 5px solid transparent; border-left: 6px solid var(--steel); border-right: 0; }
+.vz-link-back { top: calc(50% + 10px); }
+.vz-link-back::after { right: auto; left: -2px; border-left: 0; border-right: 6px solid var(--steel); }
+.vz-link-off { opacity: 0; }
+.vz-arc {
+  position: absolute; top: 2px; height: 14px; pointer-events: none;
+  left: calc((var(--from) + 0.5) * 100% / var(--n)); width: calc(var(--span) * 100% / var(--n));
+  border: 2px solid var(--steel); border-bottom: 0; border-radius: 10px 10px 0 0;
+  animation: vz-arc-in var(--vz-dur) ease-out both;
+}
+.vz-arc::after { content: ""; position: absolute; bottom: -5px; right: -6px; border: 5px solid transparent; border-top: 6px solid var(--steel); border-bottom: 0; }
+.vz-arc-left::after { right: auto; left: -6px; }
+@keyframes vz-arc-in { from { opacity: 0; } }
+.vz-carets { position: relative; height: 8px; margin-top: 4px; }
+.vz-carets i {
+  position: absolute; top: 0; left: 0; width: calc(100% / var(--n)); height: 100%; display: flex; justify-content: center;
+  transform: translateX(calc(var(--at) * 100%)); transition: opacity var(--vz-dur);
+}
+.vz-carets i::before { content: ""; border: 6px solid transparent; border-bottom-color: var(--gold); border-top-width: 0; }
+.vz-caret-off { opacity: 0; }
+.vz-lptr { position: relative; height: 15px; }
+.vz-lptr .vz-ptr span { line-height: 15px; }
 
 .vz-vars { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px; }
 .vz-var {
@@ -1069,7 +1104,8 @@ pre.shiki { background: var(--code-bg) !important; }
 :root[data-acct] .vz-gate-lock.is-wait { visibility: hidden; }
 /* A browser that has signed in before most likely gets the player: keep about its height. */
 @media (max-width: 759px) {
-  :root[data-acct] .vz-gate.is-wait { min-height: 770px; }
+  /* Phone players fit the screen since 19 November 2026 (546 to 759 px at 360 and 390 px wide). */
+  :root[data-acct] .vz-gate.is-wait { min-height: min(680px, calc(100svh - 100px)); }
 }
 @media (min-width: 760px) {
   .vz-gate { min-height: 480px; padding: 16px 20px; column-gap: 20px; grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr); }
@@ -1121,7 +1157,7 @@ pre.shiki { background: var(--code-bg) !important; }
   .vz-speed select { padding: 0 2px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .vz *, .vz *::before { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  .vz *, .vz *::before, .vz *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
 
 /* One-pattern pages keep the player on the first screen: the crumb replaces the Back

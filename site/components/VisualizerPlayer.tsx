@@ -5,9 +5,9 @@
 // Motion is CSS transforms only, driven by the difference between two steps.
 // Layout is a fixed workbench: input on top, picture and controls on the left,
 // pseudocode on the right scrolling inside its own box, so one screen holds it all.
-import { lazy, use, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { lazy, use, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { loadPattern } from "@/visualizer/loaders.ts";
-import { checkLimits, stackOf, traceOf, type Field, type Input, type MapEntry, type Pattern } from "@/visualizer/schema.ts";
+import { checkLimits, stackOf, traceOf, treeColumns, type Field, type Input, type MapEntry, type Pattern } from "@/visualizer/schema.ts";
 import { ArrayView } from "./views/ArrayView.tsx";
 import { StackView } from "./views/StackView.tsx";
 import { vars } from "./views/vars.ts";
@@ -17,10 +17,13 @@ const TreeView = lazy(() => import("./views/TreeView.tsx"));
 const MapView = lazy(() => import("./views/MoreViews.tsx").then((m) => ({ default: m.MapView })));
 const BarsView = lazy(() => import("./views/MoreViews.tsx").then((m) => ({ default: m.BarsView })));
 const GridView = lazy(() => import("./views/MoreViews.tsx").then((m) => ({ default: m.GridView })));
+const ListView = lazy(() => import("./views/ListView.tsx"));
 
 const SPEEDS = [0.5, 1, 2];
 const STEP_MS = 1600;
 const LINE_PX = 22; // one pseudocode line (see .vz-code pre.shiki)
+const PHONE = "(max-width: 759px)"; // the stacked layout (see .vz in globals.css)
+const CODE_MIN = 110; // about five lines: the pseudocode box never gets smaller than this
 
 type Texts = Record<string, string>;
 type Problem = { field?: string; msg: string };
@@ -65,6 +68,7 @@ export default function VisualizerPlayer(props: Props) {
 function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
   const uid = useId();
   const codeRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [texts, setTexts] = useState<Texts>(() => textsOf(p.example));
   const [input, setInput] = useState<Input>(p.example);
@@ -99,6 +103,12 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
           for (const e of v.entries) if (!all.some((x) => x.id === e.id)) all.push(e);
         } else if (v.kind === "stack") deep = Math.max(deep, v.items.length);
         else if (v.kind === "grid") n = Math.max(n, ...v.rows.map((r) => r.length));
+        else if (v.kind === "tree") n = Math.max(n, treeColumns(v));
+        else if (v.kind === "list") {
+          n = Math.max(n, v.nodes.length + 1); // one more column for "none"
+          const ids = (seen[v.id] ??= []);
+          for (const q of v.pointers) if (!ids.includes(q.id)) ids.push(q.id);
+        }
         else if (v.kind === "array" || v.kind === "bars") {
           n = Math.max(n, v.kind === "array" ? v.cells.length : v.bars.length);
           const ids = (seen[v.id] ??= []);
@@ -118,6 +128,33 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
     const t = setInterval(() => setPos((c) => (c.i >= last ? c : { i: c.i + 1, prev: c.i })), STEP_MS / speed);
     return () => clearInterval(t);
   }, [playing, speed, last]);
+
+  // Phones stack the pseudocode under the picture. Its box gets the room left on the screen
+  // (at least CODE_MIN, at most the stylesheet's 38svh), so the whole player fits one screen.
+  // Everything else in the player keeps its height while stepping, so this settles at once:
+  // the rest of the player does not depend on the box's own height.
+  const [codeMax, setCodeMax] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const fit = () => {
+      const box = codeRef.current;
+      if (!window.matchMedia(PHONE).matches) return setCodeMax(null);
+      if (!box || panel !== "code") return; // the box is hidden behind "Your input": keep its size
+      const header = document.querySelector(".site-header")?.getBoundingClientRect().height ?? 0;
+      const rest = root.getBoundingClientRect().height - box.getBoundingClientRect().height;
+      const room = window.innerHeight - header - 12 - rest;
+      setCodeMax(Math.round(Math.max(CODE_MIN, Math.min(room, window.innerHeight * 0.38))));
+    };
+    fit();
+    const watch = new ResizeObserver(fit); // lazy views mount a moment later and change the rest
+    watch.observe(root);
+    window.addEventListener("resize", fit);
+    return () => {
+      watch.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, [trace, panel]);
 
   // Long pseudocode scrolls inside its box; keep the running line in the middle of it.
   useEffect(() => {
@@ -177,6 +214,7 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
   return (
     <div
       className="vz"
+      ref={rootRef}
       role="group"
       aria-label={`${p.title} visualizer`}
       tabIndex={0}
@@ -245,6 +283,8 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
                 <BarsView key={v.id} view={v} />
               ) : v.kind === "grid" ? (
                 <GridView key={v.id} view={v} />
+              ) : v.kind === "list" ? (
+                <ListView key={v.id} view={v} rows={shape.seen[v.id] ?? []} />
               ) : (
                 <StackView key={v.id} view={v} before={pos.prev !== pos.i ? stackOf(before, v.id) : undefined} />
               ),
@@ -342,7 +382,7 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
       <div className="vz-code-slot" id={`${uid}-code`}>
         <div className="vz-code pseudo-block">
           <div className="pseudo-head">{"Pseudocode  ·  any language"}</div>
-          <div className="vz-code-scroll" ref={codeRef}>
+          <div className="vz-code-scroll" ref={codeRef} style={codeMax === null ? undefined : { maxHeight: codeMax }}>
             <div className="vz-code-body" style={vars({ "--line": step.line })}>
               <div className="vz-code-mark" />
               <div dangerouslySetInnerHTML={{ __html: codeHtml }} />

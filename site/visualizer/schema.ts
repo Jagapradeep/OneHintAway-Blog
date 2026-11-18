@@ -1,5 +1,5 @@
 // One Hint Away step schema, version 2: a step is a list of typed views.
-// Each view kind (array, stack, tree, map, bars, grid) has its own shape, its own
+// Each view kind (array, stack, tree, map, bars, grid, list) has its own shape, its own
 // stable ids, its own generic check below and its own drawing component.
 // The same JSON is produced by the TypeScript patterns in ./patterns (for the
 // website player) and by viz_steps() in post-kit/viz/<pattern>/ref.py (for the
@@ -83,7 +83,9 @@ export interface TreeNode {
   side?: "left" | "right";
 }
 
-/** A rooted tree. The whole tree is present on every step; only states change. */
+/** A rooted tree. The whole tree is present on every step; only states change.
+ *  When no node has a side, it is drawn compact: leaves side by side, each parent
+ *  centred over its children (children in the order of `nodes`). */
 export interface TreeView {
   kind: "tree";
   id: string;
@@ -134,7 +136,32 @@ export interface GridView {
   rows: Cell[][];
 }
 
-export type View = ArrayView | StackView | TreeView | MapView | BarsView | GridView;
+export interface ListNode {
+  /** Stable across steps and unique in its view. Nodes never move or change value. */
+  id: string;
+  v: number | string;
+  /** Id of the node this one's arrow points at; null = none. */
+  next: string | null;
+  state: NodeState;
+}
+
+export interface ListPointer {
+  id: string;
+  label: string;
+  /** Id of the node it stands on; null = none. */
+  at: string | null;
+}
+
+/** A linked list: nodes in a fixed row, arrows that may change, pointers on nodes or on none. */
+export interface ListView {
+  kind: "list";
+  id: string;
+  label?: string;
+  nodes: ListNode[];
+  pointers: ListPointer[];
+}
+
+export type View = ArrayView | StackView | TreeView | MapView | BarsView | GridView | ListView;
 
 export interface Var {
   name: string;
@@ -348,6 +375,35 @@ function checkGrid(v: GridView, first: GridView): string | null {
   return null;
 }
 
+/** Rules every list view must obey. `first` is the same view on step 1. */
+function checkList(v: ListView, first: ListView): string | null {
+  if (!Array.isArray(v.nodes) || v.nodes.length !== first.nodes.length) return "the number of nodes changed";
+  const ids = new Set(first.nodes.map((nd) => nd.id));
+  if (ids.size !== first.nodes.length) return "a node id is missing or repeated";
+  for (const [k, nd] of v.nodes.entries()) {
+    const f = first.nodes[k];
+    if (nd.id !== f.id || nd.v !== f.v) return `node ${k} changed its id or value`;
+    if (!isVal(nd.v)) return `node "${nd.id}" has no value`;
+    if (nd.next !== null && !ids.has(nd.next)) return `node "${nd.id}" points at "${nd.next}", which is not a node`;
+    if (!NODE_STATES.includes(nd.state)) return `node "${nd.id}" has unknown state "${nd.state}"`;
+  }
+  if (!Array.isArray(v.pointers)) return "no pointer list";
+  const pids = new Set<string>();
+  for (const p of v.pointers) {
+    if (!p.id || !p.label || pids.has(p.id)) return `pointer id "${p.id}" is missing, unlabelled or repeated`;
+    pids.add(p.id);
+    if (p.at !== null && !ids.has(p.at)) return `pointer "${p.id}" stands on "${p.at}", which is not a node`;
+  }
+  return null;
+}
+
+/** How many columns a tree view needs: one per node, or one per leaf when it is drawn compact. */
+export function treeColumns(v: TreeView): number {
+  if (v.nodes.some((nd) => nd.side !== undefined)) return v.nodes.length;
+  const parents = new Set(v.nodes.map((nd) => nd.parent));
+  return v.nodes.filter((nd) => !parents.has(nd.id)).length;
+}
+
 /** Rules every tree view must obey. `first` is the same view on step 1. */
 function checkTree(v: TreeView, first: TreeView): string | null {
   if (!Array.isArray(v.nodes) || v.nodes.length !== first.nodes.length) return `node count changed from ${first.nodes.length} to ${v.nodes?.length}`;
@@ -411,6 +467,7 @@ export function checkStep(trace: Trace, i: number): string | null {
     else if (v.kind === "map") why = checkMap(v);
     else if (v.kind === "bars") why = checkBars(v, f as BarsView);
     else if (v.kind === "grid") why = checkGrid(v, f as GridView);
+    else if (v.kind === "list") why = checkList(v, f as ListView);
     else why = "unknown kind of view";
     if (why) return `${(v as View).kind} "${(v as View).id}": ${why}`;
   }
@@ -459,6 +516,11 @@ export function treeOf(step: Step, id?: string): TreeView | undefined {
 /** The step's map view with this id. */
 export function mapOf(step: Step, id: string): MapView | undefined {
   return step.views.find((v): v is MapView => v.kind === "map" && v.id === id);
+}
+
+/** The step's list view with this id, or its first list view. */
+export function listOf(step: Step, id?: string): ListView | undefined {
+  return step.views.find((v): v is ListView => v.kind === "list" && (id === undefined || v.id === id));
 }
 
 /** Where a pointer of the first array view stands. */

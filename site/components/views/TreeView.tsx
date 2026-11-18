@@ -1,6 +1,7 @@
 // Draws one tree view (schema v2). Loaded in its own chunk, only by patterns
 // that have a tree. A node's column is its in-order rank and its row is its
 // depth, so a binary-search decision tree lines up with the array's cells.
+// A tree without sides (a decision tree of choices) is drawn compact instead.
 import type { TreeNode, TreeView as TreeViewData } from "@/visualizer/schema.ts";
 import { vars } from "./vars.ts";
 
@@ -20,8 +21,22 @@ export default function TreeView({ view }: { view: TreeViewData }) {
     for (const k of below) if (k.side !== "left") place(k, y + 1);
     rows = Math.max(rows, y + 1);
   };
-  if (root) place(root, 0);
-  const n = Math.max(1, view.nodes.length);
+  // No sides: compact layout. Leaves take one column each, a parent sits over the middle of its children.
+  const compact = !view.nodes.some((nd) => nd.side !== undefined);
+  let leaves = 0;
+  const tidy = (nd: TreeNode, y: number): number => {
+    const below = kids.get(nd.id) ?? [];
+    const xs = below.map((k) => tidy(k, y + 1));
+    const x = xs.length ? (xs[0] + xs[xs.length - 1]) / 2 : leaves++;
+    at.set(nd.id, { x, y });
+    rows = Math.max(rows, y + 1);
+    return x;
+  };
+  if (root) {
+    if (compact) tidy(root, 0);
+    else place(root, 0);
+  }
+  const n = Math.max(1, compact ? leaves : view.nodes.length);
   return (
     <>
       {view.label && <div className="vz-stack-label">{view.label}</div>}

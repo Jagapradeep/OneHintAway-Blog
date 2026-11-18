@@ -32,6 +32,16 @@ export const loaders: Record<string, () => Promise<Pattern>> = {
   "rotated-sorted-array": () => import("./patterns/rotated-sorted-array.ts").then((m) => m.rotatedSortedArray),
   "search-2d-matrix": () => import("./patterns/search-2d-matrix.ts").then((m) => m.search2dMatrix),
   "binary-search-on-answers": () => import("./patterns/binary-search-on-answers.ts").then((m) => m.binarySearchOnAnswers),
+  "gas-stations": () => import("./patterns/gas-stations.ts").then((m) => m.gasStations),
+  "median-two-arrays": () => import("./patterns/median-two-arrays.ts").then((m) => m.medianTwoArrays),
+  "spiral-matrix": () => import("./patterns/spiral-matrix.ts").then((m) => m.spiralMatrix),
+  "anagram": () => import("./patterns/anagram.ts").then((m) => m.anagram),
+  "subsets": () => import("./patterns/subsets.ts").then((m) => m.subsets),
+  "permutations": () => import("./patterns/permutations.ts").then((m) => m.permutations),
+  "word-search": () => import("./patterns/word-search.ts").then((m) => m.wordSearch),
+  "n-queens": () => import("./patterns/n-queens.ts").then((m) => m.nQueens),
+  "reverse-list": () => import("./patterns/reverse-list.ts").then((m) => m.reverseList),
+  "fast-slow-pointers": () => import("./patterns/fast-slow-pointers.ts").then((m) => m.fastSlowPointers),
   "monotonic-stack": () => import("./patterns/monotonic-stack.ts").then((m) => m.monotonicStack),
 };
 

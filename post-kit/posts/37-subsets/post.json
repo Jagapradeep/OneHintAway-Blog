@@ -132,6 +132,7 @@
     }
   ],
   "blog": {
+    "visualizer": "subsets",
     "pattern": "Backtracking",
     "section": "Backtracking",
     "summary": "Every group you could choose: for each value, pick it and recurse, then undo the pick and recurse without it.",

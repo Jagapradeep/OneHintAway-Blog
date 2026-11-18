@@ -4,8 +4,7 @@ import intellijLight from "@/lib/shiki/intellij-light.json";
 import { ACCOUNTS_ON } from "@/lib/site";
 import { isLocked } from "@/visualizer/access.ts";
 import { patternById, patterns } from "@/visualizer/registry.ts";
-import { VisualizerGate } from "./VisualizerGate";
-import { VisualizerLazy } from "./VisualizerLazy";
+import { VisualizerSlot } from "./VisualizerSlot";
 
 // Server side of <Visualizer pattern="two-pointers" />. It colours the
 // pattern's pseudocode at build time with the site's own grammar and themes
@@ -30,7 +29,7 @@ export async function Visualizer({ pattern }: { pattern: string }) {
   // With accounts on, the player is for signed-in readers (VisualizerGate). With them off,
   // the page is built exactly as before.
   if (ACCOUNTS_ON) {
-    return <VisualizerGate patternId={p.id} codeHtml={codeHtml} tier={p.tier} title={p.title} problem={p.problem} blurb={p.blurb} />;
+    return <VisualizerSlot gate={{ patternId: p.id, codeHtml, tier: p.tier, title: p.title, problem: p.problem, blurb: p.blurb }} />;
   }
-  return <VisualizerLazy patternId={p.id} codeHtml={codeHtml} locked={isLocked(p)} />;
+  return <VisualizerSlot player={{ patternId: p.id, codeHtml, locked: isLocked(p) }} />;
 }

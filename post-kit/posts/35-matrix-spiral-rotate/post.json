@@ -373,6 +373,7 @@
     }
   ],
   "blog": {
+    "visualizer": "spiral-matrix",
     "pattern": "Matrix",
     "section": "2D arrays and strings",
     "summary": "Read a grid in spiral order with four walls that move in after each side, and turn it right by swapping across the diagonal, then reversing rows.",

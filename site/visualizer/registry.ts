@@ -7,6 +7,7 @@ import { binarySearch } from "./patterns/binary-search.ts";
 import { binarySearchOnAnswers } from "./patterns/binary-search-on-answers.ts";
 import { bubbleSort } from "./patterns/bubble-sort.ts";
 import { cyclicSort } from "./patterns/cyclic-sort.ts";
+import { fastSlowPointers } from "./patterns/fast-slow-pointers.ts";
 import { fixedWindow } from "./patterns/fixed-window.ts";
 import { hashTwoSum } from "./patterns/hash-two-sum.ts";
 import { insertionSort } from "./patterns/insertion-sort.ts";
@@ -21,6 +22,7 @@ import { prefixSum } from "./patterns/prefix-sum.ts";
 import { prefixSumHashMap } from "./patterns/prefix-sum-hash-map.ts";
 import { quickSort } from "./patterns/quick-sort.ts";
 import { recursion } from "./patterns/recursion.ts";
+import { reverseList } from "./patterns/reverse-list.ts";
 import { rotatedSortedArray } from "./patterns/rotated-sorted-array.ts";
 import { search2dMatrix } from "./patterns/search-2d-matrix.ts";
 import { selectionSort } from "./patterns/selection-sort.ts";
@@ -28,6 +30,14 @@ import { slidingWindow } from "./patterns/sliding-window.ts";
 import { threeWayPartition } from "./patterns/three-way-partition.ts";
 import { trappingRainWater } from "./patterns/trapping-rain-water.ts";
 import { twoPointers } from "./patterns/two-pointers.ts";
+import { gasStations } from "./patterns/gas-stations.ts";
+import { medianTwoArrays } from "./patterns/median-two-arrays.ts";
+import { spiralMatrix } from "./patterns/spiral-matrix.ts";
+import { anagram } from "./patterns/anagram.ts";
+import { subsets } from "./patterns/subsets.ts";
+import { permutations } from "./patterns/permutations.ts";
+import { wordSearch } from "./patterns/word-search.ts";
+import { nQueens } from "./patterns/n-queens.ts";
 
 // The gallery shows them in this order inside each roadmap section.
 export const patterns: Pattern[] = [
@@ -55,6 +65,16 @@ export const patterns: Pattern[] = [
   rotatedSortedArray,
   search2dMatrix,
   binarySearchOnAnswers,
+  gasStations,
+  medianTwoArrays,
+  spiralMatrix,
+  anagram,
+  subsets,
+  permutations,
+  wordSearch,
+  nQueens,
+  reverseList,
+  fastSlowPointers,
   monotonicStack,
 ];
 

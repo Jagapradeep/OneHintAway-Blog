@@ -323,6 +323,7 @@
     }
   ],
   "blog": {
+    "visualizer": "fast-slow-pointers",
     "pattern": "Linked list",
     "section": "Linked list",
     "summary": "Move one pointer 1 step and another 2 steps: if they meet, the list loops; when the fast one runs out, the slow one is in the middle.",

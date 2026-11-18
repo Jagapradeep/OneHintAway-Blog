@@ -331,6 +331,7 @@
     }
   ],
   "blog": {
+    "visualizer": "gas-stations",
     "pattern": "Binary search",
     "section": "Binary search",
     "summary": "Minimise the largest gap after adding k stations: binary search the gap d, counting the stations each guess needs.",

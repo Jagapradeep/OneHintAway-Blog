@@ -391,6 +391,7 @@
     }
   ],
   "blog": {
+    "visualizer": "n-queens",
     "pattern": "Backtracking",
     "section": "Backtracking",
     "summary": "Place n queens so none attack: one per row, a safe test against the rows above, and back up when a row has no safe column.",

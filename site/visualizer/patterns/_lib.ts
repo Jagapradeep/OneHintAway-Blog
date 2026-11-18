@@ -62,6 +62,7 @@ function facts(input: Input, s: Step): number[] {
     else if (v.kind === "map") add(v.entries.map((e) => [e.k, e.v]));
     else if (v.kind === "bars") add(v.bars.map((b, i) => [b.h, b.water, i]));
     else if (v.kind === "grid") add(v.rows.map((r, y) => r.map((c, x) => [c.v, x, y])));
+    else if (v.kind === "list") add(v.nodes.map((nd) => nd.v));
   }
   return out;
 }
@@ -77,3 +78,16 @@ export const sortedOnly = (label: string, a: number[]) => {
   for (let i = 1; i < a.length; i++) if (a[i] < a[i - 1]) return `${label} must be sorted from small to large: ${a[i]} comes after ${a[i - 1]}.`;
   return null;
 };
+
+/** Like sayOk, but reads decimals as one number (3.375, not 3 and 375). */
+export function sayNums(input: Input, s: Step, prev: Step | null, extra: number[] = []): string | null {
+  const ok = [...facts(input, s), ...(prev ? facts(input, prev) : []), ...extra];
+  for (const tok of s.say.match(/-?\d+(?:\.\d+)?/g) ?? []) {
+    const x = Number(tok);
+    if (!ok.some((y) => Math.abs(y - x) < 1e-9)) return `narration mentions ${tok}, which is not in the step's state`;
+  }
+  return null;
+}
+
+/** A list of numbers as the player shows it: "1 2 3", or "[ ]" when empty. */
+export const spaced = (a: (number | string)[]) => (a.length ? a.join(" ") : "[ ]");

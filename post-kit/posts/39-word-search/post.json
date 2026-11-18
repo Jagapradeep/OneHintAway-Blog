@@ -380,6 +380,7 @@
     }
   ],
   "blog": {
+    "visualizer": "word-search",
     "pattern": "Backtracking",
     "section": "Backtracking",
     "summary": "To find a word in a grid of touching cells, mark each cell in use, explore its neighbours and unmark it when you step back.",

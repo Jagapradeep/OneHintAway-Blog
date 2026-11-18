@@ -351,6 +351,7 @@
     }
   ],
   "blog": {
+    "visualizer": "permutations",
     "pattern": "Backtracking",
     "section": "Backtracking",
     "summary": "Every arrangement or combination that follows a rule: choose a value, explore, undo the choice, try the next.",

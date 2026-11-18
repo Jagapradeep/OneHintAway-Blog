@@ -314,6 +314,7 @@
     }
   ],
   "blog": {
+    "visualizer": "anagram",
     "pattern": "Strings",
     "section": "2D arrays and strings",
     "summary": "Compare two words by counting one up and the other down in 26 boxes, and check a palindrome by walking two pointers in from the ends.",

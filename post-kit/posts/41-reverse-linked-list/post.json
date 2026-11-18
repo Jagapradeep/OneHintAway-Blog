@@ -290,6 +290,7 @@
     }
   ],
   "blog": {
+    "visualizer": "reverse-list",
     "pattern": "Linked list",
     "section": "Linked list",
     "summary": "Reverse a linked list in place: save the rest, turn the arrow back, move prev and curr one step.",

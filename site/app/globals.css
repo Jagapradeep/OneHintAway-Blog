@@ -1139,23 +1139,19 @@ body:has(.vz-one) .back-button { display: none; }
 }
 .signup-row button:hover { color: var(--button-hover-text); }
 .signup-row button:disabled { opacity: 0.6; cursor: default; }
-.signup-note { margin: 8px 0 0; min-height: 1.4em; font-size: 0.88rem; color: var(--muted); }
+.signup-hint { margin: 8px 0 0; font-size: 0.88rem; color: var(--text-2); }
+.signup-note { margin: 4px 0 0; min-height: 1.4em; font-size: 0.88rem; color: var(--muted); }
 @media (max-width: 420px) { .signup-row { flex-direction: column; } }
 
 /* Confirmation pages (/subscribed/): the email's three steps: done, you are here, next. */
 .subscribed-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
-.confirm-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-width: 520px; margin: 32px 0 28px; font-family: var(--mono); }
-.confirm-steps-col { text-align: center; }
-.confirm-steps-cell {
-  padding: 16px 4px; border-radius: 10px; font-size: 0.95rem;
-  border: 1px solid var(--border-strong); background: var(--card-top); color: var(--muted);
+.subscribed-promise {
+  max-width: 520px; margin: 28px 0; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--num-bg);
+  font-family: var(--mono); font-size: 0.92rem; line-height: 1.7;
 }
-.confirm-steps-cell.is-done span { color: var(--steel); }
-.confirm-steps-cell.is-here { border: 2px solid var(--gold); padding: 15px 3px; color: var(--gold); font-weight: 600; }
-.confirm-steps-cell.is-ahead { border-style: dashed; background: none; }
-.confirm-steps-status { margin-top: 8px; font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-.confirm-steps-status.is-here { color: var(--gold); font-weight: 600; }
-@media (max-width: 420px) { .confirm-steps { gap: 6px; } .confirm-steps-cell { font-size: 0.82rem; } }
+.subscribed-promise p { margin: 0; padding: 14px 16px; color: var(--text-2); }
+.subscribed-promise .subscribed-promise-head { padding: 9px 16px; border-bottom: 1px solid var(--border-strong); font-size: 0.74rem; letter-spacing: 0.12em; color: var(--muted); }
+.subscribed-promise b { color: var(--gold); font-weight: 600; }
 .subscribed h1 { margin-top: 28px; }
 
 /* Accounts (sign in by emailed link, progress). Every class here starts with acct-.
@@ -1167,8 +1163,16 @@ body:has(.vz-one) .back-button { display: none; }
   border: 1.5px solid var(--border-strong); border-radius: 999px; background: var(--card-top);
   color: var(--text-2); font: inherit; font-weight: 700; font-size: 0.92rem; white-space: nowrap; cursor: pointer;
 }
-.acct-btn.is-in { padding: 0; width: 40px; color: var(--gold); border-color: var(--accent-border); }
-.acct-btn:hover, .acct-btn[aria-expanded="true"] { color: var(--gold); border-color: var(--accent-border); }
+.acct-open { display: flex; margin: 0; }
+/* Signed in: a gold badge with the reader's initial. Checking (signed in before, API not answered
+   yet): the icon alone. The words "Sign in" show only once the reader is known to be signed out,
+   or before the script runs for a reader who never signed in (no data-acct, set in <head>). */
+.acct-btn.is-in { padding: 0; width: 40px; border-color: var(--accent-border); background: var(--button-bg); }
+:root[data-acct] .acct-btn.is-checking { padding: 0; width: 40px; }
+:root[data-acct] .acct-btn.is-checking .acct-btn-text { display: none; }
+.acct-avatar { font-family: var(--title); font-weight: 700; font-size: 1.05rem; line-height: 1; color: var(--button-text); }
+.acct-btn:not(.is-in):hover, .acct-btn:not(.is-in)[aria-expanded="true"] { color: var(--gold); border-color: var(--accent-border); }
+.acct-btn.is-in:hover, .acct-btn.is-in[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--accent-border); }
 .acct-btn svg { flex: none; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 /* Hangs from the header, like the search panel, so it can never run off a phone's edge. */
 .acct-panel {
@@ -1189,14 +1193,16 @@ body:has(.vz-one) .back-button { display: none; }
 }
 .acct-input::placeholder { color: var(--muted); }
 .acct-input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.acct-check { display: flex; align-items: center; gap: 9px; margin-top: 12px; font-size: 0.95rem; color: var(--text-2); cursor: pointer; }
-.acct-check input { flex: none; width: 17px; height: 17px; margin: 0; accent-color: var(--gold); }
 .acct-submit {
   margin-top: 14px; padding: 10px 14px; font: inherit; font-weight: 700; font-size: 0.95rem; cursor: pointer;
   color: var(--button-text); background: var(--button-bg); border: 1px solid var(--accent-border); border-radius: 10px;
 }
 .acct-submit:hover { color: var(--button-hover-text); }
 .acct-submit:disabled, .acct-actions button:disabled { opacity: 0.6; cursor: default; }
+.acct-sent { margin-top: 14px; }
+.acct-sent-title { margin: 0; font-weight: 700; color: var(--gold); }
+.acct-sent .acct-lead strong { color: var(--text); overflow-wrap: anywhere; }
+.acct-linkbtn { padding: 0; font: inherit; color: var(--steel); background: none; border: 0; text-decoration: underline; cursor: pointer; }
 .acct-note { margin: 10px 0 0; min-height: 1.4em; font-size: 0.9rem; color: var(--text-2); }
 .acct-small { margin: 6px 0 0; font-size: 0.85rem; color: var(--muted); }
 .acct-small a { color: var(--steel); }

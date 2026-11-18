@@ -59,17 +59,17 @@ class ResendMailSender implements MailSender {
 	@Override
 	public void sendConfirmation(String email, String confirmUrl) {
 		String text = """
-				Thanks for signing up to One Hint Away.
+				Get new patterns by email?
 
-				Open this link to confirm your address:
+				Open this link to get one email each time a new pattern is posted on One Hint Away. Nothing else.
 				%s
 
-				If you didn't ask for this, ignore this email and you won't hear from us again.
+				Didn't ask for this? Ignore this email and you won't be added.
 				""".formatted(confirmUrl);
 		// The link goes into attributes and text, so it is HTML-escaped. Mail apps that
 		// don't show HTML use the plain text above.
 		String html = HTML_TEMPLATE.replace("{{confirmUrl}}", HtmlUtils.htmlEscape(confirmUrl));
-		send(email, "You're one click away", html, text, "a confirmation email");
+		send(email, "Confirm your One Hint Away subscription", html, text, "a confirmation email");
 	}
 
 	@Override

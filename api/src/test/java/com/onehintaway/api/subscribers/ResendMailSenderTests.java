@@ -37,7 +37,8 @@ class ResendMailSenderTests {
 			.andExpect(jsonPath("$.from").value("One Hint Away <hello@onehintaway.com>"))
 			.andExpect(jsonPath("$.to[0]").value("reader@example.com"))
 			.andExpect(jsonPath("$.text", containsString("https://api.test/confirm?token=abc")))
-			.andExpect(jsonPath("$.subject").value("You're one click away"))
+			.andExpect(jsonPath("$.subject").value("Confirm your One Hint Away subscription"))
+			.andExpect(jsonPath("$.html", containsString("Yes, subscribe me")))
 			.andExpect(jsonPath("$.html", containsString("href=\"https://api.test/confirm?token=abc\"")))
 			.andExpect(jsonPath("$.html", not(containsString("{{confirmUrl}}"))))
 			.andRespond(withSuccess("{\"id\": \"1\"}", MediaType.APPLICATION_JSON));

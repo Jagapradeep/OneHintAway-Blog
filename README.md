@@ -380,7 +380,7 @@ A reader can make an account to keep track of finished lessons. Reading never ne
 
 **Room for a second sign-in method.** `users` holds only the email, and `sessions` says nothing about how the reader signed in. Google sign-in would add one table (provider, Google's user id, `users.id`) and one endpoint that ends by creating the same kind of session; neither existing table changes.
 
-**On the site** all of this is behind a second build setting, `NEXT_PUBLIC_ACCOUNTS=on`: a Sign in button in the header, the page the link opens, an account menu, **Mark as done** on each post, ticks on the home and patterns lists, and a [privacy page](https://onehintaway.com/privacy/). A reader who has never signed in makes no account request at all; signed out, or with the API down, the pages are the same as without accounts. The newsletter stays a separate list: an unticked box in the sign-in panel starts the usual double opt-in.
+**On the site** all of this is behind a second build setting, `NEXT_PUBLIC_ACCOUNTS=on`: a Sign in button in the header, the page the link opens, an account menu, **Mark as done** on each post, ticks on the home and patterns lists, and a [privacy page](https://onehintaway.com/privacy/). A reader who has never signed in makes no account request at all; signed out, or with the API down, the pages are the same as without accounts. Every open tab follows a sign-in or sign-out made in another tab of the same browser, and the header shows the reader's initial once signed in. The newsletter stays a separate list with its own form in the footer: signing in never subscribes anyone.
 
 ### How the site uses it, and how it fails
 

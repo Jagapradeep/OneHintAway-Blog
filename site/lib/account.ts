@@ -10,11 +10,14 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { API_URL } from "@/lib/api";
-import { ACCOUNTS_ON } from "@/lib/site";
+import { ACCOUNT_FLAG, ACCOUNTS_ON } from "@/lib/site";
 
 // Not a secret and not the session (that is an HttpOnly cookie scripts can't read):
 // only a note that this browser has signed in before, so it is worth asking the API.
-const FLAG = "ohw.account";
+// Its value is the time of the last sign-in or sign-out, so every change reaches the
+// other open tabs as a "storage" event (they then update their header too).
+// app/layout.tsx reads it before the page paints (ACCOUNT_SCRIPT in lib/site.ts).
+const FLAG = ACCOUNT_FLAG;
 const TIMEOUT_MS = 8000;
 
 export type SignInLink = { token: string; forDelete: boolean };
@@ -38,7 +41,7 @@ function set(patch: Partial<State>) {
 
 function flag(on: boolean) {
   try {
-    if (on) localStorage.setItem(FLAG, "1");
+    if (on) localStorage.setItem(FLAG, String(Date.now()));
     else localStorage.removeItem(FLAG);
   } catch {
     // private mode: the reader is asked to sign in again on the next page, nothing worse
@@ -47,7 +50,7 @@ function flag(on: boolean) {
 
 function hasFlag() {
   try {
-    return localStorage.getItem(FLAG) === "1";
+    return localStorage.getItem(FLAG) !== null;
   } catch {
     return false;
   }
@@ -97,15 +100,27 @@ function readLink(): SignInLink | null {
   return token ? { token, forDelete: /[#&]for=delete(?:&|$)/.test(hash) } : null;
 }
 
+// Another tab signed in or out: the cookie is shared, so follow it here.
+function onStorage(event: StorageEvent) {
+  if (event.key !== FLAG && event.key !== null) return;
+  if (hasFlag()) void check();
+  else set({ ready: true, email: null, done: new Set() });
+}
+
 async function start() {
   if (started) return;
   started = true;
+  window.addEventListener("storage", onStorage);
   const link = window.location.pathname.startsWith("/sign-in") ? readLink() : null;
   if (!hasFlag()) {
     set({ ready: true, link });
     return;
   }
   set({ link });
+  await check();
+}
+
+async function check() {
   const me = await call("GET", "/api/v1/auth/me");
   const email = (me.json as { email?: unknown } | null)?.email;
   if (me.status === 200 && typeof email === "string") {

@@ -13,10 +13,15 @@ const DELETE_NOTE: Record<LinkResult, string> = {
 };
 
 // Header button. Signed out: "Sign in", opening a panel with the email field.
-// Signed in: an account button, opening the menu (sign out, sign out everywhere, delete).
+// Signed in: a round badge with the first letter of the reader's email, opening the menu
+// (sign out, sign out everywhere, delete). While the API is still being asked (a reader who
+// has signed in before), it shows the plain icon and the panel says so: never "Sign in".
+// The button sits in a plain form that opens /sign-in/, so a tap that lands before the
+// page's script has loaded still goes somewhere useful; once loaded, it opens the panel.
 // Only rendered when the site was built with accounts on (see app/layout.tsx).
 export function AccountMenu() {
-  const { email, done } = useAccount();
+  const { ready, email, done } = useAccount();
+  const status = email ? "in" : ready ? "out" : "checking";
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"menu" | "delete">("menu");
   const [note, setNote] = useState("");
@@ -58,27 +63,48 @@ export function AccountMenu() {
 
   return (
     <div className="acct" ref={rootRef}>
-      <button
-        type="button"
-        className={email ? "acct-btn is-in" : "acct-btn"}
-        aria-label={email ? "Your account" : "Sign in"}
-        aria-expanded={open}
-        aria-controls="acct-panel"
-        onClick={toggle}
+      <form
+        className="acct-open"
+        action="/sign-in/"
+        method="get"
+        onSubmit={(e) => {
+          e.preventDefault();
+          toggle();
+        }}
       >
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <circle cx="12" cy="8.5" r="3.6" />
-          <path d="M4.8 20c.9-3.6 3.7-5.4 7.2-5.4s6.3 1.8 7.2 5.4" />
-        </svg>
-        {!email && <span className="acct-btn-text">Sign in</span>}
-      </button>
+        <button
+          type="submit"
+          className={`acct-btn is-${status}`}
+          aria-label={status === "in" ? "Your account" : status === "out" ? "Sign in" : "Account"}
+          aria-expanded={open}
+          aria-controls="acct-panel"
+        >
+          {email ? (
+            <span className="acct-avatar" aria-hidden="true">
+              {email.charAt(0).toUpperCase()}
+            </span>
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="8.5" r="3.6" />
+              <path d="M4.8 20c.9-3.6 3.7-5.4 7.2-5.4s6.3 1.8 7.2 5.4" />
+            </svg>
+          )}
+          {!email && <span className="acct-btn-text">Sign in</span>}
+        </button>
+      </form>
       {open && (
         <div className="acct-panel" id="acct-panel">
-          {!email && (
+          {status === "checking" && (
+            <>
+              <p className="acct-title">Your account</p>
+              <p className="acct-lead acct-wait">Checking whether you are signed in.</p>
+            </>
+          )}
+          {status === "out" && (
             <>
               <p className="acct-title">Sign in</p>
               <p className="acct-lead">Keep track of the lessons you have finished.</p>
-              <SignInForm />
+              <SignInForm autoFocus />
             </>
           )}
           {email && view === "menu" && (

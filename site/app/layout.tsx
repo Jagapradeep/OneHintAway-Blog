@@ -10,7 +10,7 @@ import { AccountMenu } from "@/components/AccountMenu";
 import { ScrollReset } from "@/components/ScrollReset";
 import { API_URL } from "@/lib/api";
 import { SignupForm } from "@/components/SignupForm";
-import { ACCOUNTS_ON, INSTAGRAM_URL, SIGNUP_ON, SITE_URL, UMAMI_URL, UMAMI_WEBSITE_ID } from "@/lib/site";
+import { ACCOUNT_SCRIPT, ACCOUNTS_ON, INSTAGRAM_URL, SIGNUP_ON, SITE_URL, UMAMI_URL, UMAMI_WEBSITE_ID } from "@/lib/site";
 import { themeScript } from "@/lib/theme";
 import "./globals.css";
 
@@ -58,6 +58,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className={`${sora.variable} ${manrope.variable} ${geistMono.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {ACCOUNTS_ON && <script dangerouslySetInnerHTML={{ __html: ACCOUNT_SCRIPT }} />}
         {UMAMI_URL && UMAMI_WEBSITE_ID && (
           <script defer src={`${UMAMI_URL}/script.js`} data-website-id={UMAMI_WEBSITE_ID} />
         )}

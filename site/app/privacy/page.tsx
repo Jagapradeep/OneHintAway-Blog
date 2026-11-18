@@ -52,13 +52,14 @@ export default function PrivacyPage() {
       <p>
         Signing in sets one cookie. It only keeps you signed in. Page scripts can&apos;t read it, and it is sent
         only to this site&apos;s own server. There are no advertising or tracking cookies. Your browser also remembers
-        your light or dark theme, your last code language, and the fact that you have signed in before.
+        your light or dark theme, your last code language, and the time you last signed in or out on this device (so
+        other open tabs can follow).
       </p>
 
       <h2>The newsletter is separate</h2>
       <p>
-        You get new patterns by email only if you ask for them (the box in the sign-in panel, or the form at the
-        bottom of the page) and then confirm through the email we send. Deleting your account does not change the
+        You get new patterns by email only if you ask for them with the form at the bottom of the page, and then
+        confirm through the email we send. Signing in does not sign you up. Deleting your account does not change the
         newsletter. To stop it, write to <a href="mailto:hello@onehintaway.com">hello@onehintaway.com</a>.
       </p>
 

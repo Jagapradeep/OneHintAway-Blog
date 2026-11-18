@@ -6,7 +6,7 @@ import { API_URL } from "@/lib/api";
 type State = "idle" | "sending" | "sent" | "invalid" | "busy" | "down";
 
 const NOTE: Record<Exclude<State, "idle" | "sending">, string> = {
-  sent: "Check your inbox and open the link to confirm.",
+  sent: "Almost done: open the email we just sent and tap \"Yes, subscribe me\".",
   invalid: "That email address doesn't look right.",
   busy: "Too many tries from here. Please try again later.",
   down: "Sign-up is not available right now.",
@@ -50,7 +50,7 @@ export function SignupForm() {
           type="email"
           name="email"
           autoComplete="email"
-          placeholder="you@example.com"
+          placeholder="you@gmail.com"
           maxLength={254}
           required
           value={email}
@@ -60,6 +60,7 @@ export function SignupForm() {
           {state === "sending" ? "Sending" : "Subscribe"}
         </button>
       </div>
+      <p className="signup-hint">One email for each new pattern. Nothing else.</p>
       <p className="signup-note" role="status" aria-live="polite">
         {state !== "idle" && state !== "sending" ? NOTE[state] : ""}
       </p>

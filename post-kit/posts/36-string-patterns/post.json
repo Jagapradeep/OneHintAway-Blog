@@ -1,0 +1,348 @@
+{
+  "number": 36,
+  "slug": "string-patterns",
+  "kind": "concept",
+  "topic": "String Patterns: Frequency Array and Palindrome Check",
+  "category": "Strings",
+  "next_post": "Pick or skip: subsets",
+  "cover": {
+    "title": "Count the letters",
+    "lead": "Two string moves: count letters in 26 boxes to compare words, and walk two pointers inwards to check a palindrome.",
+    "use_it_when": "A string problem asks if two words use the same letters, or if a word reads the same both ways.",
+    "why_it_matters": "26 counts replace sorting, and two pointers replace building a reversed copy.",
+    "blocks": [
+      {
+        "type": "boxes",
+        "size": "s",
+        "gap": 24,
+        "mt": 18,
+        "values": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "steel": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "under": {
+          "0": "e",
+          "1": "n",
+          "2": "o",
+          "3": "s",
+          "4": "t"
+        }
+      }
+    ],
+    "promise": "You'll write an **anagram check** in {lines} lines.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch the counts go up and down",
+      "title": "Watch it count",
+      "lead": "Is notes an anagram of stone?",
+      "video": {
+        "values": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "indexes": false,
+        "stage_label": "ONE COUNT PER LETTER",
+        "chips_label": "WORD: CHANGE",
+        "steps": "video_steps()",
+        "final": {
+          "steel": "all",
+          "eq": [
+            "all counts 0 →",
+            "anagram"
+          ],
+          "caption": "Same letters, same number of each.",
+          "ptr": {
+            "e": 0,
+            "n": 1,
+            "o": 2,
+            "s": 3,
+            "t": 4
+          }
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "Two bags of letter tiles",
+      "title": "Two bags of tiles",
+      "scene": "Two bags of letter tiles. Tally the first bag up on a board, one box per letter. Then tally the second bag down.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "label": "AFTER THE FIRST BAG: STONE",
+          "values": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "steel": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "under": {
+            "0": "e",
+            "1": "n",
+            "2": "o",
+            "3": "s",
+            "4": "t"
+          }
+        },
+        {
+          "type": "card",
+          "text": "If every box ends at [[0]], the bags hold the same tiles. No sorting needed."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "26 boxes, one per letter",
+      "title": "26 boxes",
+      "lead": "Letter a goes in box 0, b in box 1, and so on to z in box 25.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "values": [
+            "a",
+            "b",
+            "c",
+            "…",
+            "s",
+            "…",
+            "z"
+          ],
+          "size": "m",
+          "gold": [
+            4
+          ],
+          "under": {
+            "0": "0",
+            "1": "1",
+            "2": "2",
+            "4": "18",
+            "6": "25"
+          },
+          "label": "ALPHABET INDEX"
+        },
+        {
+          "type": "equation",
+          "text": "alphabet index of s = **{{INDEX_S}}**"
+        }
+      ],
+      "quickcheck": {
+        "question": "Count below up and elbow down. How many boxes are not 0 at the end?",
+        "answer": "Answer: {{nonzero('below', 'elbow')}}. Every box ends at 0, so they are anagrams.",
+        "check": "nonzero('below', 'elbow')"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "PALINDROME",
+      "board": "Answer + palindrome",
+      "teaser": "The answer, then palindromes",
+      "title": "Same both ways",
+      "blocks": [
+        {
+          "type": "boxes",
+          "values": [
+            "r",
+            "a",
+            "c",
+            "e",
+            "c",
+            "a",
+            "r"
+          ],
+          "size": "s",
+          "gold": [
+            1,
+            5
+          ],
+          "steel": [
+            0,
+            6
+          ],
+          "pointers": {
+            "left": 1,
+            "right": 5
+          }
+        },
+        {
+          "type": "code",
+          "lines": [
+            "function isPalindrome(word):",
+            "    left = 0",
+            "    right = length(word) - 1",
+            "    while left < right:",
+            "        if word[left] != word[right]:",
+            "            return false",
+            "        left = left + 1",
+            "        right = right - 1",
+            "    return true"
+          ],
+          "highlight": [
+            5
+          ]
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "The anagram check in 12 lines",
+      "title": "Anagram check",
+      "code": {
+        "start": 10,
+        "lines": [
+          "function isAnagram(s, t):",
+          "    counts = array of 26 zeros",
+          "    for each letter in s:",
+          "        k = alphabet index of letter",
+          "        counts[k] = counts[k] + 1",
+          "    for each letter in t:",
+          "        k = alphabet index of letter",
+          "        counts[k] = counts[k] - 1",
+          "    for each count in counts:",
+          "        if count != 0:",
+          "            return false",
+          "    return true"
+        ],
+        "highlight": [
+          19
+        ]
+      },
+      "explain": "Lines 12 to 17 count s up and t down. Line 19 catches any letter that doesn't match.",
+      "example": {
+        "call": "isAnagram(\"stone\", \"notes\")",
+        "expr": "tf(is_anagram(S, T))",
+        "show": "{{tf(is_anagram(S, T))}}"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "The check you can't skip",
+      "title": "Check every count",
+      "lead": "Skip lines 18 to 20 and return true. A letter that t is missing never gets noticed.",
+      "trap": {
+        "call": "isAnagram(\"stone\", \"note\")",
+        "wrong": {
+          "code": [
+            "return true   // after line 17"
+          ],
+          "note": "The s count is still 1.",
+          "result": "{{tf(wrong_anagram('stone', 'note'))}}"
+        },
+        "right": {
+          "code": [
+            "if count != 0:",
+            "    return false"
+          ],
+          "note": "Box s is 1: not an anagram.",
+          "result": "{{tf(is_anagram('stone', 'note'))}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Anagram",
+            "value": "O(n)",
+            "gold": true
+          },
+          {
+            "label": "Space",
+            "value": "O(1)"
+          },
+          {
+            "label": "Sort both",
+            "value": "O(n log n)"
+          }
+        ],
+        "note": "26 counts, whatever the length. The palindrome check is O(n) time and O(1) space too."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Count up, down",
+        "Check every box",
+        "Ends inwards"
+      ],
+      "problems": [
+        {
+          "difficulty": "Easy",
+          "id": 125,
+          "title": "Valid Palindrome",
+          "note": "Skip anything not a letter or digit; compare in lowercase.",
+          "complexity": "n",
+          "constraints": {
+            "n": 200000
+          },
+          "url": "https://leetcode.com/problems/valid-palindrome/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 438,
+          "title": "Find All Anagrams in a String",
+          "note": "Slide a window over s and compare 26 counts.",
+          "complexity": "26*n",
+          "constraints": {
+            "n": 30000
+          },
+          "url": "https://leetcode.com/problems/find-all-anagrams-in-a-string/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Strings",
+    "section": "2D arrays and strings",
+    "summary": "Same letters? Count one word up and the other down in 26 boxes. Same both ways? Walk two pointers in from the ends.",
+    "tags": [
+      "strings",
+      "frequency-array",
+      "anagram",
+      "palindrome",
+      "two-pointers"
+    ],
+    "tested_what": "The anagram and palindrome checks",
+    "tested_inputs": "hand-picked pairs (stone and notes, below and elbow, a missing letter, equal letter sets with different counts, one letter, palindromes of odd and even length, strings of 50,000 letters) and random lowercase strings of up to 8 letters, a third of them shuffles of each other",
+    "tested_against": "a brute force that compares letter counts with a dictionary and compares each word with its reverse",
+    "tested_extra": "The counts in the walk-through, the quick-check answer and the trap result come from running the code."
+  },
+  "caption": {
+    "first": "String patterns: check anagrams with a frequency array of 26 counts (LeetCode 242) and palindromes with two pointers (LeetCode 125).",
+    "lines": [
+      "Count the first word up and the second down. Every count back at 0 means the same letters.",
+      "The trap: stop before checking the counts and stone vs note looks like an anagram.",
+      "Palindrome: compare the two ends and walk inwards until they meet.",
+      "Practice: LeetCode 125 (easy) and LeetCode 438 (medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#strings"
+    ]
+  }
+}

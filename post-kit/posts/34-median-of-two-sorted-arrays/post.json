@@ -1,0 +1,459 @@
+{
+  "number": 34,
+  "slug": "median-of-two-sorted-arrays",
+  "kind": "challenge",
+  "topic": "Median of Two Sorted Arrays",
+  "category": "Binary search",
+  "next_post": "Matrix traversal: spiral and rotate",
+  "cover": {
+    "title": "Median of\n**Two Arrays**",
+    "problem": {
+      "id": 4,
+      "title": "Median of Two Sorted Arrays",
+      "difficulty": "Hard"
+    },
+    "blocks": [
+      {
+        "type": "steps",
+        "rows": [
+          {
+            "label": "top",
+            "values": [
+              1,
+              4,
+              7
+            ]
+          },
+          {
+            "label": "bottom",
+            "values": [
+              2,
+              3,
+              6,
+              9
+            ]
+          }
+        ]
+      }
+    ],
+    "promise": "You'll solve **LeetCode 4** without merging the arrays.",
+    "promise_slide": "solution"
+  },
+  "slides": [
+    {
+      "type": "story",
+      "teaser": "The problem, as two queues",
+      "title": "Two sorted queues",
+      "scene": "Two classes stand in queues, each sorted by height. You want the middle height of all the kids together, without making one big queue.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "class A",
+              "values": [
+                1,
+                4,
+                7
+              ]
+            },
+            {
+              "label": "class B",
+              "values": [
+                2,
+                3,
+                6,
+                9
+              ]
+            }
+          ]
+        },
+        {
+          "type": "card",
+          "size": "big",
+          "text": "Seven kids in all. Whose height is exactly in the middle?"
+        }
+      ]
+    },
+    {
+      "type": "problem",
+      "teaser": "The real problem",
+      "title": "LeetCode 4",
+      "lead": "Return the median of two sorted arrays in O(log(m + n)).",
+      "blocks": [
+        {
+          "type": "kv",
+          "rows": [
+            [
+              "nums1",
+              "[1, 4, 7]"
+            ],
+            [
+              "nums2",
+              "[2, 3, 6, 9]"
+            ],
+            [
+              "output",
+              "{{show(ANSWER)}}",
+              "steel"
+            ]
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Merged: {{sp(MERGED)}}. The middle value is {{ANSWER}}."
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "Up to 1,000 values each, from −10⁶ to 10⁶. One array may be empty."
+        }
+      ]
+    },
+    {
+      "type": "pause",
+      "try_first": "Find the median of 1 4 7 and 2 3 6 9 without writing out the merged row."
+    },
+    {
+      "type": "hint",
+      "teaser": "Hint 1: merge, then pick",
+      "title": "Merge, then pick",
+      "lead": "Merge the two rows like post 25 and take the middle value.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "values": [
+            1,
+            2,
+            3,
+            4,
+            6,
+            7,
+            9
+          ],
+          "size": "m",
+          "gold": [
+            3
+          ],
+          "under": {
+            "3": "middle"
+          },
+          "card": true,
+          "label": "MERGED"
+        },
+        {
+          "type": "text",
+          "text": "Correct, but O(m + n). The problem asks for O(log(m + n))."
+        }
+      ]
+    },
+    {
+      "type": "hint",
+      "teaser": "Hint 2: the left half",
+      "title": "Fill the left half",
+      "lead": "The median splits all 7 values into a left half of 4 and a right half of 3.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "top gives 2",
+              "values": [
+                1,
+                4,
+                "",
+                7
+              ],
+              "steel": [
+                0,
+                1
+              ],
+              "ghost": [
+                2
+              ]
+            },
+            {
+              "label": "bottom gives 2",
+              "values": [
+                2,
+                3,
+                "",
+                6,
+                9
+              ],
+              "steel": [
+                0,
+                1
+              ],
+              "ghost": [
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Pick how many come from the top row. The bottom row gives the rest."
+        }
+      ],
+      "quickcheck": {
+        "question": "If the top row gives 1 value to the left half, how many does the bottom give?",
+        "answer": "Answer: {{HALF - 1}}. The left half always holds {{HALF}} values.",
+        "check": "HALF - 1"
+      }
+    },
+    {
+      "type": "hint",
+      "teaser": "Answer + hint 3",
+      "title": "Search the cut",
+      "lead": "Binary search how many values the shorter row gives: from 0 to all of it.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "values": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "size": "m",
+          "gold": [
+            1
+          ],
+          "pointers": {
+            "low": 0,
+            "high": 3
+          },
+          "label": "VALUES FROM THE TOP ROW",
+          "card": true
+        },
+        {
+          "type": "card",
+          "text": "Like sliding the divider on a shelf with two rows of books: too far one way, move it back, each move half the last."
+        }
+      ]
+    },
+    {
+      "type": "hint",
+      "teaser": "Hint 4: when the cut is right",
+      "title": "When the cut is right",
+      "lead": "Every left value must be ≤ every right value. Check the bottom's left edge against the top's right edge.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "top gives 1",
+              "values": [
+                1,
+                "",
+                4,
+                7
+              ],
+              "ghost": [
+                1
+              ],
+              "gold": [
+                2
+              ]
+            },
+            {
+              "label": "bottom gives 3",
+              "values": [
+                2,
+                3,
+                6,
+                "",
+                9
+              ],
+              "ghost": [
+                3
+              ],
+              "gold": [
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "6 > 4: too few from the top. low = i + 1. Otherwise high = i."
+        }
+      ]
+    },
+    {
+      "type": "hint",
+      "teaser": "Hint 5: read the median",
+      "title": "Read the median",
+      "lead": "Odd total: the bigger left edge. Even total: the average of the bigger left edge and the smaller right edge.",
+      "blocks": [
+        {
+          "type": "kv",
+          "rows": [
+            [
+              "7 values",
+              "max(4, 3) = 4",
+              "steel"
+            ],
+            [
+              "missing edge",
+              "−∞ or +∞"
+            ]
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Search the shorter row, so every cut lands inside the longer one."
+        }
+      ]
+    },
+    {
+      "type": "bridge"
+    },
+    {
+      "type": "video",
+      "teaser": "Watch the cut move",
+      "title": "Watch it cut",
+      "lead": "Top row 1 4 7, bottom row 2 3 6 9.",
+      "video": {
+        "values": [
+          1,
+          4,
+          7,
+          "",
+          2,
+          3,
+          6,
+          9
+        ],
+        "indexes": false,
+        "stage_label": "TOP ROW · BOTTOM ROW",
+        "chips_label": "CUT IN THE TOP ROW",
+        "steps": "video_steps()",
+        "final": {
+          "ghost": [
+            3
+          ],
+          "cuts": [
+            1,
+            5
+          ],
+          "gold": [
+            1
+          ],
+          "eq": [
+            "median =",
+            "{{show(ANSWER)}}"
+          ],
+          "caption": "Two checks instead of merging seven values."
+        }
+      }
+    },
+    {
+      "type": "solution",
+      "teaser": "Part 1: edges and range",
+      "title": "Edges and range",
+      "code": {
+        "lines": [
+          "function edge(nums, k, empty):",
+          "    if k < 0 or k >= length(nums):",
+          "        return empty",
+          "    return nums[k]",
+          "function median(a, b):",
+          "    if length(a) > length(b):",
+          "        return median(b, a)   // a: shorter",
+          "    m = length(a)",
+          "    n = length(b)",
+          "    half = floor((m + n + 1) / 2)",
+          "    low = 0",
+          "    high = m",
+          "    while low < high:",
+          "        i = floor((low + high) / 2)"
+        ]
+      }
+    },
+    {
+      "type": "solution",
+      "teaser": "Part 2: cut, then read",
+      "title": "Cut, then read",
+      "code": {
+        "lines": [
+          "        if b[half - i - 1] > a[i]:",
+          "            low = i + 1   // more from a",
+          "        else:",
+          "            high = i",
+          "    j = half - low   // low = the cut in a",
+          "    leftA = edge(a, low - 1, -infinity)",
+          "    leftB = edge(b, j - 1, -infinity)",
+          "    leftMax = max(leftA, leftB)",
+          "    if (m + n) mod 2 == 1:",
+          "        return leftMax",
+          "    rightA = edge(a, low, infinity)",
+          "    rightB = edge(b, j, infinity)",
+          "    rightMin = min(rightA, rightB)",
+          "    return (leftMax + rightMin) / 2"
+        ],
+        "highlight": [
+          15
+        ]
+      }
+    },
+    {
+      "type": "closing",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Fill the left half",
+        "Search the cut",
+        "Check the edges"
+      ],
+      "pattern": "Binary search the cut in the shorter array, in O(log(min(m, n))): the left parts together hold half the values.",
+      "problems": [
+        {
+          "platform": "GFG",
+          "difficulty": "Medium",
+          "id": "K-th element of two Arrays",
+          "title": "",
+          "note": "The same cut, with k values on the left instead of half.",
+          "complexity": "log(n)",
+          "constraints": {
+            "n": 1000000
+          },
+          "url": "https://www.geeksforgeeks.org/problems/k-th-element-of-two-sorted-array1317/1"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Binary search",
+    "section": "Binary search",
+    "summary": "Median of two sorted arrays: binary search how many values the shorter one gives to the left half, then read the edges.",
+    "tags": [
+      "binary-search",
+      "partition",
+      "hard"
+    ],
+    "worked": {
+      "name": "LeetCode 4 Median of Two Sorted Arrays",
+      "url": "https://leetcode.com/problems/median-of-two-sorted-arrays/"
+    },
+    "tested_what": "The cut search",
+    "tested_inputs": "hand-picked cases (the LeetCode examples, one array empty, equal values, the 10⁶ limits, one short and one long array, negatives), two arrays of 1,000 random values, and random small pairs of up to 7 values each",
+    "tested_against": "a brute force that merges both arrays and takes the middle",
+    "tested_extra": "The cuts tried in the walk-through and the quick-check answer come from running the code."
+  },
+  "caption": {
+    "first": "LeetCode 4 Median of Two Sorted Arrays solved with binary search on the cut, in O(log(min(m, n))).",
+    "lines": [
+      "The median splits all values into a left half and a right half. Pick how many come from the shorter array; the other array gives the rest.",
+      "The cut is right when every left value is ≤ every right value. Too few from the shorter array? Move the cut right.",
+      "Practice next: GFG K-th element of two Arrays, the same cut with k on the left."
+    ],
+    "cta": "Which hint made it click for you?",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#binarysearch"
+    ]
+  }
+}

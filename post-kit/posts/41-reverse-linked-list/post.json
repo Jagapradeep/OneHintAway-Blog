@@ -1,0 +1,321 @@
+{
+  "number": 41,
+  "slug": "reverse-linked-list",
+  "kind": "concept",
+  "topic": "Reverse a Linked List",
+  "category": "Linked list",
+  "next_post": "Fast and slow pointers",
+  "cover": {
+    "title": "Reverse a list",
+    "lead": "Walk the list once and turn every arrow around, saving the rest of the list before each turn.",
+    "use_it_when": "A problem asks you to reverse all or part of a linked list, with no extra list.",
+    "why_it_matters": "Three pointers, prev, curr and rest, come back in palindrome lists, k-groups and list merges.",
+    "blocks": [
+      {
+        "type": "boxes",
+        "size": "s",
+        "gap": 24,
+        "mt": 18,
+        "values": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "steel": [
+          0,
+          1
+        ],
+        "gold": [
+          2
+        ],
+        "pointers": {
+          "prev": 1,
+          "curr": 2
+        }
+      }
+    ],
+    "promise": "You'll reverse a list in {lines} lines.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch the arrows turn",
+      "title": "Watch it flip",
+      "lead": "Reverse 1 → 2 → 3 → 4 → 5.",
+      "video": {
+        "values": [
+          "∅",
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "indexes": false,
+        "stage_label": "NONE, THEN THE NODES",
+        "steps": "video_steps()",
+        "final": {
+          "steel": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "ptr": {
+            "prev": 5
+          },
+          "eq": [
+            "new head =",
+            "prev = 5"
+          ],
+          "caption": "Read from 5: {{sp(REVERSED)}}."
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "A line of hands on shoulders",
+      "title": "Turn the line around",
+      "scene": "People stand in a line, each with a hand on the shoulder in front. To face the other way, each moves their hand to the person behind.",
+      "blocks": [
+        {
+          "type": "kv",
+          "rows": [
+            [
+              "before",
+              "1 → 2 → 3 → 4 → 5"
+            ],
+            [
+              "after",
+              "1 ← 2 ← 3 ← 4 ← 5",
+              "steel"
+            ]
+          ]
+        },
+        {
+          "type": "card",
+          "text": "Before letting go, note who was in front. Otherwise [[the rest of the line]] is lost."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "Two halves, held by two pointers",
+      "title": "Two halves",
+      "lead": "Midway, the list is in two pieces: prev holds the reversed part, curr holds the rest.",
+      "blocks": [
+        {
+          "type": "kv",
+          "rows": [
+            [
+              "start",
+              "1 → 2 → 3 → 4 → 5 → ∅"
+            ],
+            [
+              "2 flips",
+              "∅ ← 1 ← 2 | 3 → 4 → 5",
+              "steel"
+            ],
+            [
+              "done",
+              "∅ ← 1 ← 2 ← 3 ← 4 ← 5"
+            ]
+          ]
+        },
+        {
+          "type": "boxes",
+          "values": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "size": "m",
+          "steel": [
+            0,
+            1
+          ],
+          "gold": [
+            2
+          ],
+          "pointers": {
+            "prev": 1,
+            "curr": 2,
+            "rest": 3
+          }
+        }
+      ],
+      "quickcheck": {
+        "question": "Reversing 1 2 3 4 5: after 3 loops, which nodes do prev and curr hold?",
+        "answer": "Answer: {{after_loops(LIST, 3)}}. Three arrows are turned; 4 is next.",
+        "check": "after_loops(LIST, 3)"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "IN PLACE",
+      "board": "Answer + in place",
+      "teaser": "The answer, then in place",
+      "title": "No extra list",
+      "blocks": [
+        {
+          "type": "compare",
+          "rows": [
+            {
+              "main": "copy into a stack",
+              "sub": "push 1 to 5, pop 5 to 1",
+              "value": "O(n) space"
+            },
+            {
+              "main": "turn the arrows",
+              "sub": "prev, curr and rest",
+              "value": "O(1) space",
+              "gold": true
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Both take one pass. Turning the arrows reuses the nodes you already have."
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "Reverse a list in 9 lines",
+      "title": "Reverse a list",
+      "code": {
+        "lines": [
+          "function reverseList(head):",
+          "    prev = none",
+          "    curr = head",
+          "    while curr != none:",
+          "        rest = curr.next   // save it",
+          "        curr.next = prev   // turn the arrow",
+          "        prev = curr",
+          "        curr = rest",
+          "    return prev"
+        ],
+        "highlight": [
+          5
+        ]
+      },
+      "explain": "Line 5 saves the rest before line 6 turns the arrow. prev ends on the old last node: the new head.",
+      "example": {
+        "call": "reverseList(1 → 2 → 3 → 4 → 5)",
+        "expr": "sp(REVERSED)",
+        "show": "{{sp(REVERSED)}}"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "The list that loses 4 nodes",
+      "title": "Save the rest first",
+      "lead": "Skip line 5 and move with curr = curr.next. After line 6, that next is prev: the walk turns back.",
+      "trap": {
+        "call": "reverseList(1 → 2 → 3 → 4 → 5)",
+        "wrong": {
+          "code": [
+            "curr.next = prev",
+            "curr = curr.next"
+          ],
+          "note": "curr becomes none after node 1.",
+          "result": "{{sp(WRONG)}}"
+        },
+        "right": {
+          "code": [
+            "rest = curr.next",
+            "curr = rest"
+          ],
+          "note": "The rest is held safely.",
+          "result": "{{sp(REVERSED)}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Time",
+            "value": "O(n)",
+            "gold": true
+          },
+          {
+            "label": "Extra space",
+            "value": "O(1)"
+          },
+          {
+            "label": "Stack space",
+            "value": "O(n)"
+          }
+        ],
+        "note": "Each node is visited once and each arrow turned once."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Save the rest",
+        "Turn the arrow",
+        "Return prev"
+      ],
+      "problems": [
+        {
+          "difficulty": "Easy",
+          "id": 206,
+          "title": "Reverse Linked List",
+          "note": "This post's template, as it is.",
+          "complexity": "n",
+          "constraints": {
+            "n": 5000
+          },
+          "url": "https://leetcode.com/problems/reverse-linked-list/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 92,
+          "title": "Reverse Linked List II",
+          "note": "Walk to the node before left, reverse right − left + 1 nodes, reconnect both ends.",
+          "complexity": "n",
+          "constraints": {
+            "n": 500
+          },
+          "url": "https://leetcode.com/problems/reverse-linked-list-ii/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Linked list",
+    "section": "Linked list",
+    "summary": "Reverse a linked list in place: save the rest, turn the arrow back, move prev and curr one step.",
+    "tags": [
+      "linked-list",
+      "reverse-linked-list",
+      "pointers"
+    ],
+    "tested_what": "The reversal",
+    "tested_inputs": "hand-picked lists (1 to 5, empty, one node, two nodes, equal values, the value limits, 5,000 nodes) and random lists of up to 12 nodes",
+    "tested_against": "Python's list reversal",
+    "tested_extra": "The arrows in the walk-through, the quick-check answer and the trap result come from running the code."
+  },
+  "caption": {
+    "first": "Reverse a linked list in place (LeetCode 206): three pointers, prev, curr and rest, turn every arrow in one pass.",
+    "lines": [
+      "Save curr.next first, point curr back at prev, then move both one step. prev ends on the new head.",
+      "The trap: turn the arrow before saving the rest and 1 2 3 4 5 becomes just 1.",
+      "Practice: LeetCode 206 (easy) and LeetCode 92 (medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#linkedlist"
+    ]
+  }
+}

@@ -1,0 +1,366 @@
+{
+  "number": 33,
+  "slug": "gas-stations",
+  "kind": "challenge",
+  "topic": "Minimize Max Distance to Gas Station",
+  "category": "Binary search",
+  "next_post": "Median of Two Sorted Arrays",
+  "cover": {
+    "title": "Gas\n**Stations**",
+    "problem": {
+      "platform": "GFG",
+      "id": "",
+      "title": "Minimize Max Distance to Gas Station",
+      "difficulty": "Hard"
+    },
+    "blocks": [
+      {
+        "type": "boxes",
+        "values": [
+          1,
+          3,
+          12,
+          16
+        ],
+        "size": "l",
+        "label": "PUMPS AT THESE KM. ADD 3 MORE.",
+        "label_color": "muted"
+      }
+    ],
+    "promise": "You'll solve it for **any k** with one binary search.",
+    "promise_slide": "solution"
+  },
+  "slides": [
+    {
+      "type": "story",
+      "teaser": "The problem, as a highway",
+      "title": "Pumps on a highway",
+      "scene": "A highway has petrol pumps at km 1, 3, 12 and 16. You may build 3 more. Make the longest drive between two pumps as short as you can.",
+      "blocks": [
+        {
+          "type": "bars",
+          "heights": [
+            2,
+            9,
+            4
+          ],
+          "unit": 20,
+          "label": "KM BETWEEN NEIGHBOURING PUMPS",
+          "indexes": false
+        },
+        {
+          "type": "card",
+          "text": "The 9 km stretch hurts most. How should the 3 new pumps be shared?"
+        }
+      ]
+    },
+    {
+      "type": "problem",
+      "teaser": "The real problem",
+      "title": "The real problem",
+      "lead": "Add k stations so the largest gap between neighbours is as small as possible.",
+      "blocks": [
+        {
+          "type": "kv",
+          "rows": [
+            [
+              "stations",
+              "[1, 3, 12, 16]"
+            ],
+            [
+              "k",
+              "3"
+            ],
+            [
+              "output",
+              "{{ANSWER}}",
+              "steel"
+            ]
+          ]
+        },
+        {
+          "type": "text",
+          "text": "New pumps at 6, 9 and 14 leave gaps 2, 3, 3, 3, 2, 2."
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "Up to 5,000 stations at up to 10⁹, and k up to 100,000. Answer to 2 decimals."
+        }
+      ]
+    },
+    {
+      "type": "pause",
+      "try_first": "Share 3 pumps among the gaps 2, 9 and 4 by hand. What is the best longest gap?"
+    },
+    {
+      "type": "hint",
+      "teaser": "Hint 1: try every share",
+      "title": "Try every share",
+      "lead": "Give each gap some pumps and space them evenly. Then try every way to share k.",
+      "blocks": [
+        {
+          "type": "compare",
+          "rows": [
+            {
+              "main": "0 · 3 · 0",
+              "sub": "all 3 in the 9 km gap",
+              "value": "{{longest(GAPS, [0, 3, 0])}}"
+            },
+            {
+              "main": "1 · 1 · 1",
+              "sub": "one pump each",
+              "value": "{{longest(GAPS, [1, 1, 1])}}"
+            },
+            {
+              "main": "0 · 2 · 1",
+              "sub": "two in 9, one in 4",
+              "value": "{{longest(GAPS, [0, 2, 1])}}",
+              "gold": true
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Right for 3 pumps. With k up to 100,000, the shares are far too many to try."
+        }
+      ]
+    },
+    {
+      "type": "hint",
+      "teaser": "Hint 2: guess the answer",
+      "title": "Guess the answer",
+      "lead": "Pick a longest gap d and count the pumps it needs. Smaller d, more pumps.",
+      "blocks": [
+        {
+          "type": "compare",
+          "rows": [
+            {
+              "main": "d = 4.5",
+              "sub": "longest gap 4.5 km",
+              "value": "{{pumps_needed(STATIONS, 4.5)}} pump"
+            },
+            {
+              "main": "d = 3",
+              "sub": "longest gap 3 km",
+              "value": "{{pumps_needed(STATIONS, 3)}} pumps",
+              "gold": true
+            },
+            {
+              "main": "d = 2",
+              "sub": "longest gap 2 km",
+              "value": "{{pumps_needed(STATIONS, 2)}} pumps"
+            }
+          ]
+        }
+      ],
+      "quickcheck": {
+        "question": "With 5 new pumps instead of 3, can the longest gap be 2?",
+        "answer": "Answer: yes. d = 2 needs exactly {{pumps_needed(STATIONS, 2)}} pumps: 0 + 4 + 1.",
+        "check": "pumps_needed(STATIONS, 2)"
+      }
+    },
+    {
+      "type": "hint",
+      "teaser": "Answer + hint 3",
+      "title": "Binary search on d",
+      "lead": "Post 32's idea, on real numbers. Fits: try smaller. Too many pumps: go bigger.",
+      "blocks": [
+        {
+          "type": "compare",
+          "rows": [
+            {
+              "main": "d = 7.5",
+              "sub": "1 pump · fits",
+              "value": "high = 7.5"
+            },
+            {
+              "main": "d = 1.88",
+              "sub": "7 pumps · too many",
+              "value": "low = 1.88",
+              "gold": true
+            }
+          ]
+        },
+        {
+          "type": "card",
+          "text": "Like tuning an old radio dial: each turn is half the last, and you close in on the station."
+        }
+      ]
+    },
+    {
+      "type": "hint",
+      "teaser": "Hint 4: count, then stop",
+      "title": "Count, then stop",
+      "lead": "A gap g needs ceil(g / d) − 1 pumps. d fits when the total is at most k.",
+      "blocks": [
+        {
+          "type": "equation",
+          "text": "ceil(9 / 3) − 1 = **2** pumps"
+        },
+        {
+          "type": "text",
+          "text": "d is a real number, so stop when high − low < 0.000001, not when they meet."
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "Start with high = the whole road: that d needs no pumps."
+        }
+      ]
+    },
+    {
+      "type": "bridge"
+    },
+    {
+      "type": "video",
+      "teaser": "Watch d close in",
+      "title": "Watch it search",
+      "lead": "Gaps 2, 9, 4 with 3 new pumps.",
+      "video": {
+        "values": [
+          2,
+          9,
+          4
+        ],
+        "indexes": false,
+        "stage_label": "THE GAPS, IN KM",
+        "chips_label": "d: PUMPS NEEDED",
+        "steps": "video_steps()",
+        "final": {
+          "gold": [
+            1,
+            2
+          ],
+          "eq": [
+            "smallest d =",
+            "{{ANSWER}}"
+          ],
+          "caption": "{{ROUNDS}} rounds later the range is under 0.000001."
+        }
+      }
+    },
+    {
+      "type": "solution",
+      "teaser": "Part 1: count the pumps",
+      "title": "Count the pumps",
+      "lead": "For one guess d, add up the pumps every gap needs.",
+      "code": {
+        "lines": [
+          "function pumpsNeeded(stations, d):",
+          "    count = 0",
+          "    for i from 1 to length(stations) - 1:",
+          "        gap = stations[i] - stations[i - 1]",
+          "        count = count + ceil(gap / d) - 1",
+          "    return count"
+        ],
+        "highlight": [
+          5
+        ]
+      },
+      "after": [
+        {
+          "type": "text",
+          "text": "A 9 km gap at d = 4 needs 3 pieces, so 2 pumps."
+        }
+      ]
+    },
+    {
+      "type": "solution",
+      "teaser": "Part 2: search d",
+      "title": "Search d",
+      "code": {
+        "lines": [
+          "function minMaxGap(stations, k):",
+          "    n = length(stations)",
+          "    low = 0",
+          "    high = stations[n - 1] - stations[0]",
+          "    while high - low > 0.000001:",
+          "        d = (low + high) / 2",
+          "        if pumpsNeeded(stations, d) <= k:",
+          "            high = d   // fits: go lower",
+          "        else:",
+          "            low = d    // too many: go higher",
+          "    return high"
+        ],
+        "highlight": [
+          13
+        ]
+      },
+      "cost": {
+        "label": false,
+        "mt": 0,
+        "items": [
+          {
+            "label": "Time",
+            "value": "O(n log(L / ε))",
+            "gold": true,
+            "note": "L = road length, ε = 0.000001: about 50 rounds."
+          },
+          {
+            "label": "Space",
+            "value": "O(1)",
+            "note": "Just low, high and d."
+          }
+        ]
+      }
+    },
+    {
+      "type": "closing",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Guess the answer d",
+        "Count pumps per gap",
+        "Stop at 0.000001"
+      ],
+      "pattern": "Binary search on a real-number answer, with a count-and-compare check.",
+      "problems": [
+        {
+          "difficulty": "Hard",
+          "id": 410,
+          "title": "Split Array Largest Sum",
+          "note": "Search the largest sum; count the pieces it forces.",
+          "complexity": "n*log(m)",
+          "constraints": {
+            "n": 1000,
+            "m": 1000000000
+          },
+          "url": "https://leetcode.com/problems/split-array-largest-sum/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Binary search",
+    "section": "Binary search",
+    "summary": "Minimise the largest gap after adding k stations: binary search the gap d, counting the stations each guess needs.",
+    "tags": [
+      "binary-search",
+      "binary-search-on-answer",
+      "hard"
+    ],
+    "worked": {
+      "name": "GFG Minimize Max Distance to Gas Station",
+      "url": "https://www.geeksforgeeks.org/problems/minimize-max-distance-to-gas-station/1"
+    },
+    "tested_what": "The binary search on d",
+    "tested_inputs": "hand-picked cases (the post's example, k = 0, the GFG and LeetCode 774 examples, one huge gap with up to 100,000 new stations), 5,000 random stations up to 10⁹ with k = 100,000, and random small and large cases",
+    "tested_against": "an exact brute force that hands out stations one at a time to the gap whose pieces are longest, using fractions",
+    "tested_extra": "Answers are compared to 2 decimals, as GFG asks; inputs where a rounding tie falls within 0.000001 of the answer are left out. The rounds in the walk-through and the hint numbers come from running the code."
+  },
+  "caption": {
+    "first": "Minimize Max Distance to Gas Station (GFG, LeetCode 774) solved with binary search on the answer, on real numbers.",
+    "lines": [
+      "Guess the longest gap d. A gap g then needs ceil(g / d) − 1 new stations, and a smaller d always needs more.",
+      "So binary search d: it fits, go lower; too many stations, go higher. Stop when the range is under 0.000001.",
+      "Practice next: LeetCode 410 Split Array Largest Sum, the same search on whole numbers."
+    ],
+    "cta": "Which hint made it click for you?",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#binarysearch"
+    ]
+  }
+}

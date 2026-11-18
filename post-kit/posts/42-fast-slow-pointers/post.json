@@ -1,0 +1,357 @@
+{
+  "number": 42,
+  "slug": "fast-slow-pointers",
+  "kind": "concept",
+  "topic": "Fast and Slow Pointers",
+  "category": "Linked list",
+  "next_post": "Merge two sorted lists",
+  "cover": {
+    "title": "Fast and slow",
+    "lead": "Two pointers walk a list, one step and two steps at a time. Where they meet, or where fast runs out, tells you something.",
+    "use_it_when": "You need a list's middle, or must know if it loops, with no extra memory.",
+    "why_it_matters": "One idea answers two classic questions in O(1) space: the middle node and the loop.",
+    "blocks": [
+      {
+        "type": "boxes",
+        "size": "s",
+        "gap": 24,
+        "mt": 18,
+        "values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "gold": [
+          2
+        ],
+        "steel": [
+          4
+        ],
+        "pointers": {
+          "slow": 2,
+          "fast": 4
+        }
+      }
+    ],
+    "promise": "You'll find a loop in {lines} lines.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch fast catch slow",
+      "title": "Watch them run",
+      "lead": "1 to 6, where 6 links back to 3.",
+      "video": {
+        "values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "indexes": false,
+        "stage_label": "THE LIST",
+        "chips_label": "SLOW · FAST",
+        "steps": "video_steps()",
+        "final": {
+          "band": [
+            2,
+            5,
+            "LOOP"
+          ],
+          "ptr": {
+            "slow": 4,
+            "fast": 4
+          },
+          "gold": [
+            4
+          ],
+          "eq": [
+            "meet at",
+            "{{MEET}}"
+          ],
+          "caption": "They meet after {{ROUNDS}} rounds: the list loops."
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "Two runners on a track",
+      "title": "Two runners",
+      "scene": "Two friends run, one twice as fast. On a straight road the fast one just reaches the end. On a round track, the fast one comes up behind the slow one.",
+      "blocks": [
+        {
+          "type": "compare",
+          "rows": [
+            {
+              "main": "straight road",
+              "sub": "fast reaches the end",
+              "value": "no loop"
+            },
+            {
+              "main": "round track",
+              "sub": "fast catches slow",
+              "value": "loop",
+              "gold": true
+            }
+          ]
+        },
+        {
+          "type": "card",
+          "text": "Inside a loop, fast gains [[one node]] per round, so it can't jump over slow."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "Round by round",
+      "title": "Round by round",
+      "lead": "Gold is slow, steel is fast. In the loop 3 4 5 6, the gap shrinks by one each round.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "round 1",
+              "values": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "gold": [
+                1
+              ],
+              "steel": [
+                2
+              ]
+            },
+            {
+              "label": "round 2",
+              "values": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "gold": [
+                2
+              ],
+              "steel": [
+                4
+              ]
+            },
+            {
+              "label": "round 3",
+              "values": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "gold": [
+                3
+              ],
+              "steel": [
+                2
+              ]
+            },
+            {
+              "label": "round 4",
+              "values": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "gold": [
+                4
+              ]
+            }
+          ]
+        }
+      ],
+      "quickcheck": {
+        "question": "Same nodes 1 to 6, but no loop. Where is slow when fast runs out?",
+        "answer": "Answer: node {{MIDDLE}}. Fast went twice as far, so slow is halfway.",
+        "check": "MIDDLE"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "THE MIDDLE",
+      "board": "Answer + the middle",
+      "teaser": "The answer, then the middle",
+      "title": "The middle node",
+      "blocks": [
+        {
+          "type": "code",
+          "lines": [
+            "function middleNode(head):",
+            "    slow = head",
+            "    fast = head",
+            "    while fast != none and fast.next != none:",
+            "        slow = slow.next",
+            "        fast = fast.next.next",
+            "    return slow"
+          ],
+          "highlight": [
+            4
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Of the two middles, 3 and 4, this returns the second."
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "Find a loop in 9 lines",
+      "title": "Find a loop",
+      "code": {
+        "start": 8,
+        "lines": [
+          "function hasCycle(head):",
+          "    slow = head",
+          "    fast = head",
+          "    while fast != none and fast.next != none:",
+          "        slow = slow.next        // 1 step",
+          "        fast = fast.next.next   // 2 steps",
+          "        if slow == fast:",
+          "            return true   // a loop",
+          "    return false"
+        ],
+        "highlight": [
+          14
+        ]
+      },
+      "explain": "Line 14 compares the nodes, not their values. If fast falls off the end, line 16 says there is no loop.",
+      "example": {
+        "call": "hasCycle(1 to 6, 6 → 3)",
+        "expr": "tf(has_cycle(build(LIST, POS)[0]))",
+        "show": "{{tf(has_cycle(build(LIST, POS)[0]))}}"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "The check that stops a crash",
+      "title": "Check fast first",
+      "lead": "Check only fast.next on line 11. With an even list, fast lands on none, and none has no next.",
+      "trap": {
+        "call": "hasCycle(1 to 6, no loop)",
+        "wrong": {
+          "code": [
+            "while fast.next != none:"
+          ],
+          "note": "fast becomes none, then crashes.",
+          "result": "{{wrong_has_cycle(build(LIST)[0])}}"
+        },
+        "right": {
+          "code": [
+            "while fast != none and",
+            "      fast.next != none:"
+          ],
+          "note": "Stops when fast runs out.",
+          "result": "{{tf(has_cycle(build(LIST)[0]))}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Time",
+            "value": "O(n)",
+            "gold": true
+          },
+          {
+            "label": "Extra space",
+            "value": "O(1)"
+          },
+          {
+            "label": "Set of seen nodes",
+            "value": "O(n)"
+          }
+        ],
+        "note": "In a loop, fast gains one node a round, so they meet within one lap."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "1 step, 2 steps",
+        "Meet: a loop",
+        "Halfway: the middle"
+      ],
+      "problems": [
+        {
+          "difficulty": "Easy",
+          "id": 876,
+          "title": "Middle of the Linked List",
+          "note": "This post's middleNode, as it is.",
+          "complexity": "n",
+          "constraints": {
+            "n": 100
+          },
+          "url": "https://leetcode.com/problems/middle-of-the-linked-list/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 142,
+          "title": "Linked List Cycle II",
+          "note": "After they meet, move one pointer to head; step both by 1. They meet at the loop's start.",
+          "complexity": "n",
+          "constraints": {
+            "n": 10000
+          },
+          "url": "https://leetcode.com/problems/linked-list-cycle-ii/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Linked list",
+    "section": "Linked list",
+    "summary": "Move one pointer 1 step and another 2 steps: if they meet, the list loops; when the fast one runs out, the slow one is in the middle.",
+    "tags": [
+      "linked-list",
+      "fast-and-slow-pointers",
+      "floyd-cycle-detection",
+      "two-pointers"
+    ],
+    "tested_what": "The loop check and the middle node",
+    "tested_inputs": "hand-picked lists (1 to 6 with and without a loop, odd and even lengths, the LeetCode 141 examples, one node with and without a loop to itself, an empty list, 10,000 nodes looping to the start, the end and nowhere) and random lists of up to 12 nodes, half of them with a loop",
+    "tested_against": "the loop position the test built the list with, and the middle index of the list",
+    "tested_extra": "The rounds in the walk-through, the quick-check answer and the trap's crash come from running the code."
+  },
+  "caption": {
+    "first": "Fast and slow pointers explained: detect a loop in a linked list (LeetCode 141) and find its middle node (LeetCode 876) in O(1) space.",
+    "lines": [
+      "Slow moves 1 step, fast moves 2. In a loop, fast gains one node a round and meets slow.",
+      "No loop: when fast runs out, slow is in the middle.",
+      "The trap: check only fast.next and an even-length list crashes when fast becomes none.",
+      "Practice: LeetCode 876 (easy) and LeetCode 142 (medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#linkedlist",
+      "#twopointers"
+    ]
+  }
+}

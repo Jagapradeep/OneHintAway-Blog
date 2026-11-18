@@ -1,0 +1,412 @@
+{
+  "number": 39,
+  "slug": "word-search",
+  "kind": "concept",
+  "topic": "Grid Backtracking: Word Search",
+  "category": "Backtracking",
+  "next_post": "N-Queens",
+  "cover": {
+    "title": "Word search",
+    "lead": "Backtracking on a grid: step to a touching tile, mark it in use, and unmark it when you step back.",
+    "use_it_when": "A problem asks whether a path through a grid spells or collects something, using each cell once.",
+    "why_it_matters": "Mark, explore, unmark is the grid version of choose, explore, undo from post 38.",
+    "blocks": [
+      {
+        "type": "boxes",
+        "size": "s",
+        "gap": 24,
+        "mt": 18,
+        "values": [
+          "#",
+          "#",
+          "T"
+        ],
+        "steel": [
+          0,
+          1
+        ],
+        "gold": [
+          2
+        ]
+      }
+    ],
+    "promise": "You'll search any grid for a **word**.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch it find CAT",
+      "title": "Watch it search",
+      "lead": "Find CAT in the grid C A T / A R T.",
+      "video": {
+        "values": [
+          "C",
+          "A",
+          "T",
+          "A",
+          "R",
+          "T"
+        ],
+        "indexes": false,
+        "stage_label": "ROW 0 · ROW 1",
+        "chips_label": "FROM C: DIRECTION",
+        "steps": "video_steps()",
+        "final": {
+          "cuts": [
+            2
+          ],
+          "gold": [
+            0,
+            1,
+            2
+          ],
+          "eq": [
+            "exist →",
+            "true"
+          ],
+          "caption": "C, A, T: each tile touches the last.",
+          "set": {
+            "0": "C",
+            "1": "A"
+          }
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "Spelling on letter tiles",
+      "title": "Letter tiles",
+      "scene": "A board of letter tiles. Spell CAT by stepping to a tile that touches the last one, up, down, left or right, never on a tile twice.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "row 0",
+              "values": [
+                "C",
+                "A",
+                "T"
+              ],
+              "gold": [
+                0,
+                1,
+                2
+              ]
+            },
+            {
+              "label": "row 1",
+              "values": [
+                "A",
+                "R",
+                "T"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "card",
+          "text": "If a path runs out, step back and try another way: [[backtracking]] on a grid."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "Mark, explore, unmark",
+      "title": "Mark, then unmark",
+      "lead": "Mark a tile with # while you stand on it. Step back and it gets its letter again.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "on C",
+              "values": [
+                "#",
+                "A",
+                "T",
+                "",
+                "A",
+                "R",
+                "T"
+              ],
+              "ghost": [
+                3
+              ],
+              "gold": [
+                0
+              ]
+            },
+            {
+              "label": "down to A",
+              "values": [
+                "#",
+                "A",
+                "T",
+                "",
+                "#",
+                "R",
+                "T"
+              ],
+              "ghost": [
+                3
+              ],
+              "gold": [
+                4
+              ]
+            },
+            {
+              "label": "no T: undo",
+              "values": [
+                "#",
+                "A",
+                "T",
+                "",
+                "A",
+                "R",
+                "T"
+              ],
+              "ghost": [
+                3
+              ],
+              "dim": [
+                4
+              ]
+            },
+            {
+              "label": "right to A",
+              "values": [
+                "#",
+                "#",
+                "T",
+                "",
+                "A",
+                "R",
+                "T"
+              ],
+              "ghost": [
+                3
+              ],
+              "gold": [
+                1
+              ]
+            }
+          ]
+        }
+      ],
+      "quickcheck": {
+        "question": "Can TRAC be spelled in this grid, each tile once?",
+        "answer": "Answer: {{tf(exist(GRID, 'TRAC'))}}. T, R, then either A, then C.",
+        "check": "tf(exist(GRID, 'TRAC'))"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "NEXT TO",
+      "board": "Answer + next to",
+      "teaser": "The answer, then neighbours",
+      "title": "Next to a tile",
+      "blocks": [
+        {
+          "type": "boxes",
+          "values": [
+            "C",
+            "A",
+            "T",
+            "",
+            "A",
+            "R",
+            "T"
+          ],
+          "size": "m",
+          "ghost": [
+            3
+          ],
+          "gold": [
+            5
+          ],
+          "steel": [
+            1,
+            4,
+            6
+          ],
+          "under": {
+            "1": "up",
+            "4": "left",
+            "6": "right"
+          }
+        },
+        {
+          "type": "text",
+          "text": "Next to means down, up, right and left, inside the grid. R has three: nothing is below it."
+        }
+      ]
+    },
+    {
+      "type": "extra",
+      "label": "THE WALK",
+      "board": "The walk",
+      "teaser": "The walk: mark, explore, unmark",
+      "title": "The walk",
+      "blocks": [
+        {
+          "type": "code",
+          "lines": [
+            "function walk(grid, word, row, col, i):",
+            "    if grid[row][col] != word[i]:",
+            "        return false",
+            "    if i == length(word) - 1:",
+            "        return true   // last letter matched",
+            "    grid[row][col] = \"#\"   // in use",
+            "    for each [r, c] next to [row, col]:",
+            "        if walk(grid, word, r, c, i + 1):",
+            "            return true",
+            "    grid[row][col] = word[i]   // undo",
+            "    return false"
+          ],
+          "highlight": [
+            10
+          ]
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "i is the letter of word we need on this tile."
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "Try every first tile",
+      "title": "Try every start",
+      "code": {
+        "start": 12,
+        "lines": [
+          "function exist(grid, word):",
+          "    for each cell [row, col] in grid:",
+          "        if walk(grid, word, row, col, 0):",
+          "            return true",
+          "    return false"
+        ],
+        "highlight": [
+          14
+        ]
+      },
+      "explain": "Any tile can hold the first letter. walk marks, explores and unmarks on its own.",
+      "example": {
+        "call": "exist(grid, \"CAT\")",
+        "expr": "tf(exist(GRID, 'CAT'))",
+        "show": "{{tf(exist(GRID, 'CAT'))}}"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "Why line 6 marks the tile",
+      "title": "Mark the tile",
+      "lead": "Skip line 6 and walk can step back onto the tile it came from.",
+      "trap": {
+        "call": "exist(grid, \"CAC\")",
+        "wrong": {
+          "code": [
+            "// no line 6"
+          ],
+          "note": "C, A, then the same C.",
+          "result": "{{tf(wrong_exist(GRID, 'CAC'))}}"
+        },
+        "right": {
+          "code": [
+            "grid[row][col] = \"#\""
+          ],
+          "note": "Only one C: no.",
+          "result": "{{tf(exist(GRID, 'CAC'))}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Time",
+            "value": "O(mn · 3ᴸ)",
+            "gold": true
+          },
+          {
+            "label": "Call depth",
+            "value": "O(L)"
+          },
+          {
+            "label": "Extra space",
+            "value": "O(1)"
+          }
+        ],
+        "note": "m × n tiles, up to 3 new directions per letter; L = word length."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Mark the tile",
+        "Explore next to it",
+        "Unmark"
+      ],
+      "problems": [
+        {
+          "difficulty": "Easy",
+          "id": 733,
+          "title": "Flood Fill",
+          "note": "The same walk to the four neighbours, but painted tiles stay painted: no unmark.",
+          "complexity": "m*n",
+          "constraints": {
+            "m": 50,
+            "n": 50
+          },
+          "url": "https://leetcode.com/problems/flood-fill/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 79,
+          "title": "Word Search",
+          "note": "This post's walk. The worst case is large; letters that don't match end most paths early.",
+          "complexity": "m*n*3^L",
+          "constraints": {
+            "m": 6,
+            "n": 6,
+            "L": 15
+          },
+          "partial": true,
+          "url": "https://leetcode.com/problems/word-search/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Backtracking",
+    "section": "Backtracking",
+    "summary": "Does a path of touching cells spell the word? Mark each cell in use, explore its neighbours, unmark it when you step back.",
+    "tags": [
+      "backtracking",
+      "matrix",
+      "dfs",
+      "word-search"
+    ],
+    "tested_what": "The grid walk",
+    "tested_inputs": "hand-picked cases (CAT, CAC, CART and TRAC on the post's grid, the LeetCode 79 examples, one tile, a 6 × 6 grid of a's with a 15-letter word, and one that ends in a missing letter) and random grids up to 4 × 4 over one to three letters with words up to 6 letters",
+    "tested_against": "a brute force that tries every path, keeping the tiles it has used in a set",
+    "tested_extra": "The steps in the walk-through, the quick-check answer and the trap result come from running the code."
+  },
+  "caption": {
+    "first": "Grid backtracking explained with LeetCode 79 Word Search: mark a tile, explore its neighbours, unmark it on the way back.",
+    "lines": [
+      "Each letter must touch the last one, up, down, left or right, and no tile is used twice.",
+      "The trap: forget to mark the tile and CAC is found in a grid with only one C.",
+      "Practice: LeetCode 733 (easy) and LeetCode 79 (medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#backtracking"
+    ]
+  }
+}

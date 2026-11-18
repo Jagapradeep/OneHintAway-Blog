@@ -1,0 +1,385 @@
+{
+  "number": 38,
+  "slug": "backtracking-template",
+  "kind": "concept",
+  "topic": "Backtracking Template: Permutations and Combination Sum",
+  "category": "Backtracking",
+  "next_post": "Grid backtracking: Word Search",
+  "cover": {
+    "title": "Backtracking",
+    "lead": "One template: choose a value, explore what follows, undo the choice, try the next.",
+    "use_it_when": "A problem asks for every arrangement or every combination that follows a rule.",
+    "why_it_matters": "The same three moves solve permutations, combination sums, grids and N-Queens.",
+    "blocks": [
+      {
+        "type": "boxes",
+        "size": "s",
+        "gap": 24,
+        "mt": 18,
+        "values": [
+          1,
+          2,
+          ""
+        ],
+        "steel": [
+          0,
+          1
+        ],
+        "dash": [
+          2
+        ],
+        "float": {
+          "value": 3,
+          "over": 2
+        }
+      }
+    ],
+    "promise": "You'll write the template and use it **twice**.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch 6 orders appear",
+      "title": "Watch it arrange",
+      "lead": "Every order of 1 2 3.",
+      "video": {
+        "values": [
+          "",
+          "",
+          ""
+        ],
+        "indexes": false,
+        "stage_label": "SEATS 1, 2, 3",
+        "chips_label": "ORDERS SAVED",
+        "steps": "video_steps()",
+        "final": {
+          "set": {
+            "0": 3,
+            "1": 2,
+            "2": 1
+          },
+          "eq": [
+            "orders:",
+            "{{len(PERMS)}}"
+          ],
+          "caption": "3 choices, then 2, then 1: 3 × 2 × 1."
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "Three friends, three seats",
+      "title": "Three seats",
+      "scene": "Seat someone in seat 1, then someone still standing in seat 2, then seat 3. Then stand the last one up and try another.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "label": "SEATS",
+          "values": [
+            1,
+            2,
+            ""
+          ],
+          "steel": [
+            0,
+            1
+          ],
+          "dash": [
+            2
+          ],
+          "float": {
+            "value": 3,
+            "over": 2
+          },
+          "under": {
+            "2": "only 3 is left"
+          }
+        },
+        {
+          "type": "card",
+          "text": "Sit down, fill the next seat, stand up to try someone else: [[choose, explore, undo]]."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "All 6 orders, by first seat",
+      "title": "3 × 2 × 1",
+      "lead": "3 choices for seat 1, then 2 for seat 2, then 1 left for seat 3.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "1 first",
+              "values": [
+                1,
+                2,
+                3,
+                "",
+                1,
+                3,
+                2
+              ],
+              "ghost": [
+                3
+              ],
+              "gold": [
+                0,
+                4
+              ]
+            },
+            {
+              "label": "2 first",
+              "values": [
+                2,
+                1,
+                3,
+                "",
+                2,
+                3,
+                1
+              ],
+              "ghost": [
+                3
+              ],
+              "gold": [
+                0,
+                4
+              ]
+            },
+            {
+              "label": "3 first",
+              "values": [
+                3,
+                1,
+                2,
+                "",
+                3,
+                2,
+                1
+              ],
+              "ghost": [
+                3
+              ],
+              "gold": [
+                0,
+                4
+              ]
+            }
+          ]
+        }
+      ],
+      "quickcheck": {
+        "question": "How many orders do 4 friends have?",
+        "answer": "Answer: {{len(perms([1, 2, 3, 4]))}}. 4 × 3 × 2 × 1.",
+        "check": "len(perms([1, 2, 3, 4]))"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "THREE MOVES",
+      "board": "Answer + three moves",
+      "teaser": "The answer, then three moves",
+      "title": "Three moves",
+      "blocks": [
+        {
+          "type": "compare",
+          "rows": [
+            {
+              "main": "choose",
+              "sub": "mark it used, add it to the path",
+              "value": "1"
+            },
+            {
+              "main": "explore",
+              "sub": "call yourself for the next seat",
+              "value": "2",
+              "gold": true
+            },
+            {
+              "main": "undo",
+              "sub": "remove it, mark it free again",
+              "value": "3"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Every backtracking problem repeats these. Only the rule for what you may choose changes."
+        }
+      ]
+    },
+    {
+      "type": "extra",
+      "label": "PERMUTATIONS",
+      "board": "Permutations",
+      "teaser": "The moves as permutations",
+      "title": "Every order",
+      "blocks": [
+        {
+          "type": "code",
+          "lines": [
+            "function permute(nums, used, path, out):",
+            "    if length(path) == length(nums):",
+            "        add a copy of path to out",
+            "        return out",
+            "    for i from 0 to length(nums) - 1:",
+            "        if not used[i]:",
+            "            used[i] = true   // choose",
+            "            add nums[i] to path",
+            "            permute(nums, used, path, out)",
+            "            remove last from path   // undo",
+            "            used[i] = false",
+            "    return out"
+          ],
+          "highlight": [
+            9
+          ]
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "Start with used all false and path and out empty."
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "Same moves, a new rule",
+      "title": "Combination sum",
+      "code": {
+        "start": 13,
+        "lines": [
+          "function find(nums, i, left, path, out):",
+          "    if left == 0:",
+          "        add a copy of path to out",
+          "        return out",
+          "    for j from i to length(nums) - 1:",
+          "        if nums[j] <= left:",
+          "            add nums[j] to path   // choose",
+          "            rest = left - nums[j]",
+          "            find(nums, j, rest, path, out)",
+          "            remove last from path   // undo",
+          "    return out"
+        ],
+        "highlight": [
+          21
+        ]
+      },
+      "explain": "Pick numbers that add up to the target, reusing any. Line 21 passes j: the same number again, never an earlier one.",
+      "example": {
+        "call": "find([2, 3, 6, 7], 0, 7, [], [])",
+        "expr": "show(COMBOS)",
+        "show": "{{show(COMBOS)}}"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "The reorder bug",
+      "title": "Don't go back to 0",
+      "lead": "Pass 0 instead of j on line 21 and every order of the same numbers is found again.",
+      "trap": {
+        "call": "find([2, 3, 6, 7], 0, 7, [], [])",
+        "wrong": {
+          "code": [
+            "find(…, 0, rest, …)"
+          ],
+          "note": "2 2 3 comes out three times.",
+          "result": "{{show(wrong_combos(CANDS, TARGET))}}"
+        },
+        "right": {
+          "code": [
+            "find(…, j, rest, …)"
+          ],
+          "note": "Never an earlier number.",
+          "result": "{{show(COMBOS)}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Permutations",
+            "value": "O(n · n!)",
+            "gold": true
+          },
+          {
+            "label": "Call depth",
+            "value": "O(n)"
+          },
+          {
+            "label": "Combinations",
+            "value": "O(n^(t/m))"
+          }
+        ],
+        "note": "n! orders, each copied in n steps. Combinations: t = target, m = the smallest number."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Choose",
+        "Explore",
+        "Undo"
+      ],
+      "problems": [
+        {
+          "difficulty": "Easy",
+          "id": 401,
+          "title": "Binary Watch",
+          "note": "Choose which LEDs are on; keep hours under 12, minutes under 60.",
+          "complexity": "2^n",
+          "constraints": {
+            "n": 10
+          },
+          "url": "https://leetcode.com/problems/binary-watch/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 47,
+          "title": "Permutations II",
+          "note": "Sort first; skip a value equal to the one before it if that one is free.",
+          "complexity": "n*40320",
+          "constraints": {
+            "n": 8
+          },
+          "url": "https://leetcode.com/problems/permutations-ii/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Backtracking",
+    "section": "Backtracking",
+    "summary": "Every arrangement or combination that follows a rule: choose a value, explore, undo the choice, try the next.",
+    "tags": [
+      "backtracking",
+      "recursion",
+      "permutations",
+      "combination-sum"
+    ],
+    "tested_what": "Permutations and combination sum",
+    "tested_inputs": "hand-picked inputs (1 2 3, one value, negatives, six values, the LeetCode 39 examples, a target smaller than every number) and random sets of up to 6 values for permutations, and up to 6 numbers from 2 to 14 with targets up to 25 for combination sum",
+    "tested_against": "Python's itertools.permutations, and a brute force that tries every count of each number",
+    "tested_extra": "The orders in the walk-through, the quick-check answer and the trap result come from running the code."
+  },
+  "caption": {
+    "first": "The backtracking template: choose, explore, undo. Used for permutations (LeetCode 46) and combination sum (LeetCode 39).",
+    "lines": [
+      "Choose a value, call yourself for the next step, then undo the choice and try the next value.",
+      "Permutations mark values used. Combination sum passes j, so a number can repeat but never go back.",
+      "The trap: pass 0 instead of j and 2 2 3 comes out three times.",
+      "Practice: LeetCode 401 (easy) and LeetCode 47 (medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#backtracking",
+      "#recursion"
+    ]
+  }
+}

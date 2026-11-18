@@ -1,0 +1,428 @@
+{
+  "number": 40,
+  "slug": "n-queens",
+  "kind": "challenge",
+  "topic": "N-Queens",
+  "category": "Backtracking",
+  "next_post": "Reverse a linked list",
+  "cover": {
+    "title": "N-**Queens**",
+    "problem": {
+      "id": 51,
+      "title": "N-Queens",
+      "difficulty": "Hard"
+    },
+    "blocks": [
+      {
+        "type": "boxes",
+        "values": [
+          1,
+          3,
+          0,
+          2
+        ],
+        "size": "m",
+        "label": "QUEEN'S COLUMN IN ROWS 0 TO 3",
+        "label_color": "muted"
+      }
+    ],
+    "promise": "You'll solve **LeetCode 51** with backtracking.",
+    "promise_slide": "solution"
+  },
+  "slides": [
+    {
+      "type": "story",
+      "teaser": "The problem, as quarrelling guests",
+      "title": "Quarrelling guests",
+      "scene": "Four guests who all quarrel sit on a 4 × 4 floor of cushions. Any two in the same row, column or diagonal start a fight. Seat all four in peace.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "row 0",
+              "values": [
+                "Q",
+                "",
+                "",
+                ""
+              ],
+              "gold": [
+                0
+              ]
+            },
+            {
+              "label": "row 1",
+              "values": [
+                "",
+                "Q",
+                "",
+                ""
+              ],
+              "dim": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "type": "card",
+          "size": "big",
+          "text": "These two share a diagonal: a fight. In how many ways can all four sit in peace?"
+        }
+      ]
+    },
+    {
+      "type": "problem",
+      "teaser": "The real problem",
+      "title": "LeetCode 51",
+      "lead": "Place n queens on an n × n board so no two attack. Return every board.",
+      "blocks": [
+        {
+          "type": "kv",
+          "rows": [
+            [
+              "n",
+              "4"
+            ],
+            [
+              "output",
+              "{{len(SOLS)}} boards",
+              "steel"
+            ]
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Rows read .Q.. ...Q Q... ..Q. and ..Q. Q... ...Q .Q.."
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "n is 1 to 9. A queen attacks along its row, column and both diagonals."
+        }
+      ]
+    },
+    {
+      "type": "pause",
+      "try_first": "Place 4 queens on a 4 × 4 grid you draw. Where must the queen in row 0 go?"
+    },
+    {
+      "type": "hint",
+      "teaser": "Hint 1: try every board",
+      "title": "Try every board",
+      "lead": "Choose any 4 of the 16 squares, then check if two queens attack.",
+      "blocks": [
+        {
+          "type": "compare",
+          "rows": [
+            {
+              "main": "n = 4",
+              "sub": "4 of 16 squares",
+              "value": "{{f'{BOARDS_ALL:,}'}}"
+            },
+            {
+              "main": "n = 8",
+              "sub": "8 of 64 squares",
+              "value": "{{f'{BOARDS_8:,}'}}",
+              "gold": true
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Billions of boards by n = 8. Most of them are hopeless from the second queen."
+        }
+      ]
+    },
+    {
+      "type": "hint",
+      "teaser": "Hint 2: one queen per row",
+      "title": "One queen per row",
+      "lead": "Two queens in a row attack, so each row holds exactly one. Only its column is a choice.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "row 0 → col 0",
+              "values": [
+                "Q",
+                "",
+                "",
+                ""
+              ],
+              "gold": [
+                0
+              ]
+            },
+            {
+              "label": "row 1 → col 2",
+              "values": [
+                "",
+                "",
+                "Q",
+                ""
+              ],
+              "gold": [
+                2
+              ]
+            },
+            {
+              "label": "row 2 → ?",
+              "values": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "dim": [
+                0,
+                1,
+                2,
+                3
+              ]
+            }
+          ]
+        }
+      ],
+      "quickcheck": {
+        "question": "Queens at row 0 col 0 and row 1 col 2. Which columns of row 2 are safe?",
+        "answer": "Answer: {{safe_cols([0, 2], 2, 4)}}. Columns 0 and 2 are taken, 1 and 3 are on a diagonal.",
+        "check": "safe_cols([0, 2], 2, 4)"
+      }
+    },
+    {
+      "type": "hint",
+      "teaser": "Answer + hint 3",
+      "title": "Back up and move",
+      "lead": "Backtracking from post 38: place row by row. No safe column? The queen above moves.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "row 0 stays",
+              "values": [
+                "Q",
+                "",
+                "",
+                ""
+              ],
+              "steel": [
+                0
+              ]
+            },
+            {
+              "label": "row 1 → col 3",
+              "values": [
+                "",
+                "",
+                "",
+                "Q"
+              ],
+              "gold": [
+                3
+              ]
+            },
+            {
+              "label": "row 2 → col 1",
+              "values": [
+                "",
+                "Q",
+                "",
+                ""
+              ],
+              "gold": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "type": "card",
+          "text": "Like seating guests who quarrel: seat them row by row, and when nobody fits, reseat the last guest."
+        }
+      ]
+    },
+    {
+      "type": "hint",
+      "teaser": "Hint 4: the safe test",
+      "title": "The safe test",
+      "lead": "Keep queens[r] = the column of the queen in row r. A new square (row, col) is attacked by row r when:",
+      "blocks": [
+        {
+          "type": "equation",
+          "text": "col == c   or   col == c ± (row − r)"
+        },
+        {
+          "type": "text",
+          "text": "c = queens[r]. The first is the same column; the second, the same diagonal."
+        },
+        {
+          "type": "text",
+          "style": "muted",
+          "text": "Rows below are empty, so only rows above need checking."
+        }
+      ]
+    },
+    {
+      "type": "bridge"
+    },
+    {
+      "type": "video",
+      "teaser": "Watch the queens back up",
+      "title": "Watch it place",
+      "lead": "Box r holds the column of row r's queen.",
+      "video": {
+        "values": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "indexes": true,
+        "stage_label": "QUEENS: ROW 0 TO 3",
+        "chips_label": "COLUMNS TRIED",
+        "steps": "video_steps()",
+        "final": {
+          "set": {
+            "0": 1,
+            "1": 3,
+            "2": 0,
+            "3": 2
+          },
+          "gold": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "eq": [
+            "first board:",
+            "{{' '.join(map(str, FIRST))}}"
+          ],
+          "caption": "The other board is its mirror: 2 0 3 1."
+        }
+      }
+    },
+    {
+      "type": "solution",
+      "teaser": "Part 1: the safe test",
+      "title": "Is it safe?",
+      "lead": "Check the new square against the queen in every row above.",
+      "code": {
+        "lines": [
+          "function safe(queens, row, col):",
+          "    for r from 0 to row - 1:",
+          "        c = queens[r]",
+          "        gap = row - r",
+          "        if col == c:",
+          "            return false   // same column",
+          "        if col == c + gap or col == c - gap:",
+          "            return false   // same diagonal",
+          "    return true"
+        ],
+        "highlight": [
+          7
+        ]
+      }
+    },
+    {
+      "type": "solution",
+      "teaser": "Part 2: place row by row",
+      "title": "Place row by row",
+      "lead": "Start with place(n zeros, 0, n, empty list). The next column overwrites queens[row]: that is the undo.",
+      "code": {
+        "lines": [
+          "function place(queens, row, n, out):",
+          "    if row == n:",
+          "        add a board of queens to out",
+          "        return",
+          "    for col from 0 to n - 1:",
+          "        if safe(queens, row, col):",
+          "            queens[row] = col   // a queen",
+          "            place(queens, row + 1, n, out)"
+        ],
+        "highlight": [
+          16
+        ]
+      },
+      "cost": {
+        "label": false,
+        "mt": 0,
+        "items": [
+          {
+            "label": "Time",
+            "value": "O(n · n!)",
+            "gold": true,
+            "note": "At most n choices in row 0, fewer below; n checks each."
+          },
+          {
+            "label": "Space",
+            "value": "O(n)",
+            "note": "queens and the call stack."
+          }
+        ]
+      }
+    },
+    {
+      "type": "closing",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "One queen per row",
+        "Check rows above",
+        "Back up and move"
+      ],
+      "pattern": "Backtracking row by row, with a safe test against the rows already filled.",
+      "problems": [
+        {
+          "difficulty": "Hard",
+          "id": 52,
+          "title": "N-Queens II",
+          "note": "The same search; count the boards instead of drawing them.",
+          "complexity": "n*n*362880",
+          "constraints": {
+            "n": 9
+          },
+          "url": "https://leetcode.com/problems/n-queens-ii/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Backtracking",
+    "section": "Backtracking",
+    "summary": "Place n queens so none attack: one per row, a safe test against the rows above, and back up when a row has no safe column.",
+    "tags": [
+      "backtracking",
+      "recursion",
+      "n-queens",
+      "hard"
+    ],
+    "worked": {
+      "name": "LeetCode 51 N-Queens",
+      "url": "https://leetcode.com/problems/n-queens/"
+    },
+    "tested_what": "The row-by-row search and the safe test",
+    "tested_inputs": "every n from 1 to 9 (all boards compared, 352 of them for n = 9), and the safe test on hand-picked squares and random partial boards of up to 9 columns",
+    "tested_against": "a brute force that tries every order of columns and checks every pair of queens",
+    "tested_extra": "The placements and back-ups in the walk-through and the quick-check answer come from running the code."
+  },
+  "caption": {
+    "first": "LeetCode 51 N-Queens solved with backtracking: one queen per row, a safe test, and back up when a row has no safe column.",
+    "lines": [
+      "Two queens in a row attack, so each row holds one queen and only its column is a choice.",
+      "A square is attacked by row r's queen at column c when col == c or col == c ± (row − r).",
+      "Practice next: LeetCode 52 N-Queens II, the same search counting boards."
+    ],
+    "cta": "Which hint made it click for you?",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#backtracking",
+      "#recursion"
+    ]
+  }
+}

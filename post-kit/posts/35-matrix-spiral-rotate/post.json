@@ -1,0 +1,405 @@
+{
+  "number": 35,
+  "slug": "matrix-spiral-rotate",
+  "kind": "concept",
+  "topic": "Matrix Traversal: Spiral and Rotate",
+  "category": "2D arrays",
+  "next_post": "String patterns",
+  "cover": {
+    "title": "Spiral and rotate",
+    "lead": "Read a grid ring by ring with four walls that close in, and turn a square grid a quarter right.",
+    "use_it_when": "A problem walks a grid in a fixed shape, or asks you to turn it in place.",
+    "why_it_matters": "Four moving walls handle any spiral; swap-then-reverse turns a grid with no extra grid.",
+    "blocks": [
+      {
+        "type": "boxes",
+        "size": "s",
+        "gap": 24,
+        "mt": 18,
+        "values": [
+          1,
+          2,
+          3,
+          4,
+          8,
+          12
+        ],
+        "steel": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "gold": [
+          4,
+          5
+        ]
+      }
+    ],
+    "promise": "You'll read any grid in **spiral order**.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch a grid spiral",
+      "title": "Watch it spiral",
+      "lead": "The 3 × 4 grid 1 to 12, read in spiral order.",
+      "video": {
+        "values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "indexes": false,
+        "stage_label": "ROW 0 · ROW 1 · ROW 2",
+        "chips_label": "SIDE: VALUES READ",
+        "steps": "video_steps()",
+        "final": {
+          "steel": "all",
+          "cuts": [
+            3,
+            7
+          ],
+          "eq": [
+            "result:",
+            "12 values"
+          ],
+          "caption": "{{sp(SPIRAL)}}."
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "Mowing a lawn, outside in",
+      "title": "Mow from the outside",
+      "scene": "You mow a lawn from the outside in: along the top, down the right, back along the bottom, up the left. Then the next ring.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "row 0",
+              "values": [
+                1,
+                2,
+                3,
+                4
+              ]
+            },
+            {
+              "label": "row 1",
+              "values": [
+                10,
+                11,
+                12,
+                5
+              ],
+              "gold": [
+                1,
+                2
+              ]
+            },
+            {
+              "label": "row 2",
+              "values": [
+                9,
+                8,
+                7,
+                6
+              ]
+            }
+          ]
+        },
+        {
+          "type": "card",
+          "text": "The numbers show the order you mow. After each side, that [[edge of the lawn]] moves one step in."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "Four walls close in",
+      "title": "Four walls close in",
+      "lead": "After one lap, every wall has moved one step in. The inner ring is what's left.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "row 0",
+              "values": [
+                1,
+                2,
+                3,
+                4
+              ],
+              "steel": [
+                0,
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "label": "row 1",
+              "values": [
+                5,
+                6,
+                7,
+                8
+              ],
+              "steel": [
+                0,
+                3
+              ],
+              "gold": [
+                1,
+                2
+              ]
+            },
+            {
+              "label": "row 2",
+              "values": [
+                9,
+                10,
+                11,
+                12
+              ],
+              "steel": [
+                0,
+                1,
+                2,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "type": "equation",
+          "text": "top **1** · bottom **1** · left **1** · right **2**"
+        }
+      ],
+      "quickcheck": {
+        "question": "What is the spiral order of the 2 × 3 grid 1 2 3 / 4 5 6?",
+        "answer": "Answer: {{sp(spiral_order([[1, 2, 3], [4, 5, 6]]))}}. Top row, down to 6, then back along 5 4.",
+        "check": "sp(spiral_order([[1, 2, 3], [4, 5, 6]]))"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "ROTATE",
+      "board": "Answer + rotate",
+      "teaser": "The answer, then rotate",
+      "title": "Turn a grid right",
+      "blocks": [
+        {
+          "type": "kv",
+          "rows": [
+            [
+              "start",
+              "1 2 3 / 4 5 6 / 7 8 9"
+            ],
+            [
+              "swap across",
+              "1 4 7 / 2 5 8 / 3 6 9"
+            ],
+            [
+              "reverse rows",
+              "7 4 1 / 8 5 2 / 9 6 3",
+              "steel"
+            ]
+          ]
+        },
+        {
+          "type": "code",
+          "lines": [
+            "function rotate(grid):",
+            "    n = length(grid)",
+            "    for i from 0 to n - 1:",
+            "        for j from i + 1 to n - 1:",
+            "            swap grid[i][j], grid[j][i]",
+            "    for each row in grid:",
+            "        reverse row"
+          ],
+          "highlight": [
+            5
+          ]
+        }
+      ]
+    },
+    {
+      "type": "extra",
+      "label": "SPIRAL",
+      "board": "Spiral, part 1",
+      "teaser": "Spiral, part 1: top and right",
+      "title": "Top, then right",
+      "blocks": [
+        {
+          "type": "code",
+          "start": 8,
+          "lines": [
+            "function spiralOrder(grid):",
+            "    top = 0",
+            "    bottom = length(grid) - 1",
+            "    left = 0",
+            "    right = length(grid[0]) - 1",
+            "    result = empty list",
+            "    while top <= bottom and left <= right:",
+            "        for col from left to right:",
+            "            add grid[top][col] to result",
+            "        top = top + 1   // wall moves in",
+            "        for row from top to bottom:",
+            "            add grid[row][right] to result",
+            "        right = right - 1   // wall in"
+          ],
+          "highlight": [
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "Spiral, part 2: bottom and left",
+      "title": "Bottom, then left",
+      "code": {
+        "start": 21,
+        "lines": [
+          "        if top > bottom or left > right:",
+          "            return result   // nothing left",
+          "        for col from right down to left:",
+          "            add grid[bottom][col] to result",
+          "        bottom = bottom - 1",
+          "        for row from bottom down to top:",
+          "            add grid[row][left] to result",
+          "        left = left + 1",
+          "    return result"
+        ],
+        "highlight": [
+          21
+        ]
+      },
+      "explain": "Line 21 stops before walking back along a row or column that was already read.",
+      "example": {
+        "call": "spiralOrder(the 3 × 4 grid)",
+        "expr": "sp(SPIRAL)",
+        "show": "{{sp(SPIRAL)}}"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "The check that stops a repeat",
+      "title": "Check before going back",
+      "lead": "Skip line 21 and the last row, 6 7, gets walked back a second time.",
+      "trap": {
+        "call": "spiralOrder(the 3 × 4 grid)",
+        "wrong": {
+          "code": [
+            "// no check on line 21"
+          ],
+          "note": "The 6 comes out twice.",
+          "result": "… {{sp(wrong_spiral(GRID)[-4:])}}"
+        },
+        "right": {
+          "code": [
+            "if top > bottom ...:"
+          ],
+          "note": "Nothing left: return.",
+          "result": "… {{sp(SPIRAL[-3:])}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Spiral",
+            "value": "O(m · n)",
+            "gold": true
+          },
+          {
+            "label": "Rotate",
+            "value": "O(n²)"
+          },
+          {
+            "label": "Space",
+            "value": "O(1)"
+          }
+        ],
+        "note": "Each cell is read or swapped once, inside the grid."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Walls move in",
+        "Check first",
+        "Swap, reverse"
+      ],
+      "problems": [
+        {
+          "difficulty": "Easy",
+          "id": 1886,
+          "title": "Determine Whether Matrix Can Be Obtained By Rotation",
+          "note": "Rotate up to 4 times; compare each turn.",
+          "complexity": "n^2",
+          "constraints": {
+            "n": 10
+          },
+          "url": "https://leetcode.com/problems/determine-whether-matrix-can-be-obtained-by-rotation/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 54,
+          "title": "Spiral Matrix",
+          "note": "This spiral, on grids up to 10 × 10.",
+          "complexity": "m*n",
+          "constraints": {
+            "m": 10,
+            "n": 10
+          },
+          "url": "https://leetcode.com/problems/spiral-matrix/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Matrix",
+    "section": "2D arrays and strings",
+    "summary": "Spiral order: four walls that move in after each side. Rotate right: swap across the diagonal, then reverse each row.",
+    "tags": [
+      "matrix",
+      "spiral-matrix",
+      "rotate-image"
+    ],
+    "tested_what": "The spiral and the rotation",
+    "tested_inputs": "hand-picked grids (the 3 × 4 and 3 × 3 examples, one cell, one row, one column, 2 × 2, 2 × 3, negatives, a 10 × 10 grid) and random grids up to 10 × 10, square ones included, with values from −100 to 100",
+    "tested_against": "a brute force that walks and turns right whenever the next cell is outside or already seen, and a rotation that copies each cell to its new place",
+    "tested_extra": "The spiral order, the rotated grid, the quick-check answer and the trap result come from running the code."
+  },
+  "caption": {
+    "first": "Matrix traversal explained: spiral order (LeetCode 54) with four moving walls, and rotate a grid 90° (LeetCode 48) in place.",
+    "lines": [
+      "Spiral: read the top row, the right side, the bottom row, the left side, moving each wall in after its side.",
+      "The trap: skip the check before walking back and a 3 × 4 grid repeats a value.",
+      "Rotate right: swap across the diagonal, then reverse each row.",
+      "Practice: LeetCode 1886 (easy) and LeetCode 54 (medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#matrix"
+    ]
+  }
+}

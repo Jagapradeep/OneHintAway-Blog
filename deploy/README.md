@@ -2,7 +2,7 @@
 
 How the backend runs in production and what to type when something needs doing.
 The why behind each piece is in the [root README](../README.md#-kubernetes-and-production);
-a hands-on lab for learning it is in [LEARN.md](LEARN.md).
+a hands-on learning lab for the whole project is in [LEARN.md](LEARN.md).
 
 | Folder | What it is |
 | --- | --- |

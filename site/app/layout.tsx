@@ -9,6 +9,7 @@ import { SearchBox } from "@/components/SearchBox";
 import { AccountMenu } from "@/components/AccountMenu";
 import { ScrollReset } from "@/components/ScrollReset";
 import { API_URL } from "@/lib/api";
+import { getAllPosts } from "@/lib/posts";
 import { SignupForm } from "@/components/SignupForm";
 import { ACCOUNT_SCRIPT, ACCOUNTS_ON, INSTAGRAM_URL, SIGNUP_ON, SITE_URL, UMAMI_URL, UMAMI_WEBSITE_ID } from "@/lib/site";
 import { themeScript } from "@/lib/theme";
@@ -75,7 +76,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </Link>
             <NavLinks />
             {API_URL && <SearchBox />}
-            {ACCOUNTS_ON && <AccountMenu />}
+            {ACCOUNTS_ON && <AccountMenu total={getAllPosts().length} />}
             <ThemeToggle />
           </header>
         </div>

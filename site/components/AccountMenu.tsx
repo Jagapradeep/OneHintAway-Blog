@@ -9,7 +9,6 @@ import {
   enterCode,
   onOpenSignIn,
   requestDeleteCode,
-  setNewsletter,
   signOut,
   useAccount,
 } from "@/lib/account";
@@ -22,13 +21,16 @@ const DELETE_NOTE: Record<Exclude<CodeResult, "sent">, string> = {
 
 // Header button. Signed out: "Sign in", opening a panel with the email field.
 // Signed in: a round badge with the first letter of the reader's email, opening the menu
-// (sign out, sign out everywhere, delete). While the API is still being asked (a reader who
+// (who is signed in, progress, sign out, sign out everywhere, delete). The newsletter switch
+// lives in the footer only. While the API is still being asked (a reader who
 // has signed in before), it shows the plain icon and the panel says so: never "Sign in".
 // The button sits in a plain form that opens /sign-in/, so a tap that lands before the
 // page's script has loaded still goes somewhere useful; once loaded, it opens the panel.
 // Only rendered when the site was built with accounts on (see app/layout.tsx).
-export function AccountMenu() {
-  const { ready, email, done, news } = useAccount();
+export function AccountMenu({ total }: { total: number }) {
+  const { ready, email, done } = useAccount();
+  const doneCount = Math.min(done.size, total);
+  const percent = total ? Math.round((doneCount / total) * 100) : 0;
   const status = email ? "in" : ready ? "out" : "checking";
   const [open, setOpen] = useState(false);
   // Deleting: "delete" asks for a code, "code" takes it, "confirm" asks once more. Closing
@@ -94,12 +96,10 @@ export function AccountMenu() {
     else setNote("Could not sign out right now. Please try again.");
   }
 
-  async function switchNews() {
-    if (news === null) return;
-    setBusy(true);
-    const ok = await setNewsletter(!news);
-    setBusy(false);
-    setNote(ok ? (news ? "Done. No more emails." : "Done. You'll get an email for each new pattern.") : "That didn't work. Please try again.");
+  function toMenu() {
+    setView("menu");
+    setCode("");
+    setNote("");
   }
 
   async function askDeleteCode() {
@@ -181,57 +181,110 @@ export function AccountMenu() {
           )}
           {email && view === "menu" && (
             <>
-              <p className="acct-title">Your account</p>
-              <p className="acct-email">{email}</p>
-              <p className="acct-lead">
-                {done.size} {done.size === 1 ? "lesson" : "lessons"} done
-              </p>
-              <div className="acct-actions">
-                <button type="button" disabled={busy || news === null} onClick={switchNews}>
-                  {news ? "Stop new-pattern emails" : "Email me new patterns"}
+              <div className="acct-who">
+                <span className="acct-who-badge" aria-hidden="true">
+                  {email.charAt(0).toUpperCase()}
+                </span>
+                <div className="acct-who-text">
+                  <p className="acct-who-label">Signed in as</p>
+                  <p className="acct-who-email" title={email}>
+                    {email}
+                  </p>
+                </div>
+              </div>
+              <div className="acct-progress">
+                <p className="acct-progress-row">
+                  <span className="acct-progress-label">Your progress</span>
+                  <span className="acct-progress-count">
+                    <strong>{doneCount}</strong> of {total} lessons
+                  </span>
+                </p>
+                <div className="acct-bar" aria-hidden="true">
+                  <span style={{ width: `${percent}%` }} />
+                </div>
+                {doneCount === 0 && (
+                  <p className="acct-progress-hint">Tap &ldquo;Mark as done&rdquo; at the end of a post to fill this bar.</p>
+                )}
+              </div>
+              <div className="acct-items">
+                <button type="button" className="acct-item" disabled={busy} onClick={() => leave(false)}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" />
+                    <path d="M10 8l-4 4 4 4M6 12h9" />
+                  </svg>
+                  <span className="acct-item-text">
+                    <span className="acct-item-label">Sign out</span>
+                    <span className="acct-item-hint">On this device only</span>
+                  </span>
                 </button>
-                <button type="button" disabled={busy} onClick={() => leave(false)}>
-                  Sign out
+                <button type="button" className="acct-item" disabled={busy} onClick={() => leave(true)}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <rect x="3" y="4" width="13" height="10" rx="1.5" />
+                    <path d="M7 18h5M9.5 14v4" />
+                    <rect x="17" y="9" width="4.5" height="10" rx="1" />
+                  </svg>
+                  <span className="acct-item-text">
+                    <span className="acct-item-label">Sign out everywhere</span>
+                    <span className="acct-item-hint">Every phone and laptop, this one too</span>
+                  </span>
                 </button>
-                <button type="button" disabled={busy} onClick={() => leave(true)}>
-                  Sign out everywhere
-                </button>
-                <button type="button" disabled={busy} onClick={() => (setView("delete"), setNote(""))}>
-                  Delete account
+                <button type="button" className="acct-item is-danger" disabled={busy} onClick={() => (setView("delete"), setNote(""))}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 12.5h9l1-12.5M10 11v5M14 11v5" />
+                  </svg>
+                  <span className="acct-item-text">
+                    <span className="acct-item-label">Delete account</span>
+                    <span className="acct-item-hint">Removes your email and progress</span>
+                  </span>
                 </button>
               </div>
-              <p className="acct-note" role="status" aria-live="polite">
+              <p className="acct-note acct-menu-note" role="status" aria-live="polite">
                 {note}
               </p>
-              <p className="acct-small">
+              <p className="acct-foot">
                 <Link href="/privacy/" onClick={() => setOpen(false)}>
-                  What we store
+                  What we store about you
                 </Link>
               </p>
             </>
           )}
           {email && view !== "menu" && (
             <>
-              <p className="acct-title">Delete your account</p>
+              <div className="acct-head">
+                <button type="button" className="acct-back" aria-label="Back to your account" disabled={busy} onClick={toMenu}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M15 5l-7 7 7 7" />
+                  </svg>
+                </button>
+                <p className="acct-title">Delete your account</p>
+              </div>
               {view === "delete" && (
                 <>
+                  <p className="acct-lead">This removes:</p>
+                  <ul className="acct-gone">
+                    <li>your email address</li>
+                    <li>your list of finished lessons</li>
+                    <li>your sign-ins on every device</li>
+                  </ul>
                   <p className="acct-lead">
-                    This removes your email address, your sign-ins on every device and your list of finished lessons.
-                    To make sure it is you, we first email a code to {email}.
+                    To make sure it is you, we first email a 6-digit code to <strong className="acct-strong">{email}</strong>.
                   </p>
-                  <div className="acct-actions">
-                    <button type="button" disabled={busy} onClick={askDeleteCode}>
-                      Email me a code
-                    </button>
-                    <button type="button" disabled={busy} onClick={() => (setView("menu"), setNote(""))}>
+                  <div className="acct-btns">
+                    <button type="button" className="acct-btn2" disabled={busy} onClick={toMenu}>
                       Keep my account
+                    </button>
+                    <button type="button" className="acct-btn2 is-danger" disabled={busy} onClick={askDeleteCode}>
+                      Email me a code
                     </button>
                   </div>
                 </>
               )}
               {view === "code" && (
                 <form className="acct-form" onSubmit={checkDeleteCode}>
-                  <label className="acct-label" htmlFor={codeId}>
+                  <p className="acct-lead acct-lead-flush">
+                    We sent a code to <strong className="acct-strong">{email}</strong>.
+                  </p>
+                  <label className="acct-label acct-label-gap" htmlFor={codeId}>
                     Code from your email
                   </label>
                   <input
@@ -247,25 +300,27 @@ export function AccountMenu() {
                     value={code}
                     onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   />
-                  <button type="submit" className="acct-submit" disabled={busy || code.length !== 6}>
-                    Continue
-                  </button>
-                  <p className="acct-small">
-                    <button type="button" className="acct-linkbtn" disabled={busy} onClick={() => (setView("menu"), setCode(""), setNote(""))}>
+                  <div className="acct-btns">
+                    <button type="button" className="acct-btn2" disabled={busy} onClick={toMenu}>
                       Keep my account
                     </button>
-                  </p>
+                    <button type="submit" className="acct-btn2 is-danger" disabled={busy || code.length !== 6}>
+                      Continue
+                    </button>
+                  </div>
                 </form>
               )}
               {view === "confirm" && (
                 <>
-                  <p className="acct-lead">This can&apos;t be undone.</p>
-                  <div className="acct-actions">
-                    <button type="button" disabled={busy} onClick={reallyDelete}>
-                      Delete my account
-                    </button>
-                    <button type="button" disabled={busy} onClick={() => (setView("menu"), setNote(""))}>
+                  <div className="acct-warn">
+                    <strong>Last step.</strong> This can&apos;t be undone: your progress is gone for good.
+                  </div>
+                  <div className="acct-btns">
+                    <button type="button" className="acct-btn2" disabled={busy} onClick={toMenu}>
                       Keep my account
+                    </button>
+                    <button type="button" className="acct-btn2 is-danger is-fill" disabled={busy} onClick={reallyDelete}>
+                      Delete my account
                     </button>
                   </div>
                 </>

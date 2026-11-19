@@ -51,6 +51,7 @@ Daily Instagram carousels and a companion blog that teach data structures and al
 - [Run it locally](#-run-it-locally)
 - [Design system](#-design-system)
 - [Roadmap](#-roadmap)
+- 🎓 [Learn the whole project, top to bottom](docs/learn/README.md)
 
 <br/>
 
@@ -225,7 +226,9 @@ deploy/                           🐳  running it all together
 ├── server/                       one-time server setup: hardening, k3s, issuer + deploy account, monitoring
 ├── scripts/create-secret.sh      makes the chart's Secret from a git-ignored env file
 ├── README.md                     the runbook: deploy, roll back, back up, restore, rebuild
-└── LEARN.md                      a hands-on Kubernetes lab on this project
+└── LEARN.md                      moved: points to docs/learn/
+
+docs/learn/                       🎓  the course: this whole project, top to bottom, one chapter at a time
 
 .github/workflows/api.yml         test → build image → push to GHCR → helm upgrade on the cluster
 .github/workflows/sync-posts.yml  copies the posts into the API when a post changes
@@ -468,7 +471,7 @@ The backend runs on one small cloud server (2 vCPU, 4 GB) with [k3s](https://k3s
 
 **Watching it.** Prometheus scrapes the API's metrics from inside the cluster, Grafana shows them, and two alerts are defined: no API pod answering, and less than 15% disk free.
 
-Day-to-day commands are in the runbook, [`deploy/README.md`](deploy/README.md); a hands-on learning lab for the whole project (site, API, Docker, Kubernetes, CI/CD, DNS and email, operations), with something to break on purpose in each part, is in [`deploy/LEARN.md`](deploy/LEARN.md).
+Day-to-day commands are in the runbook, [`deploy/README.md`](deploy/README.md); the course that teaches the whole project (frontend, backend, database, security, testing, Docker, Kubernetes, CI/CD, production and operations), with something to break on purpose in each chapter, is in [`docs/learn/`](docs/learn/README.md).
 
 <br/>
 
@@ -521,6 +524,8 @@ Every slide shares one fixed frame: a header with the logo, the slide count and 
 cd site && npm install && npm run dev
 ```
 
+On its own, the site has no view counts, search or sign-in: those need the API (next section). Posts, slides, code and the visualizer all work.
+
 </details>
 
 <details>
@@ -539,11 +544,14 @@ To see the site use it, in a second terminal:
 
 ```bash
 cd site
-npm run sync-posts                                       # copy the posts into the API
-NEXT_PUBLIC_API_URL=http://localhost:8080 npm run dev    # PowerShell: $env:NEXT_PUBLIC_API_URL="http://localhost:8080"; npm run dev
+cp .env.example .env.local      # once: points the site at http://localhost:8080 and turns accounts on
+npm run sync-posts              # copy the posts into the API (needed for search and counts)
+npm run dev                     # http://localhost:3000, with view counts, search and Sign in
 ```
 
-Add `NEXT_PUBLIC_ACCOUNTS=on` to try accounts. No email is sent locally: ask for a code on the site, then copy it from the API's log (`Sign-in code for …`) into the code field.
+`.env.local` is git-ignored and read every time `npm run dev` or `npm run build` starts, so **restart the dev server after changing it**. Without it the site quietly builds with no API: no search and no Sign in button. Production does not use the file; the same settings are Cloudflare build variables.
+
+No email is sent locally: ask for a code on the site, then copy it from the API's log (`Sign-in code for …`) into the code field.
 
 More in [api/README.md](api/README.md).
 

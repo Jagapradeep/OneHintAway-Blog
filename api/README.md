@@ -31,8 +31,9 @@ one from `compose.yaml`. The first run downloads the Postgres image.
 Accounts need no setup beyond the steps above. With `RESEND_API_KEY` blank, no email is
 sent: the code is written to the API's log.
 
-1. Start the site with accounts on, in `site/`:
-   `NEXT_PUBLIC_API_URL=http://localhost:8080 NEXT_PUBLIC_ACCOUNTS=on npm run dev`
+1. Start the site with accounts on, in `site/`: `cp .env.example .env.local` (once), then
+   `npm run dev`. `.env.local` sets `NEXT_PUBLIC_API_URL=http://localhost:8080` and
+   `NEXT_PUBLIC_ACCOUNTS=on`; restart the dev server after changing it.
 2. Press **Sign in** in the header, enter any address, and send.
 3. Find the line `Sign-in code for …: 123456` in the API's log (`docker compose logs api`
    when it runs in the compose stack) and type the code in the panel. Each code works once,
@@ -130,12 +131,31 @@ any image up to 64 px.
 The schema is defined only by the SQL files in `src/main/resources/db/migration/`. Flyway runs
 the ones a database hasn't seen yet, in order, when the API starts.
 
-1. Add a new file, `V3__what_it_does.sql` (next number, two underscores). `V2__accounts.sql`
-   added `users`, `login_tokens`, `sessions` and `progress`.
+1. Add a new file, `V4__what_it_does.sql` (next number, two underscores). `V2__accounts.sql`
+   added `users`, `login_tokens`, `sessions` and `progress`; `V3__sign_in_codes.sql` added the
+   wrong-try counter for codes.
 2. Never edit a migration that has already run anywhere: Flyway compares checksums and the API
    will refuse to start. Fix a mistake with another migration.
 3. Change the entity to match. Hibernate only checks (`ddl-auto=validate`), so a mismatch stops
    the app at start, and `./mvnw verify` catches it first.
+
+## The API can't log in to the local database
+
+`password authentication failed for user "onehintaway"` means `POSTGRES_PASSWORD` in `api/.env`
+is not the password the database was created with. Postgres reads that variable **only once**,
+when the volume `api_pgdata` is empty, and stores a one-way hash of it inside the volume. After
+that, editing `.env` changes nothing, and the old password can't be read back from anywhere.
+
+- **Keep the data:** set the database to the password now in `.env` (no old password needed:
+  connections from inside the container are trusted):
+  `docker exec -it api-postgres-1 psql -U onehintaway -d onehintaway -c "ALTER ROLE onehintaway PASSWORD '<value from api/.env>';"`
+- **Start fresh:** `docker compose down -v && docker compose up -d --wait` in `api/` (deletes
+  every local account, view and subscriber), start the API (Flyway recreates the tables), then
+  `npm run sync-posts` in `site/`.
+
+`VISITOR_SALT` and `ADMIN_TOKEN` are never stored in the database, so they can be changed at
+any time: restart the API. The compose stack (`deploy/compose/`) has its own volume and its own
+`.env`; the same rules apply there.
 
 ## Not done yet
 

@@ -133,26 +133,42 @@ function Workbench({ p, codeHtml, locked }: Props & { p: Pattern }) {
   // (at least CODE_MIN, at most the stylesheet's 38svh), so the whole player fits one screen.
   // Everything else in the player keeps its height while stepping, so this settles at once:
   // the rest of the player does not depend on the box's own height.
+  // Mobile browsers show and hide their address bar while scrolling, which changes
+  // window.innerHeight and fires "resize". Sizing from that made the box grow and shrink as
+  // the reader scrolled. So the screen height is the small viewport (100svh, the height with
+  // the bar showing), which scrolling never changes, and resizes that keep the width are ignored.
   const [codeMax, setCodeMax] = useState<number | null>(null);
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) return;
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;top:0;left:0;width:0;height:100vh;height:100svh;visibility:hidden;pointer-events:none";
+    document.body.appendChild(probe);
     const fit = () => {
       const box = codeRef.current;
       if (!window.matchMedia(PHONE).matches) return setCodeMax(null);
       if (!box || panel !== "code") return; // the box is hidden behind "Your input": keep its size
+      const screenH = probe.getBoundingClientRect().height || window.innerHeight;
       const header = document.querySelector(".site-header")?.getBoundingClientRect().height ?? 0;
       const rest = root.getBoundingClientRect().height - box.getBoundingClientRect().height;
-      const room = window.innerHeight - header - 12 - rest;
-      setCodeMax(Math.round(Math.max(CODE_MIN, Math.min(room, window.innerHeight * 0.38))));
+      const room = screenH - header - 12 - rest;
+      const next = Math.round(Math.max(CODE_MIN, Math.min(room, screenH * 0.38)));
+      setCodeMax((c) => (c !== null && Math.abs(c - next) <= 1 ? c : next));
     };
     fit();
     const watch = new ResizeObserver(fit); // lazy views mount a moment later and change the rest
     watch.observe(root);
-    window.addEventListener("resize", fit);
+    let width = window.innerWidth;
+    const onResize = () => {
+      if (window.innerWidth === width) return; // only the address bar moved: keep the size
+      width = window.innerWidth;
+      fit();
+    };
+    window.addEventListener("resize", onResize);
     return () => {
       watch.disconnect();
-      window.removeEventListener("resize", fit);
+      window.removeEventListener("resize", onResize);
+      probe.remove();
     };
   }, [trace, panel]);
 

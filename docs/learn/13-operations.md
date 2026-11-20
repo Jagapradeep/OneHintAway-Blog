@@ -161,6 +161,8 @@ stop sending it traffic, and with only one pod *every* request in that moment hi
 pod. Reproduced on k3d with a request every 20 ms through three restarts: 108 failures, ~2 s per
 restart. Fix: a 5-second `preStop` pause in `templates/api.yaml`, so the pod keeps serving until
 routing has caught up. Same test after: 8,401 requests, all 200. (Chapter 10 explains the race.)
+Then in production, a request every 100 ms through a `kubectl rollout restart deploy/api`:
+before the fix 4 × 502 and 6 timeouts in about 1.5 s; with it, 1,372 requests, all 200.
 Lesson two: test the claim you're relying on, under load, before you trust it.
 
 **What was not done, and why:** shorter retention (that's disk, not memory); JVM flags (small

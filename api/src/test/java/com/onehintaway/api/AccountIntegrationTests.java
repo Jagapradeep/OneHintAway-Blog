@@ -1,7 +1,21 @@
 package com.onehintaway.api;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.IntStream;
 
+import com.onehintaway.api.accounts.AccountService;
+import com.onehintaway.api.accounts.AccountService.Outcome;
 import com.onehintaway.api.subscribers.MailSender;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +27,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -20,14 +35,19 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.server.ResponseStatusException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -64,6 +84,9 @@ class AccountIntegrationTests {
 
 	@Autowired
 	private JdbcClient jdbc;
+
+	@Autowired
+	private AccountService accounts;
 
 	@MockitoBean
 	private MailSender mail;
@@ -161,6 +184,61 @@ class AccountIntegrationTests {
 		exchange("reader@example.com", code).andExpect(status().isGone());
 		assertThat(count("sessions")).isZero();
 		exchange("reader@example.com", requestCode("reader@example.com")).andExpect(status().isOk());
+	}
+
+	@Test
+	void aBurstOfGuessesSentAtOnceStillGetsOnlyFiveTries() throws Exception {
+		String code = requestCode("reader@example.com");
+		List<String> wrong = IntStream.rangeClosed(1, 30)
+			.mapToObj((i) -> "%06d".formatted((Integer.parseInt(code) + i) % 1_000_000))
+			.toList();
+		ExecutorService threads = Executors.newFixedThreadPool(wrong.size());
+		CountDownLatch go = new CountDownLatch(1);
+		Map<Outcome, Long> outcomes = new EnumMap<>(Outcome.class);
+		try {
+			List<Future<Outcome>> results = new ArrayList<>();
+			for (String guess : wrong) {
+				results.add(threads.submit(() -> {
+					go.await();
+					return this.accounts.exchange("reader@example.com", guess).outcome();
+				}));
+			}
+			go.countDown();
+			for (Future<Outcome> result : results) {
+				outcomes.merge(result.get(30, TimeUnit.SECONDS), 1L, Long::sum);
+			}
+		}
+		finally {
+			threads.shutdownNow();
+		}
+		// All thirty at the same moment, yet checked one after another: five were compared
+		// with the code, the other twenty-five found it already dead.
+		assertThat(outcomes).containsOnly(entry(Outcome.WRONG, 5L), entry(Outcome.NO_LIVE_CODE, 25L));
+		exchange("reader@example.com", code).andExpect(status().isGone());
+		assertThat(count("sessions")).isZero();
+	}
+
+	@Test
+	void theCodeIsEmailedWithNoDatabaseTransactionOpen() throws Exception {
+		AtomicBoolean inTransaction = new AtomicBoolean(true);
+		AtomicLong storedWhenSending = new AtomicLong(-1);
+		doAnswer((call) -> {
+			inTransaction.set(TransactionSynchronizationManager.isActualTransactionActive());
+			storedWhenSending.set(count("login_tokens"));
+			return null;
+		}).when(this.mail).sendSignInCode(any(), any(), anyBoolean());
+		link("reader@example.com", "192.0.2." + nextAddress.getAndIncrement()).andExpect(status().isAccepted());
+		// A slow email must not hold a pooled connection: the code is already saved and committed.
+		assertThat(inTransaction).isFalse();
+		assertThat(storedWhenSending).hasValue(1);
+	}
+
+	@Test
+	void aCodeThatCouldNotBeEmailedIsNotKept() throws Exception {
+		doThrow(new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Could not send the email")).when(this.mail)
+			.sendSignInCode(any(), any(), anyBoolean());
+		link("reader@example.com", "192.0.2." + nextAddress.getAndIncrement()).andExpect(status().isServiceUnavailable());
+		assertThat(count("login_tokens")).isZero();
 	}
 
 	@Test

@@ -62,7 +62,7 @@ All under `api/src/main/java/com/onehintaway/api/` unless stated.
 
 **JPA or plain SQL?** Both, each where it fits. Simple entities with no tricks (`Post`,
 `Subscriber`) use JPA repositories. Anything where the SQL *is* the logic (counting with
-`ON CONFLICT`, search ranking, spending a code with `UPDATE … RETURNING`) uses Spring's
+`ON CONFLICT`, search ranking, checking a code under a row lock with `SELECT … FOR UPDATE`) uses Spring's
 `JdbcClient` with the SQL in a text block, where you can read it.
 
 ## 🛠 Try it (30 min)
@@ -192,7 +192,7 @@ runs instantly and never flakes.
 <details>
 <summary>6. When do you pick JdbcClient over JPA?</summary>
 
-When the SQL is the logic: upserts, ranking, `UPDATE … RETURNING`, counting. JPA is great for
+When the SQL is the logic: upserts, ranking, row locks, counting. JPA is great for
 loading and saving objects, but it hides the SQL, and here the exact SQL is what makes things
 correct under concurrency.
 </details>

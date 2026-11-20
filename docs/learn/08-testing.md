@@ -23,7 +23,7 @@ Each layer has its own net. Mistakes are caught as early and as cheaply as possi
 | Post format | `npm run check-posts` | before every site build | broken frontmatter, missing sections, duplicate practice |
 | Visualizer | `npm run check-viz` (chapter 3) | before every site build | wrong answers, lying steps, pseudocode drift |
 | Types and lint | `next build` (TypeScript), `npm run lint` (ESLint) | every build / by hand | type errors, React mistakes |
-| API | `./mvnw verify`: 36 tests, real PostgreSQL 16 via Testcontainers | every push touching `api/` (GitHub Actions) | wrong SQL, broken rules, security regressions |
+| API | `./mvnw verify`: 39 tests, real PostgreSQL 16 via Testcontainers | every push touching `api/` (GitHub Actions) | wrong SQL, broken rules, security regressions |
 | Emails | `MailPreviewTests` writes every email to `api/target/mail-preview/` | by hand | ugly or broken emails, before anyone gets one |
 | Browser | Playwright scripts against the built site (run by Claude in a scratchpad, not in the repo) | for UI changes | layout at 360 to 1920 px, contrast, flows, sideways scroll |
 | Deploy | `helm upgrade --wait --rollback-on-failure` | every API deploy | a version that never becomes healthy |
@@ -31,7 +31,7 @@ Each layer has its own net. Mistakes are caught as early and as cheaply as possi
 
 **Why Testcontainers and not an in-memory database (H2)?** The API's correctness lives in
 Postgres-specific SQL: `ON CONFLICT`, generated `tsvector` columns, `websearch_to_tsquery`,
-`UPDATE … RETURNING`. H2 doesn't have most of these, or behaves differently. Testcontainers
+`SELECT … FOR UPDATE` row locks, `INSERT … RETURNING`. H2 doesn't have most of these, or behaves differently. Testcontainers
 starts a real `postgres:16-alpine` in Docker for the test run, Flyway applies the real
 migrations, and the tests talk to it exactly as production does.
 
@@ -42,6 +42,8 @@ names:
 aFirstCodeCreatesTheAccountAndSetsALockedDownCookie
 aUsedExpiredOrWrongCodeIsRefusedTheSameWay
 aCodeDiesAfterFiveWrongTries
+aBurstOfGuessesSentAtOnceStillGetsOnlyFiveTries
+theCodeIsEmailedWithNoDatabaseTransactionOpen
 theAnswerIsTheSameForKnownAndUnknownAddresses
 aCookieStolenBeforeSignOutIsUselessAfterIt
 aChangeWithoutTheSitesOriginAndTheCustomHeaderIsRefused
@@ -67,7 +69,7 @@ That list *is* the security spec from chapter 7. If a rule changes, a test name 
 
 ```bash
 cd api
-./mvnw verify                      # 36 tests; in another terminal while it runs:
+./mvnw verify                      # 39 tests; in another terminal while it runs:
 docker ps                          # a postgres:16-alpine you didn't start (plus Testcontainers' helper)
 ```
 

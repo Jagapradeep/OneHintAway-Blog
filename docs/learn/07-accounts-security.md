@@ -21,9 +21,11 @@ keeps an account an account.
 ```text
 reader types email ──► POST /api/v1/auth/code       202 always (known or not: no address-checking)
                        API makes a random 6-digit code, stores SHA-256("email:code"),
-                       expires in 15 min, emails it (Resend; on your laptop: the log)
-reader types code  ──► POST /api/v1/auth/session    one UPDATE spends it (used_at IS NULL, not expired,
-                       {email, code}                attempts < 5) ··· wrong? attempts + 1 on every live code
+                       expires in 15 min, saves it, *then* emails it (Resend; on your laptop:
+                       the log). Email failed? The code is deleted again and the answer is 503
+reader types code  ──► POST /api/v1/auth/session    lock the address's live codes (FOR UPDATE), then:
+                       {email, code}                right? spend it (used_at) ··· wrong? attempts + 1
+                                                    on every live code (5 and it's dead)
                        creates the user on first sign-in, creates a session row (token hash only)
                   ◄──  Set-Cookie: __Host-ohw_session=<random token>; HttpOnly; Secure; SameSite=Lax;
                        Path=/; Max-Age=2592000 (30 days, renewed at most once a day while used)
@@ -56,7 +58,7 @@ than 15 minutes. A borrowed laptop with an old session can't delete you.
 
 | File | What to look for |
 | --- | --- |
-| `api/.../accounts/AccountService.java` | `sendCode` (limits counted in SQL), `exchange` (spend the code, upsert the user, new session), `find` (renew at most once a day), `signOutEverywhere` |
+| `api/.../accounts/AccountService.java` | `sendCode` (limits counted in SQL; no transaction while emailing), `exchange` (lock, check, spend the code, upsert the user, new session), `find` (renew at most once a day), `signOutEverywhere` |
 | `api/.../accounts/SessionCookie.java` | the cookie's name and flags; `Cache-Control: no-store` on every account answer |
 | `api/.../accounts/CsrfInterceptor.java` | the Origin + header check, 403 otherwise |
 | `api/.../accounts/AuthController.java` | `code`, `session`, `me`, `sign-out`, `sign-out-everywhere`, `DELETE account` |
@@ -128,13 +130,14 @@ unset R C C2
 
 | Threat | Protected? | How / why not |
 | --- | --- | --- |
-| Someone guesses a code | ✅ | 5 tries, 3 codes an hour, 15 minutes |
+| Someone guesses a code | ✅ | 5 tries, 3 codes an hour, 15 minutes. Since 20 November also for guesses sent all at once: they wait their turn on a row lock (`FOR UPDATE`). Before that, a burst of 30 got 13 checked |
 | A database backup leaks | ✅ mostly | only hashes of codes and sessions; emails *are* in it |
 | Another site acts as the reader (CSRF) | ✅ | Origin allow-list + custom header + `SameSite=Lax` |
 | A script injected into our own site (XSS) | ⚠️ partly | it can't read the cookie (`HttpOnly`), but it can call the API as the reader, because the CSRF header isn't a secret |
 | Someone reads the reader's inbox | ❌ | they can sign in: email is the only factor |
 | A stolen cookie | ⚠️ | works until sign-out, sign-out everywhere, or 30 idle days; no device binding |
 | Telling known from unknown addresses | ✅ by answer, ❓ by timing | the answer is always 202; response timing wasn't measured |
+| A slow email provider stalls the whole API | ✅ | since 20 November the code is saved and committed *before* the email is sent, so no database connection waits on Resend. Before that, a burst of sign-ins during a Resend slowdown could hold every pooled connection |
 
 Knowing the limits is part of the design. Say them out loud in an interview: it shows you
 understand the system, not just the happy path.
@@ -182,6 +185,25 @@ requires fresh proof of the inbox, used within 15 minutes.
 
 Mail filters open links (and sometimes run scripts) to scan them, which spent one-time links
 before the reader got to them. A code must be typed into our site, which robots don't do.
+</details>
+
+<details>
+<summary>7. The code checked "attempts < 5". How did 30 guesses sent at once get 13 checked?</summary>
+
+Each request read the live codes, compared, *then* added one to `attempts`. Requests arriving
+together read `attempts` before the others had written, so many passed the check. The fix:
+`SELECT … FOR UPDATE` locks the rows, so the next request waits until the previous one has
+committed its +1. A test (`aBurstOfGuessesSentAtOnceStillGetsOnlyFiveTries`) fires 30 threads
+at once and requires exactly 5 checked; without the lock it fails with 13.
+</details>
+
+<details>
+<summary>8. Why is sending the code email kept outside a database transaction?</summary>
+
+A transaction holds one of the pool's few connections until it ends. If the email (a network
+call that can take seconds) ran inside it, a burst of sign-ins during a slow moment at Resend
+could take every connection and stall every other request, even page views. So the code is saved
+first, the email is sent with no connection held, and if it fails the code is deleted again.
 </details>
 
 ## 🎤 Interview corner

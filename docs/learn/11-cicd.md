@@ -27,7 +27,7 @@ git push to main
  │    a failing check = a failed build = the live site stays on the last good version
  │
  ├─ GitHub Actions "API" (only if api/**, deploy/helm/** or the workflow changed)
- │    test   ./mvnw verify (36 tests, Testcontainers)                      on pushes AND pull requests
+ │    test   ./mvnw verify (39 tests, Testcontainers)                      on pushes AND pull requests
  │    image  docker build → ghcr.io/jagapradeep/onehintaway-api:<commit SHA>   main only, needs: test
  │    deploy helm upgrade --set api.image.tag=<SHA> --wait --rollback-on-failure
  │           then curl https://api.onehintaway.com/actuator/health/readiness   needs: image

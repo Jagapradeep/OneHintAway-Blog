@@ -75,8 +75,10 @@ class AuthController {
 	@PostMapping("/session")
 	SignedInAnswer exchange(@RequestBody @Valid CodeAnswer body, HttpServletResponse response) {
 		response.setHeader("Cache-Control", "no-store");
-		SignedIn signedIn = this.accounts.exchange(body.email(), body.code())
-			.orElseThrow(() -> new ResponseStatusException(HttpStatus.GONE, "This code is wrong, expired or already used"));
+		SignedIn signedIn = this.accounts.exchange(body.email(), body.code()).signedIn();
+		if (signedIn == null) {
+			throw new ResponseStatusException(HttpStatus.GONE, "This code is wrong, expired or already used");
+		}
 		this.cookie.set(response, signedIn.sessionToken());
 		return new SignedInAnswer(signedIn.email(), signedIn.purpose() == Purpose.DELETE_ACCOUNT ? "delete" : "sign-in");
 	}

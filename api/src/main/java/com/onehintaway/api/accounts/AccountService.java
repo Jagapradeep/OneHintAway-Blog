@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -62,6 +63,22 @@ public class AccountService {
 	public record SignedIn(String sessionToken, String email, Purpose purpose) {
 	}
 
+	/** What one typed code did. The reader is never told which of the two failures it was. */
+	public enum Outcome {
+
+		/** The code was right: {@link Attempt#signedIn()} holds the new session. */
+		SIGNED_IN,
+		/** Checked against the live codes and wrong: one of their five tries is used up. */
+		WRONG,
+		/** Nothing to check against: no live code, or its five tries are already used. */
+		NO_LIVE_CODE
+
+	}
+
+	/** The result of {@link #exchange}; {@code signedIn} is set only for {@link Outcome#SIGNED_IN}. */
+	public record Attempt(Outcome outcome, SignedIn signedIn) {
+	}
+
 	private final JdbcClient jdbc;
 
 	private final MailSender mail;
@@ -84,8 +101,13 @@ public class AccountService {
 	 * the caller learns nothing about who is registered. Past the hourly limit for one
 	 * address it sends nothing and still returns normally, for the same reason. The count
 	 * is read from the table, so it is exact across replicas.
+	 *
+	 * <p>Deliberately not one transaction: each statement commits on its own, so no database
+	 * connection is held while the email is sent (up to several seconds when Resend is slow).
+	 * With a transaction around the email, a burst of sign-ins could take every pooled
+	 * connection and stall the whole API. If the email can't be sent, the code is deleted
+	 * again, so it doesn't count against the hourly limit.
 	 */
-	@Transactional
 	public void sendCode(String rawEmail, Purpose purpose) {
 		String email = normalise(rawEmail);
 		Instant now = this.clock.instant();
@@ -104,53 +126,77 @@ public class AccountService {
 		}
 		// Two codes for one address can come out equal (one in a million): draw again.
 		String code;
+		String hash;
 		do {
 			code = "%06d".formatted(this.random.nextInt(1_000_000));
+			hash = codeHash(email, code);
 		}
 		while (this.jdbc.sql("""
 				insert into login_tokens (token_hash, email, purpose, created_at, expires_at)
 				values (:hash, :email, :purpose, :now, :expires)
 				on conflict (token_hash) do nothing
 				""")
-			.param("hash", codeHash(email, code))
+			.param("hash", hash)
 			.param("email", email)
 			.param("purpose", purpose.name())
 			.param("now", Timestamp.from(now))
 			.param("expires", Timestamp.from(now.plus(CODE_LIFE)))
 			.update() == 0);
-		this.mail.sendSignInCode(email, code, purpose == Purpose.DELETE_ACCOUNT);
+		try {
+			this.mail.sendSignInCode(email, code, purpose == Purpose.DELETE_ACCOUNT);
+		}
+		catch (RuntimeException ex) {
+			this.jdbc.sql("delete from login_tokens where token_hash = :hash").param("hash", hash).update();
+			throw ex;
+		}
 	}
 
 	/**
-	 * Uses a code once. The single UPDATE both checks and spends it, so two requests with
-	 * the same code can't both win. A wrong code counts against every live code of that
-	 * address (five wrong tries and they are dead). Wrong, expired, used and dead codes all
-	 * give empty: the caller can't tell which.
+	 * Uses a code once. A wrong code counts against every live code of that address (five
+	 * wrong tries and they are dead). Wrong, expired, used and dead codes all end in a 410
+	 * for the caller, who can't tell which.
+	 *
+	 * <p>The address's live codes are locked first ({@code FOR UPDATE}), so every guess for
+	 * one address waits for the one before it to be counted. Without the lock, a burst of
+	 * guesses sent at the same moment was checked before any of them was counted, and could
+	 * test far more than five codes (seen: the right code accepted after 20 wrong ones sent
+	 * with it). The lock also means two requests with the same code can't both win.
 	 */
 	@Transactional
-	public Optional<SignedIn> exchange(String rawEmail, String code) {
+	public Attempt exchange(String rawEmail, String code) {
 		String email = normalise(rawEmail);
 		Instant now = this.clock.instant();
 		Timestamp ts = Timestamp.from(now);
-		Optional<LinkRow> link = this.jdbc.sql("""
-				update login_tokens set used_at = :now
-				where token_hash = :hash and email = :email and used_at is null and expires_at > :now
-				  and attempts < :max
-				returning email, purpose
+		// Ordered, so two requests for the same address take the locks in the same order
+		// (an address has at most a few live codes) and can never deadlock.
+		List<LiveCode> live = this.jdbc.sql("""
+				select token_hash, purpose, attempts from login_tokens
+				where email = :email and used_at is null and expires_at > :now
+				order by token_hash
+				for update
 				""")
-			.param("now", ts)
-			.param("hash", codeHash(email, code))
 			.param("email", email)
-			.param("max", MAX_ATTEMPTS)
-			.query((rs, n) -> new LinkRow(rs.getString("email"), Purpose.valueOf(rs.getString("purpose"))))
-			.optional();
-		if (link.isEmpty()) {
+			.param("now", ts)
+			.query((rs, n) -> new LiveCode(rs.getString("token_hash"), Purpose.valueOf(rs.getString("purpose")),
+					rs.getInt("attempts")))
+			.list();
+		List<LiveCode> usable = live.stream().filter((c) -> c.attempts() < MAX_ATTEMPTS).toList();
+		if (usable.isEmpty()) {
+			return new Attempt(Outcome.NO_LIVE_CODE, null);
+		}
+		String hash = codeHash(email, code);
+		Optional<LiveCode> match = usable.stream().filter((c) -> c.tokenHash().equals(hash)).findFirst();
+		if (match.isEmpty()) {
 			this.jdbc.sql("""
 					update login_tokens set attempts = attempts + 1
-					where email = :email and used_at is null and expires_at > :now
-					""").param("email", email).param("now", ts).update();
-			return Optional.empty();
+					where email = :email and used_at is null and expires_at > :now and attempts < :max
+					""").param("email", email).param("now", ts).param("max", MAX_ATTEMPTS).update();
+			return new Attempt(Outcome.WRONG, null);
 		}
+		this.jdbc.sql("update login_tokens set used_at = :now where token_hash = :hash")
+			.param("now", ts)
+			.param("hash", hash)
+			.update();
 		// First sign-in creates the account; later ones only note the time.
 		long userId = this.jdbc.sql("""
 				insert into users (email, created_at, last_sign_in_at) values (:email, :now, :now)
@@ -167,7 +213,7 @@ public class AccountService {
 			.param("now", ts)
 			.param("expires", Timestamp.from(now.plus(SESSION_LIFE)))
 			.update();
-		return Optional.of(new SignedIn(sessionToken, email, link.get().purpose()));
+		return new Attempt(Outcome.SIGNED_IN, new SignedIn(sessionToken, email, match.get().purpose()));
 	}
 
 	/** Finds the session for a cookie value, and pushes its end date out when it is due. */
@@ -221,7 +267,7 @@ public class AccountService {
 		this.jdbc.sql("delete from users where id = :user").param("user", session.userId()).update();
 	}
 
-	private record LinkRow(String email, Purpose purpose) {
+	private record LiveCode(String tokenHash, Purpose purpose, int attempts) {
 	}
 
 	static String normalise(String email) {

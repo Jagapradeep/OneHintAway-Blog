@@ -24,7 +24,8 @@ Three rules run this database:
    records each in `flyway_schema_history` with a checksum. Hibernate only *checks* that the Java
    entities match (`ddl-auto=validate`); it never changes a table.
 2. **Let the database enforce the rules.** "One view per visitor per day" is a primary key.
-   "A code works once" is a single `UPDATE … WHERE used_at IS NULL … RETURNING`. "A deleted user
+   "Five wrong tries per code" is a row lock: `SELECT … FOR UPDATE` makes guesses for one address
+   wait their turn, so each sees every try counted before it. "A deleted user
    takes their sessions with them" is `ON DELETE CASCADE`. Rules in the schema hold even when
    two requests arrive at the same instant.
 3. **Store as little as possible.** No raw IP addresses (a daily hash instead), no sign-in codes
@@ -63,7 +64,7 @@ Two deliberate choices about foreign keys:
 | `V3__sign_in_codes.sql` | one `ALTER TABLE`: the wrong-try counter |
 | `api/.../stats/StatsController.java` | `ON CONFLICT DO NOTHING` and `ON CONFLICT … DO UPDATE SET count = count + 1` |
 | `api/.../posts/SearchController.java` | `websearch_to_tsquery`, `ts_rank`, the `ILIKE` fallback |
-| `api/.../accounts/AccountService.java` | `UPDATE login_tokens SET used_at = … RETURNING …`: spend a code in one statement |
+| `api/.../accounts/AccountService.java` | `exchange`: `SELECT … FOR UPDATE` locks the address's live codes, then counts the try or spends the code |
 | `api/compose.yaml` | the local database: `postgres:16-alpine`, volume `pgdata`, port on 127.0.0.1 only |
 
 ## 🛠 Try it (35 min)
@@ -220,7 +221,9 @@ or forgotten. The GIN index on it makes `@@` fast on big tables.
 <summary>5. What's wrong with "SELECT the count, add one, UPDATE it"?</summary>
 
 Two requests can both read 5 and both write 6: one count is lost (a race). A single upsert
-statement is atomic: the database serialises the two increments.
+statement is atomic: the database serialises the two increments. When you truly must read
+first and decide (the five-tries rule for codes), lock the rows with `SELECT … FOR UPDATE` so the
+second request waits for the first to commit.
 </details>
 
 <details>
@@ -234,9 +237,10 @@ purpose, and then their progress *should* go: the cascade guarantees it.
 
 > "How do you make a counter correct under concurrency?" Don't read then write. Use one atomic
 > statement: a unique key plus `INSERT … ON CONFLICT DO NOTHING` for dedupe, or
-> `ON CONFLICT DO UPDATE SET n = n + 1` for counting. For single-use tokens, one
-> `UPDATE … WHERE used_at IS NULL RETURNING …`: whoever gets the row back won, everyone else gets
-> nothing.
+> `ON CONFLICT DO UPDATE SET n = n + 1` for counting. When a rule needs a read before the write
+> ("at most five wrong tries"), lock the rows first: `SELECT … FOR UPDATE` inside a transaction,
+> so concurrent requests queue instead of all reading the same old count. This project learned
+> that the hard way: 30 guesses sent at once used to get 13 checked instead of 5.
 
 ## ✅ You now know
 

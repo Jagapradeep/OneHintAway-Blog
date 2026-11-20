@@ -141,6 +141,19 @@ waits until it's ready, and only then stops the old one, so there's still no gap
 up is a spare: if the one pod crashes, the API is down for the 30–60 s it takes to restart. On a
 single server, the second pod never protected against much more than that.
 
+**The result, measured** (minutes after the change):
+
+| | Before | After |
+| --- | --- | --- |
+| Node memory (`kubectl top nodes`) | 3,278 Mi, 83 % | 2,978 Mi, 76 % |
+| Available (`free -m`) | 468 MB | 958 MB |
+| Series scraped by Prometheus | ~124,000 | ~11,600 |
+| Pods | Grafana 449 Mi, API 2 × 252 Mi | Grafana 0, API 1 × 258 Mi |
+
+Prometheus's own memory doesn't fall at once: series it already holds stay in its in-memory block
+until that is written to disk, every two hours. Check `kubectl top pods -n monitoring` a few hours
+later to see its share of the saving.
+
 **What was not done, and why:** shorter retention (that's disk, not memory); JVM flags (small
 gains, real risk of an out-of-memory crash); a bigger server (the simplest fix, kept for when
 readers grow).

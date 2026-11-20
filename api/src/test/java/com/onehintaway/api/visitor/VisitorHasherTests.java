@@ -16,7 +16,7 @@ class VisitorHasherTests {
 
 	private static VisitorHasher hasher(String salt, String instant) {
 		AppProperties props = new AppProperties(List.of("https://onehintaway.com"), salt, "", "https://api.test", "https://onehintaway.com",
-				new AppProperties.Rate(60, 5, 10, 10, 3), new AppProperties.Auth(true), new AppProperties.Mail("", "test@example.com"));
+				new AppProperties.Rate(60, 5, 10, 10, 3), new AppProperties.Auth(true, ""), new AppProperties.Mail("", "test@example.com"));
 		return new VisitorHasher(props, Clock.fixed(Instant.parse(instant), ZoneOffset.UTC));
 	}
 

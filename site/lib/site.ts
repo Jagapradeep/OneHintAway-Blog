@@ -8,6 +8,11 @@ export const SIGNUP_ON = process.env.NEXT_PUBLIC_SIGNUP !== "off";
 // only when this is "on" and the API address is set; otherwise the site is built without them.
 export const ACCOUNTS_ON = process.env.NEXT_PUBLIC_ACCOUNTS === "on" && !!process.env.NEXT_PUBLIC_API_URL;
 
+// Cloudflare Turnstile site key (public). When set, the sign-in form runs Turnstile and sends
+// its token with the code request; the API checks it with the secret key before emailing a code.
+// Leave it out locally: the API on your laptop has no secret and doesn't ask for a token.
+export const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+
 // Umami analytics (self-hosted, no cookies). Both are public values set at build time;
 // leave either one empty and no analytics script is added to the pages.
 export const UMAMI_URL = (process.env.NEXT_PUBLIC_UMAMI_URL ?? "").replace(/\/+$/, "");

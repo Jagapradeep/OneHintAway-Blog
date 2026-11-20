@@ -16,6 +16,7 @@ import {
 const DELETE_NOTE: Record<Exclude<CodeResult, "sent">, string> = {
   invalid: "That did not work. Please try again.",
   busy: "Too many tries from here. Please try again later.",
+  human: "That did not work. Please try again.", // not asked for this code: it needs a session
   down: "This is not available right now.",
 };
 

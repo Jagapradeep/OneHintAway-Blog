@@ -67,6 +67,10 @@ spec:
               valueFrom: { secretKeyRef: { name: {{ .Values.secretName }}, key: ADMIN_TOKEN } }
             - name: RESEND_API_KEY
               valueFrom: { secretKeyRef: { name: {{ .Values.secretName }}, key: RESEND_API_KEY, optional: true } }
+            # Cloudflare Turnstile secret: with it, a sign-in code is emailed only to a browser that
+            # passed the check. Missing = no check.
+            - name: TURNSTILE_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: {{ .Values.secretName }}, key: TURNSTILE_SECRET_KEY, optional: true } }
           # startup: give the JVM up to 150 s to boot before the other two probes count.
           startupProbe:
             httpGet: { path: /actuator/health/liveness, port: http }

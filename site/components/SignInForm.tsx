@@ -2,13 +2,23 @@
 
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
+import { useHumanCheck } from "@/components/HumanCheck";
 import { type CodeResult, enterCode, requestCode } from "@/lib/account";
 import { clearDraft, codeSent, expireIfOld, startOver, typeCode, typeEmail, useSignInDraft } from "@/lib/sign-in-draft";
 
 const SEND_NOTE: Record<Exclude<CodeResult, "sent">, string> = {
   invalid: "That email address doesn't look right.",
   busy: "Too many tries from here. Please try again later.",
+  human: "We couldn't confirm you're a person. Please try again.",
   down: "Sign-in is not available right now.",
+};
+
+// Before any code is asked for: Cloudflare wants a click, or its check couldn't run at all
+// (often a blocker stopping Cloudflare's script).
+const HUMAN_NOTE = {
+  click: "Tick the box above to show you're a person, then press the button again.",
+  failed:
+    "We couldn't confirm you're a person. Reload the page and try again. If you use an ad or script blocker, allow challenges.cloudflare.com.",
 };
 
 // Sign in, or create an account, in two steps without leaving the page: the reader types
@@ -22,6 +32,7 @@ export function SignInForm({ autoFocus = false }: { autoFocus?: boolean }) {
   const { email, sentTo, sentAt, code, expired } = useSignInDraft();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
+  const { boxRef: humanRef, token: humanToken } = useHumanCheck();
 
   // Back to the email step once the code has run out, also while the form stays open.
   useEffect(() => {
@@ -37,7 +48,13 @@ export function SignInForm({ autoFocus = false }: { autoFocus?: boolean }) {
     const value = email.trim(); // the API refuses surrounding spaces
     if (!value) return;
     setBusy(true);
-    const result = await requestCode(value);
+    const human = await humanToken();
+    if (human.problem) {
+      setBusy(false);
+      setNote(HUMAN_NOTE[human.problem]);
+      return;
+    }
+    const result = await requestCode(value, human.token);
     setBusy(false);
     if (result === "sent") {
       codeSent(value);
@@ -120,6 +137,7 @@ export function SignInForm({ autoFocus = false }: { autoFocus?: boolean }) {
         value={email}
         onChange={(e) => typeEmail(e.target.value)}
       />
+      <div ref={humanRef} className="acct-human" />
       <button type="submit" className="acct-submit" disabled={busy}>
         {busy ? "Sending" : "Email me a code"}
       </button>

@@ -38,8 +38,11 @@ public record AppProperties(
 	public record Mail(String resendApiKey, @NotBlank String from) {
 	}
 
-	/** @param cookieSecure false only for plain-http local runs in browsers that refuse Secure cookies there */
-	public record Auth(boolean cookieSecure) {
+	/**
+	 * @param cookieSecure false only for plain-http local runs in browsers that refuse Secure cookies there
+	 * @param turnstileSecret Cloudflare Turnstile secret key; blank switches the human check off (laptop, tests)
+	 */
+	public record Auth(boolean cookieSecure, String turnstileSecret) {
 	}
 
 	/**

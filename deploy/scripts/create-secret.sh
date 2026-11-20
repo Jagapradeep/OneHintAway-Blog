@@ -5,7 +5,7 @@
 #   deploy/scripts/create-secret.sh deploy/compose/.env        (laptop, k3d)
 #
 # The file needs: POSTGRES_PASSWORD, VISITOR_SALT, ADMIN_TOKEN, UMAMI_DB_PASSWORD,
-# UMAMI_APP_SECRET, and optionally RESEND_API_KEY.
+# UMAMI_APP_SECRET, and optionally RESEND_API_KEY and TURNSTILE_SECRET_KEY.
 set -eu
 file=${1:?usage: create-secret.sh <env file> [namespace]}
 ns=${2:-onehintaway}

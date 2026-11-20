@@ -161,7 +161,8 @@ export function openSignIn(): boolean {
   return openers.size > 0;
 }
 
-export type CodeResult = "sent" | "invalid" | "busy" | "down";
+// "human": the Turnstile check didn't pass (403), so no code was sent.
+export type CodeResult = "sent" | "invalid" | "busy" | "human" | "down";
 
 // The API did not answer (or failed): the visualizer then opens up instead of asking
 // the reader to sign in through something that is not working.
@@ -171,13 +172,17 @@ function noteDown(status: number) {
 
 function codeResult(status: number): CodeResult {
   noteDown(status);
-  return status === 202 ? "sent" : status === 400 ? "invalid" : status === 429 ? "busy" : "down";
+  if (status === 202) return "sent";
+  if (status === 400) return "invalid";
+  if (status === 429) return "busy";
+  return status === 403 ? "human" : "down";
 }
 
 // Sign in and register are the same request: the API emails a 6-digit code. It answers
-// the same way whether or not the address has an account.
-export async function requestCode(email: string): Promise<CodeResult> {
-  return codeResult((await call("POST", "/api/v1/auth/code", { email })).status);
+// the same way whether or not the address has an account. `turnstile` is the token from
+// components/HumanCheck.tsx (left out when no check is configured).
+export async function requestCode(email: string, turnstile?: string): Promise<CodeResult> {
+  return codeResult((await call("POST", "/api/v1/auth/code", { email, turnstile })).status);
 }
 
 // The code a signed-in reader needs before deleting the account. It goes to their own address.

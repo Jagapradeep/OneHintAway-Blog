@@ -1299,6 +1299,9 @@ body:has(.vz-one) .back-button { display: none; }
 .acct-submit:hover { color: var(--button-hover-text); }
 .acct-submit:disabled { opacity: 0.6; cursor: default; }
 .acct-linkbtn { padding: 0; font: inherit; color: var(--steel); background: none; border: 0; text-decoration: underline; cursor: pointer; }
+/* Turnstile: empty for most readers; a checkbox only when Cloudflare is unsure. */
+.acct-human { margin-top: 8px; max-width: 100%; }
+.acct-human:empty { display: none; }
 .acct-note { margin: 10px 0 0; min-height: 1.4em; font-size: 0.9rem; color: var(--text-2); }
 .acct-small { margin: 6px 0 0; font-size: 0.85rem; color: var(--muted); }
 .acct-small a { color: var(--steel); }

@@ -53,6 +53,7 @@ Every term in the course, one line each, with the chapter that explains it.
 | **Static export** | `output: "export"`: Next.js writes every page as a file, no server needed | 1 |
 | **Testcontainers** | starts real services (Postgres) in Docker for tests | 8 |
 | **Token (design)** | a CSS variable like `--gold` that every component uses, redefined per theme | 2 |
+| **Turnstile** | Cloudflare's "are you a person?" check, mostly invisible; the browser gets a one-use token the server verifies with a secret key | 7 |
 | **tsvector / tsquery** | Postgres full-text: a document's word stems / a search's | 6 |
 | **`useSyncExternalStore`** | React hook to subscribe components to a store outside React | 2 |
 | **Volume** | storage that outlives containers | 9 |

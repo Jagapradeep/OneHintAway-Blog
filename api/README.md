@@ -107,6 +107,7 @@ git-ignored; real environment variables win over the file.
 | `PUBLIC_URL` | The API's own public address, used in confirmation links | `http://localhost:8080` |
 | `SITE_URL` | The site's address. Opening a confirmation link redirects to `/subscribed/` there (or `/subscribed/expired/` for a bad link); the unsubscribe link opens `/unsubscribe/` there | `http://localhost:3000` |
 | `RESEND_API_KEY` | Sends confirmation and sign-in emails through Resend. Blank writes the code or link to the log instead | blank |
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret. With it, `POST /api/v1/auth/code` (sign-in) needs a `turnstile` token that Cloudflare confirms, or answers `403`; if Cloudflare can't be reached, `503`. Blank switches the check off | blank |
 | `MAIL_FROM` | The sender; its domain must be verified in Resend | `One Hint Away <hello@onehintaway.com>` |
 | `SESSION_COOKIE_SECURE` | `true` marks the session cookie HTTPS-only and names it `__Host-ohw_session`. `false` (name `ohw_session`) is only for local runs in a browser that refuses Secure cookies from `http://localhost` | `true` |
 | `LINK_PER_HOUR` | Sign-in codes one caller address may ask for in an hour (in memory, per replica; the name dates from links) | `10` |

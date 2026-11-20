@@ -36,13 +36,20 @@ class AuthController {
 
 	private final SessionCookie cookie;
 
-	AuthController(AccountService accounts, SessionCookie cookie) {
+	private final HumanCheck human;
+
+	AuthController(AccountService accounts, SessionCookie cookie, HumanCheck human) {
 		this.accounts = accounts;
 		this.cookie = cookie;
+		this.human = human;
 	}
 
-	/** {@code purpose} is "delete" when a signed-in reader asks for the code that allows deleting the account. */
-	record CodeRequest(@Email @Size(max = 254) String email, @Pattern(regexp = "delete") String purpose) {
+	/**
+	 * {@code purpose} is "delete" when a signed-in reader asks for the code that allows deleting the account.
+	 * {@code turnstile} is the token from the Turnstile widget on the sign-in form.
+	 */
+	record CodeRequest(@Email @Size(max = 254) String email, @Pattern(regexp = "delete") String purpose,
+			@Size(max = 4096) String turnstile) {
 	}
 
 	record CodeAnswer(@NotBlank @Email @Size(max = 254) String email, @NotBlank @Pattern(regexp = "[0-9]{6}") String code) {
@@ -57,6 +64,10 @@ class AuthController {
 	/**
 	 * Always 202 for a well-formed address, known or not. The delete code goes only to the
 	 * signed-in reader's own address, so it can't be used to send alarming email to others.
+	 *
+	 * <p>A sign-in code is only emailed after the Turnstile check passes (403 otherwise), so a
+	 * script can't make the API send emails by the thousand. The delete code doesn't need it:
+	 * it already takes a signed-in session.
 	 */
 	@PostMapping("/code")
 	@ResponseStatus(HttpStatus.ACCEPTED)
@@ -67,6 +78,9 @@ class AuthController {
 		}
 		if (body.email() == null || body.email().isBlank()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "An email address is needed");
+		}
+		if (!this.human.passed(body.turnstile(), request.getRemoteAddr())) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "The check that you are a person didn't pass");
 		}
 		this.accounts.sendCode(body.email(), Purpose.SIGN_IN);
 	}

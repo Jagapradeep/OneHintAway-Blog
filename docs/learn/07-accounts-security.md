@@ -20,6 +20,7 @@ keeps an account an account.
 
 ```text
 reader types email ──► POST /api/v1/auth/code       202 always (known or not: no address-checking)
+  (+ Turnstile token)   API asks Cloudflare: did a person's browser make this token? No → 403, no email
                        API makes a random 6-digit code, stores SHA-256("email:code"),
                        expires in 15 min, saves it, *then* emails it (Resend; on your laptop:
                        the log). Email failed? The code is deleted again and the answer is 503
@@ -64,7 +65,9 @@ than 15 minutes. A borrowed laptop with an old session can't delete you.
 | `api/.../accounts/AuthController.java` | `code`, `session`, `me`, `sign-out`, `sign-out-everywhere`, `DELETE account` |
 | `api/.../config/WebConfig.java` | credentialed CORS only for the account paths, exact origins |
 | `api/src/test/.../AccountIntegrationTests.java` | every rule above, as a test (chapter 8) |
+| `api/.../accounts/TurnstileVerifier.java`, `HumanCheck.java` | the call to Cloudflare's `siteverify`; off when no secret is set; fails closed (503) when Cloudflare can't be reached |
 | `site/lib/account.ts`, `site/components/SignInForm.tsx` | the site's side: two steps, `autocomplete="one-time-code"` |
+| `site/components/HumanCheck.tsx` | loads Turnstile only while a sign-in form is open; one fresh token per request |
 | `site/app/privacy/page.tsx` | what's stored, in plain words for readers |
 
 ## 🛠 Try it (30 min)
@@ -137,6 +140,7 @@ unset R C C2
 | Someone reads the reader's inbox | ❌ | they can sign in: email is the only factor |
 | A stolen cookie | ⚠️ | works until sign-out, sign-out everywhere, or 30 idle days; no device binding |
 | Telling known from unknown addresses | ✅ by answer, ❓ by timing | the answer is always 202; response timing wasn't measured |
+| A script makes the API send thousands of emails (using up the Resend allowance, so real readers get no code) | ✅ | since 20 November every sign-in code request needs a Cloudflare Turnstile token the API verifies. The per-caller and per-address limits alone didn't stop a script that rotates addresses and IPs |
 | A slow email provider stalls the whole API | ✅ | since 20 November the code is saved and committed *before* the email is sent, so no database connection waits on Resend. Before that, a burst of sign-ins during a Resend slowdown could hold every pooled connection |
 
 Knowing the limits is part of the design. Say them out loud in an interview: it shows you
@@ -199,7 +203,18 @@ at once and requires exactly 5 checked; without the lock it fails with 13.
 </details>
 
 <details>
-<summary>8. Why is sending the code email kept outside a database transaction?</summary>
+<summary>8. Why does the code request need a Turnstile token, and why does the API check it rather than the site?</summary>
+
+Every code is a real email, and emails have a daily allowance. The rate limits count per caller
+and per address, so a script that rotates both could still send thousands. Turnstile makes each
+request prove a real browser made it. The site can't be trusted to check (a script just skips
+the site and calls the API), so the browser gets a one-use token and the API confirms it with
+Cloudflare using a secret key only the API has. If Cloudflare can't be reached the API says 503
+rather than letting requests through, so an outage can't switch the protection off.
+</details>
+
+<details>
+<summary>9. Why is sending the code email kept outside a database transaction?</summary>
 
 A transaction holds one of the pool's few connections until it ends. If the email (a network
 call that can take seconds) ran inside it, a burst of sign-ins during a slow moment at Resend

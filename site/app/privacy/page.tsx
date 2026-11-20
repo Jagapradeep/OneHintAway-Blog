@@ -82,6 +82,12 @@ export default function PrivacyPage() {
         Emails are sent through Resend, so your address passes through their service. The database runs on a server
         rented from DigitalOcean, and the pages are served by Cloudflare.
       </p>
+      <p>
+        Before a sign-in code is emailed, Cloudflare Turnstile checks that a person, not a script, is asking. It runs
+        in your browser only while a sign-in form is open, and usually you see nothing; sometimes it asks you to tick a
+        box. Cloudflare sees your browser and internet address, as for any page it serves, but not your email address.
+        We only learn whether the check passed.
+      </p>
 
       <h2>How to delete it all</h2>
       <ol>

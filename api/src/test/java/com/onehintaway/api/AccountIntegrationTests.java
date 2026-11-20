@@ -16,6 +16,7 @@ import java.util.stream.IntStream;
 
 import com.onehintaway.api.accounts.AccountService;
 import com.onehintaway.api.accounts.AccountService.Outcome;
+import com.onehintaway.api.accounts.HumanCheck;
 import com.onehintaway.api.subscribers.MailSender;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,6 +52,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
@@ -91,11 +93,16 @@ class AccountIntegrationTests {
 	@MockitoBean
 	private MailSender mail;
 
+	/** Passes unless a test says otherwise; Turnstile itself is tested in TurnstileVerifierTests. */
+	@MockitoBean
+	private HumanCheck human;
+
 	private String address;
 
 	@BeforeEach
 	void cleanDatabase() throws Exception {
 		this.address = "198.51.100." + nextAddress.getAndIncrement();
+		when(this.human.passed(any(), any())).thenReturn(true);
 		this.jdbc.sql("truncate table users, login_tokens, sessions, progress, posts, subscribers").update();
 		this.mvc
 			.perform(put("/api/v1/admin/posts").header(HttpHeaders.AUTHORIZATION, "Bearer test-token")
@@ -239,6 +246,47 @@ class AccountIntegrationTests {
 			.sendSignInCode(any(), any(), anyBoolean());
 		link("reader@example.com", "192.0.2." + nextAddress.getAndIncrement()).andExpect(status().isServiceUnavailable());
 		assertThat(count("login_tokens")).isZero();
+	}
+
+	@Test
+	void noCodeIsEmailedUnlessTheHumanCheckPasses() throws Exception {
+		when(this.human.passed(eq("script-token"), any())).thenReturn(false);
+		when(this.human.passed(eq(null), any())).thenReturn(false);
+		for (String body : new String[] { "{\"email\": \"reader@example.com\", \"turnstile\": \"script-token\"}",
+				"{\"email\": \"reader@example.com\"}" }) {
+			this.mvc
+				.perform(site(post("/api/v1/auth/code")).with((r) -> {
+					r.setRemoteAddr("203.0.113.9");
+					return r;
+				}).contentType(MediaType.APPLICATION_JSON).content(body))
+				.andExpect(status().isForbidden());
+		}
+		verify(this.mail, never()).sendSignInCode(any(), any(), anyBoolean());
+		assertThat(count("login_tokens")).isZero();
+
+		// A browser that passed: its token and address are what Cloudflare is asked about.
+		this.mvc
+			.perform(site(post("/api/v1/auth/code")).with((r) -> {
+				r.setRemoteAddr("203.0.113.9");
+				return r;
+			})
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"email\": \"reader@example.com\", \"turnstile\": \"person-token\"}"))
+			.andExpect(status().isAccepted());
+		verify(this.human).passed("person-token", "203.0.113.9");
+		verify(this.mail).sendSignInCode(eq("reader@example.com"), any(), eq(false));
+	}
+
+	@Test
+	void theDeleteCodeNeedsASessionNotAHumanCheck() throws Exception {
+		String session = signIn("reader@example.com");
+		when(this.human.passed(any(), any())).thenReturn(false);
+		this.mvc
+			.perform(site(post("/api/v1/auth/code")).cookie(new Cookie(COOKIE, session))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"purpose\": \"delete\"}"))
+			.andExpect(status().isAccepted());
+		verify(this.mail).sendSignInCode(eq("reader@example.com"), any(), eq(true));
 	}
 
 	@Test

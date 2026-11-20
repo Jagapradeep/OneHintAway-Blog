@@ -82,6 +82,13 @@ spec:
             httpGet: { path: /actuator/health/readiness, port: http }
             periodSeconds: 5
             failureThreshold: 3
+          # When a pod is told to stop, Kubernetes removes it from the Service at the same moment,
+          # and Traefik hears about that a little later. Without this pause the JVM starts shutting
+          # down while Traefik still sends it requests: measured on one pod, ~2 s of 502s and hung
+          # requests on every deploy. Waiting 5 s first lets the routing catch up; then SIGTERM.
+          lifecycle:
+            preStop:
+              sleep: { seconds: 5 }
           resources: {{- toYaml .Values.api.resources | nindent 12 }}
           securityContext:
             allowPrivilegeEscalation: false

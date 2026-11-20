@@ -137,7 +137,8 @@ dashboard or alert here uses them.
 | One API pod in production (the laptop keeps two) | `values-production.yaml` | ~300 MB |
 
 Why one API pod is safe: with `maxSurge: 1` and `maxUnavailable: 0`, a deploy starts the new pod,
-waits until it's ready, and only then stops the old one, so there's still no gap. What you give
+waits until it's ready, and only then stops the old one, so there's still no gap (once the
+`preStop` pause below was added). What you give
 up is a spare: if the one pod crashes, the API is down for the 30–60 s it takes to restart. On a
 single server, the second pod never protected against much more than that.
 
@@ -153,6 +154,14 @@ single server, the second pod never protected against much more than that.
 Prometheus's own memory doesn't fall at once: series it already holds stay in its in-memory block
 until that is written to disk, every two hours. Check `kubectl top pods -n monitoring` a few hours
 later to see its share of the saving.
+
+**One surprise, and the fix.** Right after the one-pod deploy, a health check answered **502**.
+"No gap" had a hole: when the old pod is told to stop, Traefik hears a moment later that it should
+stop sending it traffic, and with only one pod *every* request in that moment hits the closing
+pod. Reproduced on k3d with a request every 20 ms through three restarts: 108 failures, ~2 s per
+restart. Fix: a 5-second `preStop` pause in `templates/api.yaml`, so the pod keeps serving until
+routing has caught up. Same test after: 8,401 requests, all 200. (Chapter 10 explains the race.)
+Lesson two: test the claim you're relying on, under load, before you trust it.
 
 **What was not done, and why:** shorter retention (that's disk, not memory); JVM flags (small
 gains, real risk of an out-of-memory crash); a bigger server (the simplest fix, kept for when

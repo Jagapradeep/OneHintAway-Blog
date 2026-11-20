@@ -43,7 +43,16 @@ container yourself; you change the desired state, and controllers do the rest.
 
 **The settings that saved production:** a rolling update with `maxUnavailable: 0` and
 `maxSurge: 1` (start the new pod first, never remove an old pod before a new one is ready); a
-readiness probe; and `helm upgrade --wait --rollback-on-failure` in CI.
+readiness probe; a 5-second `preStop` pause (below); and `helm upgrade --wait
+--rollback-on-failure` in CI.
+
+**Why the pause before stopping?** When Kubernetes stops a pod, two things start at the same
+moment: the pod gets its stop signal, and the pod is removed from the Service. The second has to
+travel (to the EndpointSlice, then to Traefik), so for a second or two Traefik still sends
+requests to a pod that is already closing. Measured on k3d with one pod on 20 November: every
+restart cost ~2 s of 502s and hung requests (108 failures in 3 restarts). With
+`lifecycle.preStop.sleep: 5` the pod keeps serving for 5 s while routing catches up, then shuts
+down: 8,401 requests, all 200.
 
 **How many API pods?** Your laptop runs two (`values.yaml`), so you can see the Service spread
 traffic and two pods count rate limits separately. Production ran two until 20 November and now
@@ -219,16 +228,27 @@ doubling.)
 </details>
 
 <details>
-<summary>7. Production runs a single API pod. Why is a deploy still zero-downtime, and what's lost?</summary>
+<summary>6. Production runs a single API pod. Why is a deploy still zero-downtime, and what's lost?</summary>
 
 `maxSurge: 1` lets Kubernetes start the new pod *beside* the old one, and `maxUnavailable: 0`
 forbids stopping the old one until the new one passes readiness. So for a moment there are two,
-then one again, with no gap. What's lost is a spare: a crash or a hung JVM in the only pod means
-downtime until the liveness probe restarts it.
+then one again, with no gap, provided the old pod waits (`preStop`) until Traefik has stopped
+sending it traffic. What's lost is a spare: a crash or a hung JVM in the only pod means downtime
+until the liveness probe restarts it.
 </details>
 
 <details>
-<summary>6. What does Helm add on top of plain YAML?</summary>
+<summary>7. Why does the API pod wait 5 seconds before it starts shutting down?</summary>
+
+Removing a pod from the Service and telling it to stop happen at the same time, but the routing
+change reaches Traefik a moment later. Without the wait, Traefik sends requests to a pod that is
+already closing: 502s and hung requests for ~2 s on every deploy, measured. The `preStop` sleep
+keeps the pod serving until Traefik has moved on; `terminationGracePeriodSeconds: 30` leaves
+plenty of time for the sleep plus a clean shutdown.
+</details>
+
+<details>
+<summary>8. What does Helm add on top of plain YAML?</summary>
 
 Templates with values (one chart for laptop and server), a release history with one-command
 rollback, and an upgrade that can wait for readiness and roll back on failure.

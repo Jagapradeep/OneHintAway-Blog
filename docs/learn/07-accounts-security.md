@@ -162,7 +162,8 @@ codes arriving that they didn't ask for.
 <details>
 <summary>3. Why are sessions in Postgres and not in the API pod's memory?</summary>
 
-There are two API pods, and pods are replaced on every deploy. Sessions in the database work on
+Pods are replaced on every deploy, and there can be more than one (your laptop runs two;
+production ran two until 20 November). Sessions in the database work on
 any pod and survive restarts. It also makes "sign out everywhere" one `DELETE`.
 </details>
 

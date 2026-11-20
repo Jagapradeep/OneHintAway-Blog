@@ -6,6 +6,11 @@ api:
   corsOrigins: https://onehintaway.com
   publicUrl: https://api.onehintaway.com
   siteUrl: https://onehintaway.com
+  # One pod on a 4 GB server (saves ~300 MB). Deploys still have no gap: maxSurge 1 and
+  # maxUnavailable 0 start the new pod and wait for it to be ready before the old one stops.
+  # The cost: if this pod crashes, the API is down until Kubernetes restarts it (~30-60 s).
+  # Your laptop's k3d cluster keeps the default of 2.
+  replicas: 1
 umami:
   host: stats.onehintaway.com
 ingress:

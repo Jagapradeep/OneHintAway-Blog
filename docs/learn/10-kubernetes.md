@@ -41,9 +41,15 @@ container yourself; you change the desired state, and controllers do the rest.
 | liveness | "Is it stuck?" | Kubernetes **restarts** the container |
 | readiness | "Can it serve right now?" | the pod is **taken out of the Service** (no traffic), not restarted |
 
-**The settings that saved production:** two replicas; a rolling update with `maxUnavailable: 0`
-(never remove an old pod before a new one is ready); a readiness probe; and
-`helm upgrade --wait --rollback-on-failure` in CI.
+**The settings that saved production:** a rolling update with `maxUnavailable: 0` and
+`maxSurge: 1` (start the new pod first, never remove an old pod before a new one is ready); a
+readiness probe; and `helm upgrade --wait --rollback-on-failure` in CI.
+
+**How many API pods?** Your laptop runs two (`values.yaml`), so you can see the Service spread
+traffic and two pods count rate limits separately. Production ran two until 20 November and now
+runs one (`values-production.yaml`), to save 300 MB on a 4 GB server (chapter 13, "The memory
+diet"). Deploys still have no gap, because the new pod is ready before the old one stops. The
+price: if that single pod crashes, the API is down for the 30–60 s a restart takes.
 
 ## 🧰 Set up the cluster
 
@@ -207,7 +213,18 @@ restored the previous release automatically.
 <summary>5. With two replicas, what's a caller's real rate limit, and why are per-email code limits in Postgres?</summary>
 
 Up to about double (each pod has its own buckets). Limits that matter for security, like three
-codes per email per hour, are counted in the database, which both pods share.
+codes per email per hour, are counted in the database, which both pods share. (Production now
+runs one pod, so there the in-memory limits are exact again; on your laptop you still see the
+doubling.)
+</details>
+
+<details>
+<summary>7. Production runs a single API pod. Why is a deploy still zero-downtime, and what's lost?</summary>
+
+`maxSurge: 1` lets Kubernetes start the new pod *beside* the old one, and `maxUnavailable: 0`
+forbids stopping the old one until the new one passes readiness. So for a moment there are two,
+then one again, with no gap. What's lost is a spare: a crash or a hung JVM in the only pod means
+downtime until the liveness probe restarts it.
 </details>
 
 <details>
@@ -219,9 +236,10 @@ rollback, and an upgrade that can wait for readiness and roll back on failure.
 
 ## 🎤 Interview corner
 
-> "How do you deploy with zero downtime on Kubernetes?" At least two replicas, a readiness probe
-> that reflects real ability to serve, a rolling update with `maxUnavailable: 0` so capacity never
-> drops, and a deploy that waits for readiness and rolls back on failure. I've drilled it: a bad
+> "How do you deploy with zero downtime on Kubernetes?" A readiness probe that reflects real
+> ability to serve, a rolling update with `maxSurge: 1, maxUnavailable: 0` so a new pod is ready
+> before an old one goes (that works even with one replica), at least two replicas if you also
+> want to survive a pod crashing, and a deploy that waits for readiness and rolls back on failure. I've drilled it: a bad
 > image tag in production kept serving 200s throughout and rolled back automatically in 79
 > seconds.
 

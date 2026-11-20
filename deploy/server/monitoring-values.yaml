@@ -1,8 +1,11 @@
-# kube-prometheus-stack, trimmed for one 4 GB server.
-#   helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+# kube-prometheus-stack 93.3.0, trimmed for one 4 GB server.
+#   helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --version 93.3.0 \
 #     -n monitoring --create-namespace -f deploy/server/monitoring-values.yaml
 #
-# Alerts show in Grafana (Alerting) and Prometheus. Nothing sends them anywhere yet:
+# Grafana is off (0 pods) to save ~400 MB. To look at dashboards, add  --set grafana.replicas=1
+# to the command above; run it again without that when you're done.
+#
+# Alerts show in Prometheus (and in Grafana when it's on). Nothing sends them anywhere yet:
 # Alertmanager is off to save memory, so the outside uptime check is what pages you.
 alertmanager:
   enabled: false
@@ -17,12 +20,36 @@ defaultRules:
     kubeSchedulerAlerting: false
     kubeSchedulerRecording: false
     windows: false
+    # Built on the API server's latency histograms, which aren't scraped (below).
+    kubeApiserverAvailability: false
+    kubeApiserverBurnrate: false
+    kubeApiserverHistogram: false
+    kubeApiserverSlos: false
 
 # k3s runs these inside one process; their separate scrape targets would only show "down".
 kubeEtcd: { enabled: false }
 kubeControllerManager: { enabled: false }
 kubeScheduler: { enabled: false }
 kubeProxy: { enabled: false }
+
+# Measured 20 Nov 2026: of 124k series in memory, 107k were Kubernetes timing itself, and
+# half of those twice. k3s runs the whole control plane in one process, so the kubelet's
+# /metrics page carries the API server's, etcd's and the scheduler's metrics too, and the
+# separate API server scrape collected the same again. Nothing here uses them.
+kubeApiServer: { enabled: false }
+kubelet:
+  serviceMonitor:
+    # Applies to the kubelet's /metrics only (container stats come from /metrics/cadvisor).
+    metricRelabelings:
+      # The chart's default, kept: fewer buckets for storage operation timings.
+      - action: drop
+        sourceLabels: [__name__, le]
+        regex: (csi_operations|storage_operation_duration)_seconds_bucket;(0.25|2.5|15|25|120|600)(\.0)?
+      # The control plane's metrics, which k3s adds to the kubelet's page. kubelet_*, rest_client_*,
+      # process_*, go_* and volume_* stay: the kubelet rules and dashboards use them.
+      - action: drop
+        sourceLabels: [__name__]
+        regex: (apiserver|etcd|workqueue|scheduler|kine|lasso|apiextensions|aggregator|authentication|authenticated|authorization|watch|kubeproxy|field_validation|endpoint_slice|node_collector|node_ipam|replicaset|job_controller|cronjob_controller|service_controller|ttl_after_finished|garbagecollector|root_ca|clustertrustbundle|serviceaccount|taint_eviction|ephemeral_volume|pv_collector|dra|cloud_provider|horizontal_pod|daemon_controller|statefulset|force_cleaned|retroactive|disabled_metrics|hidden_metrics|registered_metrics|cardinality_enforcement|kubernetes_feature|grpc|k3s)_.*
 
 prometheus:
   prometheusSpec:
@@ -43,6 +70,8 @@ prometheus:
     ruleSelectorNilUsesHelmValues: false
 
 grafana:
+  # Off by default: its disk, login, address and certificate stay, only the pod is gone.
+  replicas: 0
   # The login is in a Secret created on the server, not in this file.
   admin:
     existingSecret: grafana-admin

@@ -380,7 +380,7 @@ A reader can make an account to keep track of finished lessons. Reading never ne
 
 **The answer never says who has an account.** Asking for a code is always `202`, known address or not (both get an email: one signs in, the other registers). Requests are limited per caller (10 an hour, in memory) and per email address (3 an hour, counted in Postgres, so it holds across both replicas); over the per-email limit the API sends nothing and still answers `202`.
 
-**Sessions live in Postgres**, because there are two API replicas and nothing may live in one pod's memory. A session is another random 32-byte token, stored hashed, sent as a cookie that is `HttpOnly` (scripts can't read it), `Secure`, `SameSite=Lax`, named with the `__Host-` prefix (no other onehintaway.com address can set or overwrite it) and good for 30 days after its last use. **Sign out** deletes that one row; **sign out everywhere** deletes all of the reader's rows, so a copied cookie stops working the moment either is pressed.
+**Sessions live in Postgres**, because pods are replaced on every deploy (and the laptop cluster runs two), so nothing may live in one pod's memory. A session is another random 32-byte token, stored hashed, sent as a cookie that is `HttpOnly` (scripts can't read it), `Secure`, `SameSite=Lax`, named with the `__Host-` prefix (no other onehintaway.com address can set or overwrite it) and good for 30 days after its last use. **Sign out** deletes that one row; **sign out everywhere** deletes all of the reader's rows, so a copied cookie stops working the moment either is pressed.
 
 **CSRF.** The site and the API are different origins but the same site, so the browser sends the cookie on the site's `fetch` calls (`credentials: "include"`), and CORS allows credentials for the exact site origin only. Every request that changes something on the account and progress paths must carry the site's `Origin` and a custom header, `X-OHW-CSRF`; anything else is `403`. That is enough here because browsers set `Origin` themselves, a form can't add a custom header, and a script that tries triggers a preflight that only the site's origin passes.
 
@@ -451,13 +451,13 @@ The backend runs on one small cloud server (2 vCPU, 4 GB) with [k3s](https://k3s
 
 | Address | What answers | |
 | --- | --- | --- |
-| `api.onehintaway.com` | The API, two pods | only `/api` and `/actuator/health` are routed; metrics stay inside |
+| `api.onehintaway.com` | The API, one pod | only `/api` and `/actuator/health` are routed; metrics stay inside |
 | `stats.onehintaway.com` | Umami analytics | cookie-free, self-hosted |
-| `grafana.onehintaway.com` | Dashboards and alerts | behind a login |
+| `grafana.onehintaway.com` | Dashboards and alerts | behind a login; off until switched on, to save memory |
 
 **One Helm chart, two places.** [`deploy/helm/onehintaway`](deploy/helm/onehintaway) describes the API, PostgreSQL, Umami, the ingress and the backup job once. `values-local.yaml` runs it on a k3d cluster on the laptop; `values-production.yaml` adds HTTPS, real hostnames and backups. What is tested locally is what ships.
 
-**A deploy can't take the API down.** The API runs as two pods with `maxUnavailable: 0`: a new version starts beside the old one and takes traffic only when its readiness probe passes; only then is an old pod removed. If the new pods never become ready, Helm puts the previous release back by itself. This was tested with a deliberately broken image: the public address answered `200` throughout, and the rollback took 79 seconds.
+**A deploy can't take the API down.** The rolling update has `maxSurge: 1` and `maxUnavailable: 0`: a new version starts beside the old one and takes traffic only when its readiness probe passes; only then is the old pod removed. Production runs one API pod since 20 November (two cost 300 MB on a 4 GB server); deploys still have no gap, but a crash of that pod means a restart's worth of downtime. If the new pods never become ready, Helm puts the previous release back by itself. This was tested with a deliberately broken image: the public address answered `200` throughout, and the rollback took 79 seconds.
 
 **Three probes, three questions.** *Startup*: has the JVM finished booting? (up to 150 s, so a slow start is not mistaken for a hang). *Liveness*: is the process stuck? If so, restart it. *Readiness*: can it serve right now (database reachable)? If not, stop sending it requests, but don't restart it.
 
@@ -469,7 +469,7 @@ The backend runs on one small cloud server (2 vCPU, 4 GB) with [k3s](https://k3s
 
 **HTTPS renews itself.** cert-manager asks Let's Encrypt for a certificate per hostname and renews it a month before expiry.
 
-**Watching it.** Prometheus scrapes the API's metrics from inside the cluster, Grafana shows them, and two alerts are defined: no API pod answering, and less than 15% disk free.
+**Watching it.** Prometheus scrapes the API's metrics from inside the cluster, Grafana shows them when switched on, and two alerts are defined: no API pod answering, and less than 15% disk free. Kubernetes' own control-plane metrics are not kept: k3s exposed them twice, and they were 86% of Prometheus's memory. How that was found is in [chapter 13](docs/learn/13-operations.md#-the-memory-diet-20-november).
 
 Day-to-day commands are in the runbook, [`deploy/README.md`](deploy/README.md); the course that teaches the whole project (frontend, backend, database, security, testing, Docker, Kubernetes, CI/CD, production and operations), with something to break on purpose in each chapter, is in [`docs/learn/`](docs/learn/README.md).
 

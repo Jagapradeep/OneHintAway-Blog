@@ -27,7 +27,7 @@ next push deploys again only if it's healthy.
 <summary>2. Postgres's disk is full.</summary>
 
 **Reader sees:** posts fine (static); counts, sign-in and progress fail quietly, and new writes
-fail. **Check:** the `DiskFillingUp` alert in Grafana, `kubectl top`, `df -h` inside `postgres-0`,
+fail. **Check:** the `DiskFillingUp` alert in Prometheus, `kubectl top`, `df -h` inside `postgres-0`,
 `kubectl get pvc`. **Fix:** free space (old login_tokens are cleaned automatically; check the
 WAL and backups), or grow the PVC / the server's disk.
 </details>
@@ -108,9 +108,9 @@ chapters in brackets.
 | --- | --- | --- |
 | Static site | server rendering | content changes per post, not per request; CDN speed; can't go down |
 | k3s on one server | a managed cluster | real Kubernetes at blog cost; managed control planes cost more than the whole server |
-| Sessions in Postgres | in memory / JWT | two replicas; sign-out must really end a session (a JWT can't be revoked) |
+| Sessions in Postgres | in memory / JWT | pods come and go (and can be several); sign-out must really end a session (a JWT can't be revoked) |
 | Codes | passwords / magic links | no passwords to leak; mail scanners use up links |
-| Two replicas | one | zero-downtime deploys, survives a pod dying |
+| One API pod in production | two | 300 MB matters on 4 GB; surge-first rolling updates keep deploys gap-free; the cost is downtime if the pod crashes (two again when the server grows) |
 | SHA tags | `latest` | know what runs, roll back to an exact version |
 | Testcontainers | H2 | the SQL is Postgres-specific |
 | Flyway | Hibernate `ddl-auto=update` | reviewed, versioned, repeatable schema changes |

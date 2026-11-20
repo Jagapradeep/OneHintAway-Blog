@@ -18,7 +18,7 @@ the course that teaches the whole project, top to bottom, is in [docs/learn/](..
 | `onehintaway.com` | The site | Cloudflare (does not depend on the server) |
 | `api.onehintaway.com` | The API: only `/api` and `/actuator/health` are public | Server, namespace `onehintaway` |
 | `stats.onehintaway.com` | Umami analytics | Server, namespace `onehintaway` |
-| `grafana.onehintaway.com` | Dashboards and alerts | Server, namespace `monitoring` |
+| `grafana.onehintaway.com` | Dashboards and alerts; **off by default** (see "Grafana on and off") | Server, namespace `monitoring` |
 
 One server (Ubuntu 24.04, 2 vCPU, 4 GB) runs k3s. Traefik takes ports 80 and 443 and
 cert-manager keeps Let's Encrypt certificates renewed.
@@ -46,6 +46,22 @@ kubectl -n onehintaway logs deploy/api --tail 100  # API logs (add -f to follow)
 kubectl top nodes; kubectl top pods -A             # memory and CPU
 helm -n onehintaway history onehintaway            # what was deployed, when
 ```
+
+### Grafana on and off
+
+Grafana runs 0 pods to save ~400 MB of the server's 4 GB. Its disk, login, address and
+certificate stay. From the repo root:
+
+```bash
+helm upgrade monitoring prometheus-community/kube-prometheus-stack --version 93.3.0 -n monitoring \
+  -f deploy/server/monitoring-values.yaml --wait --set grafana.replicas=1    # on
+# ...use https://grafana.onehintaway.com...
+helm upgrade monitoring prometheus-community/kube-prometheus-stack --version 93.3.0 -n monitoring \
+  -f deploy/server/monitoring-values.yaml --wait                            # off again
+```
+
+For a quick look without Grafana: `kubectl -n monitoring port-forward svc/monitoring-kube-prometheus-prometheus 9090`
+and open http://localhost:9090 (alerts, and any query).
 
 ## Deploy
 
@@ -165,7 +181,7 @@ helm upgrade --install cert-manager jetstack/cert-manager -n cert-manager --crea
 kubectl apply -f deploy/server/cluster.yaml
 kubectl create namespace monitoring
 kubectl -n monitoring create secret generic grafana-admin --from-literal=admin-user=admin --from-literal=admin-password="$(openssl rand -hex 16)"
-helm upgrade --install monitoring prometheus-community/kube-prometheus-stack -n monitoring -f deploy/server/monitoring-values.yaml --wait
+helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --version 93.3.0 -n monitoring -f deploy/server/monitoring-values.yaml --wait
 ```
 
 Then point the three DNS records at the new address, update the `KUBE_CONFIG` secret, restore

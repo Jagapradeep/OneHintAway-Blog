@@ -1,6 +1,6 @@
 # 13 · Operations
 
-> ⏱ 60 min · 🧰 the production kubeconfig, a browser · One write in production: a scratch restore that never touches the real database
+> ⏱ 75 min · 🧰 the production kubeconfig, helm, a browser · Writes in production: switching Grafana on and off again, and a scratch restore that never touches the real database
 
 ## 📖 The story
 
@@ -21,7 +21,8 @@ getting the data back.
 | --- | --- | --- |
 | Is it up, from a reader's point of view? | Uptime workflow (every 15 min, emails on failure) | GitHub Actions |
 | Why is it slow or failing? | Logs (`kubectl logs`), resource use (`kubectl top`) | the cluster |
-| What's been happening over time? | Prometheus metrics + Grafana dashboards; alerts `ApiDown`, `DiskFillingUp` | `grafana.onehintaway.com` |
+| What's been happening over time? | Prometheus metrics; alerts `ApiDown`, `DiskFillingUp`; Grafana dashboards (off until you switch it on) | Prometheus via `port-forward`, `grafana.onehintaway.com` |
+| Where did the memory go? | `kubectl top`, `free -m`, `vmstat`, Prometheus's own series count | the cluster and the server (see "The memory diet") |
 | How many readers? | Umami (privacy-friendly analytics, no cookies) | `stats.onehintaway.com` |
 | Can I go back? | `helm rollback` (about a minute) | runbook "Roll back" |
 | Can I get the data back? | nightly `pg_dump` CronJob → Cloudflare R2, kept 14 days | runbook "Backups" |
@@ -35,7 +36,8 @@ restored 31 posts with 0 errors.
 | File | What to look for |
 | --- | --- |
 | `deploy/README.md` | the runbook: "Everyday", "Roll back", "Backups" → "Restore", "When something is wrong", "Rebuild the server from nothing" |
-| `deploy/server/monitoring-values.yaml` | kube-prometheus-stack trimmed: `alertmanager.enabled: false`, 7-day retention, the two alert rules |
+| `deploy/server/monitoring-values.yaml` | kube-prometheus-stack trimmed: `alertmanager.enabled: false`, `grafana.replicas: 0`, the control-plane metrics dropped, 7-day retention, the two alert rules |
+| `deploy/helm/onehintaway/values-production.yaml` | `api.replicas: 1`, and why deploys still have no gap |
 | `deploy/helm/onehintaway/templates/backup.yaml` | the `pg-backup` CronJob and the API's ServiceMonitor (what Prometheus scrapes) |
 | `.github/workflows/uptime.yml` | the outside check; its header names two limits |
 
@@ -56,11 +58,23 @@ kubectl top pods -A --sort-by=memory | head        # who uses the 4 GB?
 kubectl top nodes
 ```
 
-**2. Metrics and alerts (15 min).** Open https://grafana.onehintaway.com and sign in (the admin
-password is in the cluster: see the runbook's Secrets table). Dashboards → "Kubernetes / Compute
-Resources / Namespace (Pods)" → `onehintaway`: memory and CPU per pod. Then **Alerting → Alert
-rules**: find `ApiDown` and `DiskFillingUp` and read their `expr` in `monitoring-values.yaml`.
-Translate each into plain English. (Answers below.)
+**2. Metrics and alerts (20 min).** Grafana is off to save memory, so switch it on first (from the
+repo root, about a minute):
+
+```bash
+HELM_MON="helm upgrade monitoring prometheus-community/kube-prometheus-stack --version 93.3.0 -n monitoring -f deploy/server/monitoring-values.yaml --wait"
+$HELM_MON --set grafana.replicas=1          # on
+```
+
+Open https://grafana.onehintaway.com and sign in (the admin password is in the cluster: see the
+runbook's Secrets table). Dashboards → "Kubernetes / Compute Resources / Namespace (Pods)" →
+`onehintaway`: memory and CPU per pod. Then **Alerting → Alert rules**: find `ApiDown` and
+`DiskFillingUp` and read their `expr` in `monitoring-values.yaml`. Translate each into plain
+English. (Answers below.) **When you're done, switch it off again:** `$HELM_MON` (the file says 0).
+
+No Grafana needed for a quick look: Prometheus has its own page.
+`kubectl -n monitoring port-forward svc/monitoring-kube-prometheus-prometheus 9090`, then
+http://localhost:9090 → **Alerts** shows both rules, and **Graph** runs any query.
 
 **3. Uptime from outside (5 min).** GitHub → Actions → **Uptime**: a run every ~15 minutes. Read
 `uptime.yml`'s header for its two limits.
@@ -81,6 +95,59 @@ the database. It doesn't touch the real database.
 
 Finally: `unset KUBECONFIG`, or close the terminal.
 
+## 🩺 The memory diet (20 November)
+
+The server has 4 GB. On 20 November it was at **86 %**, with 350 MB free and 630 MB pushed out
+to swap. A blog shouldn't need that, so it was measured before anything was changed.
+
+**Step 1: who uses it?** (all read-only)
+
+```bash
+kubectl top nodes                                   # the total: 3380Mi, 86 %
+kubectl top pods -A --sort-by=memory | head -12     # per pod
+ssh root@<server> 'free -m; ps aux --sort=-rss | head -12'   # k3s itself isn't a pod: only ps shows it
+ssh root@<server> 'vmstat 1 5'                      # si/so columns near 0 = swap is parked, not thrashing
+```
+
+What it showed: k3s about 1,000 MB, Prometheus 570, Grafana 435, the two API pods 600, Umami 245,
+Postgres 90. **The app itself (API + database) was a fifth of it.** The static site uses none:
+it's on Cloudflare.
+
+**Step 2: why is Prometheus so big?** Its memory is the last ~2 hours of every *series* (one
+metric with one set of labels), so count them. In Prometheus's page (port-forward above):
+
+```promql
+prometheus_tsdb_head_series                        # 123,816
+sort_desc(count by (job)({__name__=~".+"}))        # kubelet 64k, apiserver 48k, everything else ~11k
+topk(10, count by (__name__, job)({__name__=~".+"}))
+```
+
+The answer was surprising. k3s runs the whole Kubernetes control plane in one process, so the
+kubelet's metrics page carries the API server's and etcd's metrics too, and the separate API
+server scrape collected the **same metrics a second time**. About 107k of the 124k series were
+Kubernetes timing its own internals (`etcd_request_duration_seconds_bucket` alone: 9k), and no
+dashboard or alert here uses them.
+
+**Step 3: the fix, all in Git:**
+
+| Change | File | Saves |
+| --- | --- | --- |
+| Drop the control-plane metrics from the kubelet scrape; stop scraping the API server and the stock rules built on it | `monitoring-values.yaml` | ~107k series |
+| Grafana to 0 pods; on only while you use it (step 2 above) | `monitoring-values.yaml` | ~400 MB |
+| One API pod in production (the laptop keeps two) | `values-production.yaml` | ~300 MB |
+
+Why one API pod is safe: with `maxSurge: 1` and `maxUnavailable: 0`, a deploy starts the new pod,
+waits until it's ready, and only then stops the old one, so there's still no gap. What you give
+up is a spare: if the one pod crashes, the API is down for the 30–60 s it takes to restart. On a
+single server, the second pod never protected against much more than that.
+
+**What was not done, and why:** shorter retention (that's disk, not memory); JVM flags (small
+gains, real risk of an out-of-memory crash); a bigger server (the simplest fix, kept for when
+readers grow).
+
+**Lesson:** measure before you cut. The obvious suspects (Java, Postgres) were fine; the
+biggest waste was a duplicate nobody knew about, found with one query.
+
 ## 🧠 Explain it
 
 <details>
@@ -95,7 +162,8 @@ no pod is serving metrics. `DiskFillingUp`: the root disk has less than 15 % fre
 
 1. `kubectl get pods` (restarts? not ready?) and `kubectl top` (memory or CPU at the limit?).
 2. `kubectl logs deploy/api` (errors, slow queries, database connection problems).
-3. Grafana over the last hours (when did it start? did a deploy happen then?), and the database
+3. Metrics over the last hours, in Prometheus or Grafana (when did it start? did a deploy happen
+   then?), and the database
    (`kubectl exec postgres-0 -- psql …`, e.g. `select * from pg_stat_activity`).
 </details>
 
@@ -121,6 +189,22 @@ replace everything since the dump; you only do that in a real disaster, after ch
 rollback buys time; the revert (or a fix) makes it permanent.
 </details>
 
+<details>
+<summary>6. Why didn't shortening Prometheus's retention help with memory?</summary>
+
+Retention is how long old data stays *on disk*. Memory holds the recent ~2 hours of every live
+series, so memory follows the number of series, not the number of days. Fewer series is the
+lever; that's why the duplicate control-plane metrics were dropped.
+</details>
+
+<details>
+<summary>7. The server shows 600 MB of swap in use. Is that a problem?</summary>
+
+Not by itself. Linux moves memory nobody is touching to swap. It's a problem when it keeps moving
+pages in and out: `vmstat 1 5` and look at `si` and `so`. Near zero means it's parked; steady
+non-zero numbers mean the server is short of memory and everything slows down.
+</details>
+
 ## 🎤 Interview corner
 
 > "How do you know your service is healthy, and what do you do when it isn't?" An outside uptime
@@ -128,9 +212,16 @@ rollback buys time; the revert (or a fix) makes it permanent.
 > rollback for bad deploys, and nightly off-site backups that are actually restore-tested into a
 > scratch database. And knowing the gaps: here alerts aren't delivered, because Alertmanager is off
 > to save memory.
+>
+> "Tell me about a time you fixed a resource problem." The server was at 86 % memory. I measured
+> before changing anything: per-pod and per-process memory, then Prometheus's series count by job.
+> 86 % of the series were Kubernetes' own metrics, half of them scraped twice because k3s exposes
+> the control plane through the kubelet. Dropping them, running Grafana only on demand, and one
+> API pod with surge-first rolling updates freed about a gigabyte without losing any metric we used.
 
 ## ✅ You now know
 
+- [ ] How to find out where a server's memory goes
 - [ ] The difference between inside and outside monitoring
 - [ ] Where to look, in order, when the API misbehaves
 - [ ] How to prove a backup works

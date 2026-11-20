@@ -6,6 +6,7 @@
     "dev": "next dev",
     "prebuild": "npm run check-posts && npm run check-viz",
     "build": "next build",
+    "postbuild": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/write-headers.mjs",
     "start": "next start",
     "lint": "eslint",
     "check-posts": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-posts.mjs",

@@ -20,6 +20,26 @@ the course that teaches the whole project, top to bottom, is in [docs/learn/](..
 | `stats.onehintaway.com` | Umami analytics | Server, namespace `onehintaway` |
 | `grafana.onehintaway.com` | Dashboards and alerts; **off by default** (see "Grafana on and off") | Server, namespace `monitoring` |
 
+**Security headers.** The site's are in `out/_headers`, written by `site/scripts/write-headers.mjs`
+at every build and applied by Cloudflare. The API's and Umami's come from the Traefik middlewares
+`security-headers` and `api-headers` in `templates/ingress.yaml`. Adding a new third-party script
+or API address to the site means adding its origin in `write-headers.mjs`, or browsers will
+refuse it (DevTools → Console says which rule). Check: `curl -sI https://onehintaway.com/`.
+
+**The CSP is report-only for now** (since 21 November): browsers block nothing for it and send
+what it *would* block to `POST /api/v1/csp-report`, counted in the `csp_reports` table. Read them:
+
+```bash
+kubectl -n onehintaway exec -i postgres-0 -- psql -U onehintaway -d onehintaway -c \
+  "select directive, blocked, page, count, last_seen from csp_reports order by count desc limit 30"
+kubectl -n onehintaway logs deploy/api | grep 'CSP report'     # first sighting of each kind
+```
+
+A real miss (an address the site needs) → add its origin in `write-headers.mjs`. Junk (an odd
+browser, a translation tool) → ignore. When a week or two shows nothing real, set
+`ENFORCE_CSP = true` in `site/scripts/write-headers.mjs` and push: the header becomes
+`Content-Security-Policy` and reports keep coming in.
+
 One server (Ubuntu 24.04, 2 vCPU, 4 GB) runs k3s. Traefik takes ports 80 and 443 and
 cert-manager keeps Let's Encrypt certificates renewed.
 

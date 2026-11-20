@@ -23,11 +23,12 @@ There are two pipelines, one per half of the system:
 git push to main
  │
  ├─ Cloudflare Workers Builds (every push)          root directory: site/
- │    npm ci → prebuild (check-posts, check-viz) → next build → wrangler deploy (upload out/)
+ │    npm ci → prebuild (check-posts, check-viz) → next build → postbuild (write out/_headers)
+ │      → wrangler deploy (upload out/; Cloudflare applies _headers)
  │    a failing check = a failed build = the live site stays on the last good version
  │
  ├─ GitHub Actions "API" (only if api/**, deploy/helm/** or the workflow changed)
- │    test   ./mvnw verify (45 tests, Testcontainers)                      on pushes AND pull requests
+ │    test   ./mvnw verify (50 tests, Testcontainers)                      on pushes AND pull requests
  │    image  docker build → ghcr.io/jagapradeep/onehintaway-api:<commit SHA>   main only, needs: test
  │    deploy helm upgrade --set api.image.tag=<SHA> --wait --rollback-on-failure
  │           then curl https://api.onehintaway.com/actuator/health/readiness   needs: image

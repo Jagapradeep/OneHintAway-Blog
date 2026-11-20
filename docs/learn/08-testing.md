@@ -23,7 +23,7 @@ Each layer has its own net. Mistakes are caught as early and as cheaply as possi
 | Post format | `npm run check-posts` | before every site build | broken frontmatter, missing sections, duplicate practice |
 | Visualizer | `npm run check-viz` (chapter 3) | before every site build | wrong answers, lying steps, pseudocode drift |
 | Types and lint | `next build` (TypeScript), `npm run lint` (ESLint) | every build / by hand | type errors, React mistakes |
-| API | `./mvnw verify`: 45 tests, real PostgreSQL 16 via Testcontainers | every push touching `api/` (GitHub Actions) | wrong SQL, broken rules, security regressions |
+| API | `./mvnw verify`: 50 tests, real PostgreSQL 16 via Testcontainers | every push touching `api/` (GitHub Actions) | wrong SQL, broken rules, security regressions |
 | Emails | `MailPreviewTests` writes every email to `api/target/mail-preview/` | by hand | ugly or broken emails, before anyone gets one |
 | Browser | Playwright scripts against the built site (run by Claude in a scratchpad, not in the repo) | for UI changes | layout at 360 to 1920 px, contrast, flows, sideways scroll |
 | Deploy | `helm upgrade --wait --rollback-on-failure` | every API deploy | a version that never becomes healthy |
@@ -61,6 +61,7 @@ That list *is* the security spec from chapter 7. If a rule changes, a test name 
 | `api/src/test/java/.../ApiIntegrationTests.java` | every public endpoint with MockMvc |
 | `api/src/test/java/.../AccountIntegrationTests.java` | sign-in, sessions, CSRF, progress, delete |
 | `api/src/test/java/.../ResendMailSenderTests.java` | the email sender against a fake Resend server |
+| `api/src/test/java/.../CspReportTests.java` | both report formats, repeats counted, extensions and other sites ignored, any origin, the rate limit |
 | `api/src/test/java/.../TurnstileVerifierTests.java` | the Turnstile check against a fake Cloudflare: what is sent, refused tokens, Cloudflare down |
 | `site/scripts/check-posts.mjs`, `check-visualizer.mjs` | the build's own checks |
 | `.github/workflows/api.yml` | job `test`: `./mvnw verify` on every push and pull request that touches `api/` |
@@ -71,7 +72,7 @@ That list *is* the security spec from chapter 7. If a rule changes, a test name 
 
 ```bash
 cd api
-./mvnw verify                      # 45 tests; in another terminal while it runs:
+./mvnw verify                      # 50 tests; in another terminal while it runs:
 docker ps                          # a postgres:16-alpine you didn't start (plus Testcontainers' helper)
 ```
 

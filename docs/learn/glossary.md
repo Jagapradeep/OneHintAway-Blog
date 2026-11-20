@@ -13,6 +13,8 @@ Every term in the course, one line each, with the chapter that explains it.
 | **Container** | a running copy of an image | 9 |
 | **CORS** | browser rule: a page may read another origin's answer only if that origin allows it | 5 |
 | **CronJob** | Kubernetes object that runs a pod on a schedule (the nightly backup) | 13 |
+| **CSP (Content-Security-Policy)** | a header listing where a page may load scripts, styles, frames from and where it may send data | 12 |
+| **CSP report-only** | `Content-Security-Policy-Report-Only`: the browser blocks nothing and reports what the policy would block | 12 |
 | **CSRF** | another site making the reader's browser send a request with the reader's cookie | 7 |
 | **Deployment** | Kubernetes object that keeps N identical pods running and rolls out new versions | 10 |
 | **DKIM / SPF / DMARC** | email signature / allowed senders / policy when checks fail (`p=reject`) | 12 |
@@ -25,6 +27,7 @@ Every term in the course, one line each, with the chapter that explains it.
 | **GHCR** | GitHub Container Registry, where API images are stored | 11 |
 | **GIN index** | Postgres index type for "contains" searches, used for full-text search | 6 |
 | **Helm / chart / values / release** | Kubernetes templating: a chart is the templates, values fill them in, a release is one install with a history | 10 |
+| **HSTS** | `Strict-Transport-Security`: the browser uses only HTTPS for the domain for a set time | 12 |
 | **HTTP-01 challenge** | proving domain ownership by serving a token at a well-known URL | 12 |
 | **HttpOnly / Secure / SameSite / `__Host-`** | cookie flags: no script access / HTTPS only / not on cross-site requests / locked to this host and path `/` | 7 |
 | **Hydration** | React attaching event handlers to HTML that's already on screen | 2 |

@@ -132,9 +132,9 @@ any image up to 64 px.
 The schema is defined only by the SQL files in `src/main/resources/db/migration/`. Flyway runs
 the ones a database hasn't seen yet, in order, when the API starts.
 
-1. Add a new file, `V4__what_it_does.sql` (next number, two underscores). `V2__accounts.sql`
+1. Add a new file, `V5__what_it_does.sql` (next number, two underscores). `V2__accounts.sql`
    added `users`, `login_tokens`, `sessions` and `progress`; `V3__sign_in_codes.sql` added the
-   wrong-try counter for codes.
+   wrong-try counter for codes; `V4__csp_reports.sql` added the CSP report counts.
 2. Never edit a migration that has already run anywhere: Flyway compares checksums and the API
    will refuse to start. Fix a mistake with another migration.
 3. Change the entity to match. Hibernate only checks (`ddl-auto=validate`), so a mismatch stops

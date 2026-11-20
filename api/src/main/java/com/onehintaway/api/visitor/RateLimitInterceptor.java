@@ -31,6 +31,9 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class RateLimitInterceptor implements HandlerInterceptor {
 
+	/** CSP reports from one address: a page with a problem sends a few, never hundreds. */
+	private static final int REPORTS_PER_MINUTE = 20;
+
 	private final VisitorHasher hasher;
 
 	private final AppProperties.Rate rate;
@@ -71,6 +74,9 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 		if (path.startsWith("/api/v1/auth/code")) {
 			return "link";
 		}
+		if (path.startsWith("/api/v1/csp-report")) {
+			return "report";
+		}
 		// A signed-in reader switching the newsletter on or off sends no email: an ordinary limit.
 		if (path.startsWith("/api/v1/subscribers/me")) {
 			return "count";
@@ -83,6 +89,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 			case "admin" -> bucket(this.rate.adminPerMinute(), Duration.ofMinutes(1));
 			case "link" -> bucket(this.rate.linkPerHour(), Duration.ofHours(1));
 			case "subscribe" -> bucket(this.rate.subscribePerHour(), Duration.ofHours(1));
+			case "report" -> bucket(REPORTS_PER_MINUTE, Duration.ofMinutes(1));
 			default -> bucket(this.rate.countPerMinute(), Duration.ofMinutes(1));
 		};
 	}

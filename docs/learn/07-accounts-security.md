@@ -136,7 +136,8 @@ unset R C C2
 | Someone guesses a code | ✅ | 5 tries, 3 codes an hour, 15 minutes. Since 20 November also for guesses sent all at once: they wait their turn on a row lock (`FOR UPDATE`). Before that, a burst of 30 got 13 checked |
 | A database backup leaks | ✅ mostly | only hashes of codes and sessions; emails *are* in it |
 | Another site acts as the reader (CSRF) | ✅ | Origin allow-list + custom header + `SameSite=Lax` |
-| A script injected into our own site (XSS) | ⚠️ partly | it can't read the cookie (`HttpOnly`), but it can call the API as the reader, because the CSRF header isn't a secret |
+| A script injected into our own site (XSS) | ⚠️ partly | it can't read the cookie (`HttpOnly`), and the CSP stops it loading code from or sending data to other servers (chapter 12); but it can call the API as the reader, because the CSRF header isn't a secret, and the CSP allows inline scripts |
+| Another site shows ours in a frame and tricks clicks (clickjacking) | ✅ | `frame-ancestors 'none'` and `X-Frame-Options: DENY` on the site, the API and Umami |
 | Someone reads the reader's inbox | ❌ | they can sign in: email is the only factor |
 | A stolen cookie | ⚠️ | works until sign-out, sign-out everywhere, or 30 idle days; no device binding |
 | Telling known from unknown addresses | ✅ by answer, ❓ by timing | the answer is always 202; response timing wasn't measured |

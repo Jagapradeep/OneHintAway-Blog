@@ -36,6 +36,13 @@ class WebConfig implements WebMvcConfigurer {
 	@Override
 	public void addCorsMappings(CorsRegistry registry) {
 		String[] origins = this.props.corsOrigins().toArray(String[]::new);
+		// Browsers send CSP reports on their own, sometimes with Origin "null". They carry
+		// nothing secret and change nothing but a counter, so any origin may send one.
+		registry.addMapping("/api/v1/csp-report")
+			.allowedOriginPatterns("*")
+			.allowedMethods("POST")
+			.allowedHeaders("Content-Type")
+			.maxAge(86400);
 		for (String path : ACCOUNT_PATHS) {
 			registry.addMapping(path)
 				.allowedOrigins(origins)

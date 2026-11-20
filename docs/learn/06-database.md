@@ -46,6 +46,8 @@ users            id · email UNIQUE (lowercase) · created_at · last_sign_in_at
 login_tokens     token_hash PK · email · purpose · expires_at · used_at · attempts
 sessions         token_hash PK · user_id FK → users ON DELETE CASCADE · expires_at
 progress         PK (user_id, slug) · user_id FK → users ON DELETE CASCADE · done_at
+
+csp_reports      PK (directive, blocked, page) · count · first_seen · last_seen   browsers' CSP reports, counted
 ```
 
 Two deliberate choices about foreign keys:
@@ -62,6 +64,7 @@ Two deliberate choices about foreign keys:
 | `api/src/main/resources/db/migration/V1__init.sql` | posts with the generated `tsv` and GIN index; the counters; subscribers |
 | `V2__accounts.sql` | users, login_tokens, sessions, progress; the comments explain every choice |
 | `V3__sign_in_codes.sql` | one `ALTER TABLE`: the wrong-try counter |
+| `V4__csp_reports.sql` | the CSP report counts (chapter 12): one row per kind of violation, not per report |
 | `api/.../stats/StatsController.java` | `ON CONFLICT DO NOTHING` and `ON CONFLICT … DO UPDATE SET count = count + 1` |
 | `api/.../posts/SearchController.java` | `websearch_to_tsquery`, `ts_rank`, the `ILIKE` fallback |
 | `api/.../accounts/AccountService.java` | `exchange`: `SELECT … FOR UPDATE` locks the address's live codes, then counts the try or spends the code |

@@ -11,6 +11,31 @@ spec:
     permanent: true
 ---
 {{- end }}
+# Security headers on every answer from the API and Umami (the site's own are in
+# site/scripts/write-headers.mjs, sent by Cloudflare). Traefik adds HSTS only over HTTPS.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: security-headers
+  labels: {{- include "ohw.labels" . | nindent 4 }}
+spec:
+  headers:
+    stsSeconds: 31536000             # browsers use HTTPS only, for a year
+    stsIncludeSubdomains: true
+    contentTypeNosniff: true         # X-Content-Type-Options: nosniff
+    frameDeny: true                  # X-Frame-Options: DENY: no other site may frame these pages
+    referrerPolicy: strict-origin-when-cross-origin
+---
+# The API only answers JSON: a browser must never run or show anything from it as a page.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-headers
+  labels: {{- include "ohw.labels" . | nindent 4 }}
+spec:
+  headers:
+    contentSecurityPolicy: "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+---
 # Only /api and /actuator/health are public. /actuator/prometheus (metrics) has no route,
 # so it can be reached from inside the cluster only.
 apiVersion: networking.k8s.io/v1
@@ -18,7 +43,7 @@ kind: Ingress
 metadata:
   name: api
   labels: {{- include "ohw.labels" . | nindent 4 }}
-  annotations: {{- include "ohw.ingressAnnotations" . | nindent 4 }}
+  annotations: {{- include "ohw.ingressAnnotations" (dict "root" . "extra" (list "api-headers")) | nindent 4 }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   {{- if .Values.ingress.tls.enabled }}
@@ -43,7 +68,7 @@ kind: Ingress
 metadata:
   name: umami
   labels: {{- include "ohw.labels" . | nindent 4 }}
-  annotations: {{- include "ohw.ingressAnnotations" . | nindent 4 }}
+  annotations: {{- include "ohw.ingressAnnotations" (dict "root" .) | nindent 4 }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   {{- if .Values.ingress.tls.enabled }}

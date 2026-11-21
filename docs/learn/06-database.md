@@ -66,7 +66,7 @@ Two deliberate choices about foreign keys:
 | `V3__sign_in_codes.sql` | one `ALTER TABLE`: the wrong-try counter |
 | `V4__csp_reports.sql` | the CSP report counts (chapter 12): one row per kind of violation, not per report |
 | `api/.../stats/StatsController.java` | `ON CONFLICT DO NOTHING` and `ON CONFLICT … DO UPDATE SET count = count + 1` |
-| `api/.../posts/SearchController.java` | `websearch_to_tsquery`, `ts_rank`, the `ILIKE` fallback |
+| `api/.../posts/SearchController.java` | `websearch_to_tsquery`, `ts_rank`, strong (word-start) matches, the rare-word rule for body matches, the inside-a-word fallback |
 | `api/.../accounts/AccountService.java` | `exchange`: `SELECT … FOR UPDATE` locks the address's live codes, then counts the try or spends the code |
 | `api/compose.yaml` | the local database: `postgres:16-alpine`, volume `pgdata`, port on 127.0.0.1 only |
 
@@ -114,6 +114,24 @@ db "select slug, round(ts_rank(tsv, q)::numeric, 3) as rank
 words get weight A, pattern B, body C, so a match in the title ranks higher. `@@` means
 "matches". `websearch_to_tsquery` understands what people type into search boxes:
 `"exact phrase"`, `-word`, `or`.
+
+Ranking alone isn't enough. "start" is in the body of about half the posts ("start at index 0"),
+so a body match on it says nothing about which post the reader wants, and the list filled up
+with every post. So `SearchController` has two kinds of match. A **strong** match is a post where
+every typed word *begins* a word of the title, the pattern or a tag (a regex with `\m`, the
+start of a word; so "slid" finds "Sliding window" while you type, but "ort" doesn't find "sort").
+A **body-only** match is shown only when it's rare: in at most a quarter of the posts (at least 3).
+A common word that names no post falls back to the five best body matches. This is the idea
+behind IDF (inverse document frequency) in real search engines: a word that's everywhere
+carries no information. Last, only when no post is a strong match, text *inside* a word of a
+title or pattern counts ("string" finds "Minimum Window Substring"; "ort" finds "Merge sort"),
+listed after the body matches, at least three characters, at most five posts. That order lets
+it rescue a search without flooding one: "in" would be inside most titles.
+
+```bash
+db "select count(*) from posts where tsv @@ websearch_to_tsquery('english','start')"   # most posts
+curl -s "localhost:8080/api/v1/search?q=start"                                          # only Start here
+```
 
 **4. Does the index get used?**
 

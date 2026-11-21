@@ -132,6 +132,38 @@ class ApiIntegrationTests {
 	}
 
 	@Test
+	void aWordMostPostsUseFindsOnlyThePostsItNames() throws Exception {
+		// Eight posts: "start" and "loop" are in every body, "median" in one, and one title
+		// says "Start here" (the bug: searching "start" listed nearly every post).
+		StringBuilder json = new StringBuilder("[");
+		for (int i = 1; i <= 8; i++) {
+			String title = i == 1 ? "Start here" : i == 2 ? "Merge sort" : "Lesson " + i;
+			String body = "Start at index zero and loop to the end." + (i == 5 ? " The median sits in the middle." : "");
+			json.append(i == 1 ? "" : ",")
+				.append("{\"slug\": \"post-").append(i).append("\", \"number\": ").append(i)
+				.append(", \"title\": \"").append(title).append("\", \"pattern\": \"Pattern ").append(i)
+				.append("\", \"section\": \"Arrays and hashing\", \"tags\": [\"tag-").append(i)
+				.append("\"], \"bodyText\": \"").append(body).append("\"}");
+		}
+		sync("Bearer test-token", json.append(']').toString()).andExpect(status().isOk());
+
+		search("start").andExpect(jsonPath("$", hasSize(1))).andExpect(jsonPath("$[0].slug").value("post-1"));
+		search("sta").andExpect(jsonPath("$", hasSize(1))).andExpect(jsonPath("$[0].slug").value("post-1"));
+		search("median").andExpect(jsonPath("$", hasSize(1))).andExpect(jsonPath("$[0].slug").value("post-5"));
+		search("loop").andExpect(jsonPath("$", hasSize(5)));
+		search("sort").andExpect(jsonPath("$", hasSize(1))).andExpect(jsonPath("$[0].slug").value("post-2"));
+		// Inside a word: only when nothing starts with it, three characters at least, five posts at most.
+		search("ort").andExpect(jsonPath("$", hasSize(1))).andExpect(jsonPath("$[0].slug").value("post-2"));
+		search("art").andExpect(jsonPath("$", hasSize(1))).andExpect(jsonPath("$[0].slug").value("post-1"));
+		search("ss").andExpect(jsonPath("$", hasSize(0)));
+		search("sso").andExpect(jsonPath("$", hasSize(5))).andExpect(jsonPath("$[0].slug").value("post-3"));
+		search("atte").andExpect(jsonPath("$", hasSize(5))).andExpect(jsonPath("$[0].slug").value("post-1"));
+		search("Pattern 3").andExpect(jsonPath("$[0].slug").value("post-3"));
+		search("tag-7").andExpect(jsonPath("$[0].slug").value("post-7"));
+		search("++").andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(0)));
+	}
+
+	@Test
 	void theSyncNeedsTheTokenAndRefusesAnEmptyList() throws Exception {
 		sync(null, TWO_POSTS).andExpect(status().isUnauthorized());
 		sync("Bearer wrong", TWO_POSTS).andExpect(status().isUnauthorized());

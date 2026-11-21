@@ -216,7 +216,7 @@
       "type": "trap",
       "teaser": "The list that loses 4 nodes",
       "title": "Save the rest first",
-      "lead": "Skip line 5 and move with curr = curr.next. After line 6, that next is prev: the walk turns back.",
+      "lead": "Skip line 5 and move with curr = curr.next. After line 6 that next is prev, which is none: the walk stops.",
       "trap": {
         "call": "reverseList(1 → 2 → 3 → 4 → 5)",
         "wrong": {

@@ -34,7 +34,7 @@ Quick check: after 3 loops, `prev` and `curr` hold **{{after_loops(LIST, 3)}}**.
 
 {{PSEUDOCODE}}
 
-**The trap:** skip line 5 and move with `curr = curr.next` after turning the arrow. By then `curr.next` is `prev`, so the walk turns back: after node 1, `curr` becomes none, and the result is just {{sp(WRONG)}} instead of {{sp(REVERSED)}}. The other four nodes are lost.
+**The trap:** skip line 5 and move with `curr = curr.next` after turning the arrow. By then `curr.next` is `prev`, which is none on the first step, so the walk stops: after node 1, `curr` becomes none, and the result is just {{sp(WRONG)}} instead of {{sp(REVERSED)}}. The other four nodes are lost.
 
 {{CODE}}
 

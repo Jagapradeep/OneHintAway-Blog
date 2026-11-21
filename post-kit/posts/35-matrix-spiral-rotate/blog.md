@@ -32,7 +32,7 @@ Quick check: the spiral order of the 2 × 3 grid 1 2 3 / 4 5 6 is **{{sp(spiral_
 
 {{PSEUDOCODE}}
 
-**The trap:** skip the `if top > bottom or left > right` check. On the 3 × 4 grid, the last lap leaves one row, 6 7, and the bottom pass walks it again: the result ends 5 6 7 6 instead of 5 6 7.
+**The trap:** skip the `if top > bottom or left > right` check. On the 3 × 4 grid, the last lap reads the row 6 7, then the bottom pass turns back onto 6 and reads it again: the result ends 5 6 7 6 instead of 5 6 7.
 
 {{CODE}}
 

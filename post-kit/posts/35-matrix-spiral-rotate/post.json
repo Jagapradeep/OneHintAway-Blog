@@ -311,7 +311,7 @@
       "type": "trap",
       "teaser": "The check that stops a repeat",
       "title": "Check before going back",
-      "lead": "Skip line 21 and the last row, 6 7, gets walked back a second time.",
+      "lead": "Skip line 21 and the walk turns back onto 6, which was already read.",
       "trap": {
         "call": "spiralOrder(the 3 × 4 grid)",
         "wrong": {

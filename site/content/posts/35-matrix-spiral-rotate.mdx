@@ -1,0 +1,285 @@
+---
+number: 35
+title: "Spiral and rotate"
+slug: matrix-spiral-rotate
+pattern: "Matrix"
+section: "2D arrays and strings"
+summary: "Read a grid in spiral order with four walls that move in after each side, and turn it right by swapping across the diagonal, then reversing rows."
+practice:
+  - { name: "LeetCode 1886 Determine Whether Matrix Can Be Obtained By Rotation", url: "https://leetcode.com/problems/determine-whether-matrix-can-be-obtained-by-rotation/", level: easy, note: "Rotate up to 4 times; compare each turn." }
+  - { name: "LeetCode 54 Spiral Matrix", url: "https://leetcode.com/problems/spiral-matrix/", level: medium, note: "This spiral, on grids up to 10 × 10." }
+slides: 9
+video: 2
+visualizer: spiral-matrix
+tags: [matrix, spiral-matrix, rotate-image]
+published: 2026-11-21
+---
+
+Walking a grid in a fixed shape, or turning it in place? Two moves cover most of these problems. Worked examples: spiral order on the 3 × 4 grid 1 to 12, and a quarter turn of the 3 × 3 grid 1 to 9.
+
+## The idea
+
+**Spiral order.** Think of mowing a lawn from the outside in: along the top, down the right side, back along the bottom, up the left, then the next ring. Keep four walls, `top`, `bottom`, `left` and `right`. After each side is read, that wall moves one step in. After one lap of the 3 × 4 grid, `top` and `bottom` are both 1, `left` is 1 and `right` is 2, and the inner ring 6 7 is what's left.
+
+The bottom row and the left side walk back the way you came. Before them, check that both a row and a column are still left: if `top > bottom` or `left > right`, everything has been read. Without that check, a single remaining row is read forwards and then backwards.
+
+**Rotate right.** To turn a square grid a quarter to the right, swap every value across the top-left to bottom-right diagonal (`grid[i][j]` with `grid[j][i]`), then reverse each row. Both steps work inside the grid, so no second grid is needed.
+
+## The walk
+
+Spiral order of the 3 × 4 grid 1 2 3 4 / 5 6 7 8 / 9 10 11 12:
+
+| Side | Reads | Wall after |
+| --- | --- | --- |
+| top row, left to right | 1 2 3 4 | top = 1 |
+| right side, down | 8 12 | right = 2 |
+| bottom row, right to left | 11 10 9 | bottom = 1 |
+| left side, up | 5 | left = 1 |
+| top row, left to right | 6 7 | top = 2 |
+
+Result: 1 2 3 4 8 12 11 10 9 5 6 7. After the second top row, `top` is 2 and `bottom` is 1, so the check stops the walk.
+
+Rotating 1 2 3 / 4 5 6 / 7 8 9: swapping across the diagonal gives 1 4 7 / 2 5 8 / 3 6 9, and reversing each row gives **7 4 1 / 8 5 2 / 9 6 3**.
+
+Quick check: the spiral order of the 2 × 3 grid 1 2 3 / 4 5 6 is **1 2 3 6 5 4**.
+
+## Pseudocode
+
+`rotate` turns a square grid right; `spiralOrder` reads any grid in spiral order.
+
+```
+function rotate(grid):
+    n = length(grid)
+    for i from 0 to n - 1:
+        for j from i + 1 to n - 1:
+            swap grid[i][j], grid[j][i]
+    for each row in grid:
+        reverse row
+
+function spiralOrder(grid):
+    top = 0
+    bottom = length(grid) - 1
+    left = 0
+    right = length(grid[0]) - 1
+    result = empty list
+    while top <= bottom and left <= right:
+        for col from left to right:
+            add grid[top][col] to result
+        top = top + 1   // wall moves in
+        for row from top to bottom:
+            add grid[row][right] to result
+        right = right - 1   // wall in
+
+        if top > bottom or left > right:
+            return result   // nothing left
+        for col from right down to left:
+            add grid[bottom][col] to result
+        bottom = bottom - 1
+        for row from bottom down to top:
+            add grid[row][left] to result
+        left = left + 1
+    return result
+```
+
+**The trap:** skip the `if top > bottom or left > right` check. On the 3 × 4 grid, the last lap reads the row 6 7, then the bottom pass turns back onto 6 and reads it again: the result ends 5 6 7 6 instead of 5 6 7.
+
+## Java
+
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+class Solution {
+    public void rotate(int[][] grid) {
+        int n = grid.length;
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                int t = grid[i][j];
+                grid[i][j] = grid[j][i];
+                grid[j][i] = t;
+            }
+        }
+        for (int[] row : grid) {
+            for (int a = 0, b = n - 1; a < b; a++, b--) {
+                int t = row[a];
+                row[a] = row[b];
+                row[b] = t;
+            }
+        }
+    }
+
+    public List<Integer> spiralOrder(int[][] grid) {
+        int top = 0;
+        int bottom = grid.length - 1;
+        int left = 0;
+        int right = grid[0].length - 1;
+        List<Integer> result = new ArrayList<>();
+        while (top <= bottom && left <= right) {
+            for (int col = left; col <= right; col++) {
+                result.add(grid[top][col]);
+            }
+            top++;
+            for (int row = top; row <= bottom; row++) {
+                result.add(grid[row][right]);
+            }
+            right--;
+            if (top > bottom || left > right) {
+                return result; // nothing left
+            }
+            for (int col = right; col >= left; col--) {
+                result.add(grid[bottom][col]);
+            }
+            bottom--;
+            for (int row = bottom; row >= top; row--) {
+                result.add(grid[row][left]);
+            }
+            left++;
+        }
+        return result;
+    }
+}
+```
+
+## Python
+
+```python
+def rotate(grid):
+    n = len(grid)
+    for i in range(n):
+        for j in range(i + 1, n):
+            grid[i][j], grid[j][i] = grid[j][i], grid[i][j]
+    for row in grid:
+        row.reverse()
+
+
+def spiral_order(grid):
+    top = 0
+    bottom = len(grid) - 1
+    left = 0
+    right = len(grid[0]) - 1
+    result = []
+    while top <= bottom and left <= right:
+        for col in range(left, right + 1):
+            result.append(grid[top][col])
+        top += 1
+        for row in range(top, bottom + 1):
+            result.append(grid[row][right])
+        right -= 1
+        if top > bottom or left > right:
+            return result  # nothing left
+        for col in range(right, left - 1, -1):
+            result.append(grid[bottom][col])
+        bottom -= 1
+        for row in range(bottom, top - 1, -1):
+            result.append(grid[row][left])
+        left += 1
+    return result
+```
+
+## C++
+
+```cpp
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+void rotate(vector<vector<int>>& grid) {
+    int n = grid.size();
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            swap(grid[i][j], grid[j][i]);
+        }
+    }
+    for (auto& row : grid) {
+        reverse(row.begin(), row.end());
+    }
+}
+
+vector<int> spiralOrder(const vector<vector<int>>& grid) {
+    int top = 0;
+    int bottom = grid.size() - 1;
+    int left = 0;
+    int right = grid[0].size() - 1;
+    vector<int> result;
+    while (top <= bottom && left <= right) {
+        for (int col = left; col <= right; col++) {
+            result.push_back(grid[top][col]);
+        }
+        top++;
+        for (int row = top; row <= bottom; row++) {
+            result.push_back(grid[row][right]);
+        }
+        right--;
+        if (top > bottom || left > right) {
+            return result; // nothing left
+        }
+        for (int col = right; col >= left; col--) {
+            result.push_back(grid[bottom][col]);
+        }
+        bottom--;
+        for (int row = bottom; row >= top; row--) {
+            result.push_back(grid[row][left]);
+        }
+        left++;
+    }
+    return result;
+}
+```
+
+## JavaScript
+
+```javascript
+function rotate(grid) {
+    const n = grid.length;
+    for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+            [grid[i][j], grid[j][i]] = [grid[j][i], grid[i][j]];
+        }
+    }
+    for (const row of grid) {
+        row.reverse();
+    }
+}
+
+function spiralOrder(grid) {
+    let top = 0;
+    let bottom = grid.length - 1;
+    let left = 0;
+    let right = grid[0].length - 1;
+    const result = [];
+    while (top <= bottom && left <= right) {
+        for (let col = left; col <= right; col++) {
+            result.push(grid[top][col]);
+        }
+        top++;
+        for (let row = top; row <= bottom; row++) {
+            result.push(grid[row][right]);
+        }
+        right--;
+        if (top > bottom || left > right) {
+            return result; // nothing left
+        }
+        for (let col = right; col >= left; col--) {
+            result.push(grid[bottom][col]);
+        }
+        bottom--;
+        for (let row = bottom; row >= top; row--) {
+            result.push(grid[row][left]);
+        }
+        left++;
+    }
+    return result;
+}
+```
+
+## Complexity
+
+| | Cost | Why |
+| --- | --- | --- |
+| Spiral | O(m · n) time | Each cell is read once |
+| Rotate | O(n²) time | Each cell is swapped about twice |
+| Extra space | O(1) | Both work inside the grid; the spiral only adds its result list |
+
+## How it was tested
+
+The spiral and the rotation was run in Java, Python, C++ and JavaScript on 1,309 inputs: hand-picked grids (the 3 × 4 and 3 × 3 examples, one cell, one row, one column, 2 × 2, 2 × 3, negatives, a 10 × 10 grid) and random grids up to 10 × 10, square ones included, with values from −100 to 100. Every output matched a brute force that walks and turns right whenever the next cell is outside or already seen, and a rotation that copies each cell to its new place. The spiral order, the rotated grid, the quick-check answer and the trap result come from running the code.

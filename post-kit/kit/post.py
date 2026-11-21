@@ -102,6 +102,54 @@ def _box_rows(o, kind="boxes"):
             yield from _box_rows(v, kind)
 
 
+def _pictures(o):
+    """Every boxes/steps/bars block inside a slide, with all its values in reading order
+    (a steps block's rows joined, top row first)."""
+    if isinstance(o, dict):
+        if o.get("type") == "steps" and isinstance(o.get("rows"), list):
+            yield "steps", [x for r in o["rows"] if isinstance(r, dict) for x in r.get("values") or []]
+            return
+        if o.get("type") in ("boxes", "bars") and isinstance(o.get("values"), list):
+            yield o["type"], list(o["values"])
+        for v in o.values():
+            yield from _pictures(v)
+    elif isinstance(o, list):
+        for v in o:
+            yield from _pictures(v)
+
+
+def _example_mismatch(seq):
+    """A picture drawn on the video's own numbers must show them as the video does: the input
+    or a state the video passes through, or the values sorted. Catches a slide that relabels or reorders the example
+    (post 35 once showed the spiral's visit order where the video showed the grid row by row)."""
+    from . import video as V
+    vs = next((s for t, s in seq if t == "video"), None)
+    if not vs or not isinstance(vs.get("video", {}).get("steps"), list):
+        return []
+    v = vs["video"]
+    norm = lambda xs: tuple(str(x) for x in xs if str(x) not in ("", "…"))
+    inp = norm(v["values"])
+    if len(inp) < 3 or len(set(inp)) < 3:
+        return []                            # blanks, counters or a tiny input: nothing to compare
+    states, _ = V.resolve(v)
+    seen = {inp} | {norm(st["vals"][str(i)] for i in st["slots"]) for st in states}
+    try:                                     # the sorted values are a fair picture too (a merged row)
+        seen.add(tuple(sorted(inp, key=float)))
+    except ValueError:
+        seen.add(tuple(sorted(inp)))
+    out = []
+    for n, (t, s) in enumerate(seq, 1):
+        if t in ("video", "cover"):
+            continue
+        for b, vals in _pictures(s):
+            got = norm(vals)
+            if sorted(got) == sorted(inp) and got not in seen:
+                out.append(f"slide {n:02d} ({t}): this {b} picture uses the video's numbers "
+                           f"({' '.join(inp)}) but in an order the video never shows ({' '.join(got)}). "
+                           f"Draw the same example the video plays, or a state it passes through")
+    return out
+
+
 def validate(post, ns, seq):
     errs, warns = [], []
     kind = post["kind"]
@@ -167,6 +215,7 @@ def validate(post, ns, seq):
                 prev = u.get(str(p.get("id")))
                 if prev and prev != post["number"]:
                     warns.append(f"LeetCode {p['id']} was already the practice problem in post {prev}")
+    errs += _example_mismatch(seq)
     return errs, warns
 
 

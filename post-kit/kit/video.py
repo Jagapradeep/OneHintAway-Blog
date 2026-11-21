@@ -4,13 +4,17 @@ timeline, a player page with draw(t), the canvas still and the MP4.
 Pacing: every step gets its own length. The move lasts longer the further a
 card travels, then the result lands (with a small pulse) and the picture rests
 just long enough to read what is new. A step marked "quick" rests 0.3 s, so a
-run of them plays as one motion (a gap walking left, a pointer walking across).
+run of them plays as one motion (a gap walking left, a pointer walking across);
+if its eq changes it rests 0.9 s, and if its caption changes it gets the full
+reading time. Every caption stays on screen 2.2 to 3.2 s at least, by its length.
 The video opens on the full input and ends by dipping back to it, so it loops."""
 import json
 
 # Caption and equation start with the movement; result and chip land as the boxes arrive.
 INTRO, FINAL_IN, HOLD, FADE = 0.5, 1.2, 2.2, 0.9   # FADE: the dip back to the first frame
 RES_LAG, QUICK_HOLD = 0.35, 0.3
+QUICK_EQ_HOLD = 0.9    # a quick step whose eq changes: long enough to read "grid[1][3] = 8"
+CAPTION_MIN = (2.2, 3.2)  # a caption stays on screen 1.6 s + 0.03 s a character, within these bounds
 
 
 def resolve(v):
@@ -130,9 +134,13 @@ def layout(v):
     return L
 
 
+def _read_hold(new):
+    return RES_LAG + min(1.3, max(0.8, 0.032 * len(new)))
+
+
 def timeline(v):
     states, chips = resolve(v)
-    t, prev = 0.0, None
+    prev = None
     for s in states:
         if prev is None:
             mv = INTRO
@@ -141,20 +149,38 @@ def timeline(v):
             if s["cuts"] != prev["cuts"]:
                 d = max(d, 1)
             mv = FINAL_IN if s["final"] else (0.5 if d == 0 else min(1.3, 0.45 + 0.25 * d))
+        new_cap = "" if prev and prev["caption"] == s["caption"] else (s["caption"] or "")
+        new_eq = s["eq"]["left"] + s["eq"]["result"] if s["eq"] and (not prev or prev["eq"] != s["eq"]) else ""
         if s["final"]:
             hold = HOLD
+        elif new_cap:                       # a new caption always gets its reading time,
+            hold = _read_hold(new_cap + new_eq)  # even on a quick or held step
+            if s["hold"] is not None:
+                hold = max(hold, float(s["hold"]))
         elif s["hold"] is not None:
-            hold = float(s["hold"])
-        elif s["quick"]:
-            hold = QUICK_HOLD
+            hold = max(float(s["hold"]), QUICK_EQ_HOLD if new_eq else 0)
+        elif s["quick"]:                    # a quick step still leaves time to read a new eq
+            hold = QUICK_EQ_HOLD if new_eq else QUICK_HOLD
         else:                               # time to read only what is new on this step
-            new = "" if prev and prev["caption"] == s["caption"] else s["caption"]
-            if s["eq"] and (not prev or prev["eq"] != s["eq"]):
-                new += s["eq"]["left"] + s["eq"]["result"]
-            hold = RES_LAG + min(1.3, max(0.8, 0.032 * len(new)))
-        s["t0"], s["mv"], s["len"] = round(t, 3), round(mv, 3), round(mv + hold, 3)
-        t += mv + hold
+            hold = _read_hold(new_eq)
+        s["mv"], s["_hold"] = round(mv, 3), hold
         prev = s
+    # Every caption stays on screen long enough to read twice: stretch the last step of a short run.
+    i = 0
+    while i < len(states):
+        j = i + 1
+        while j < len(states) and states[j]["caption"] == states[i]["caption"] and not states[j]["final"]:
+            j += 1
+        shown = sum(x["mv"] + x["_hold"] for x in states[i:j])
+        need = min(CAPTION_MIN[1], max(CAPTION_MIN[0], 1.6 + 0.03 * len(states[i]["caption"] or "")))
+        if not states[i]["final"] and states[i]["caption"] and shown < need:
+            states[j - 1]["_hold"] += need - shown
+        i = j
+    t = 0.0
+    for s in states:
+        hold = s.pop("_hold")
+        s["t0"], s["len"] = round(t, 3), round(s["mv"] + hold, 3)
+        t += s["mv"] + hold
     return {"states": states, "chips": chips, "layout": layout(v), "duration": round(t + FADE, 3),
             "T": {"FADE": FADE}}
 

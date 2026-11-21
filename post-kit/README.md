@@ -152,6 +152,7 @@ Fonts are embedded into each render as data, so PNGs and MP4s always use Sora, M
 - An example whose output doesn't match
 - A practice hint too slow for the problem's limits (complexity at max input > 10⁸, unless marked `partial`). It checks the `complexity` you declare, not the note's wording, so make the two agree.
 - `dash` on a box that holds a value. `dash` draws an empty dashed slot (a gap); mark values with `gold` (current pick), `steel` (done, or compared against the gold one) or `dim` (out of play). To show a card that is in hand at the place it is about to fill, use `held`: a dashed gold slot with the number inside (post 22, slide 4).
+- A picture drawn on the video's numbers in an order the video never shows. A story, picture or hint that uses the video's values must show the input, a state the video passes through, or the values sorted, so slide 3 and the video always tell the same example (post 35 once showed the spiral's visit order next to a video of the grid row by row).
 - Banned hook words; teasers over 34 characters
 
 Layout check after rendering: anything running into the header or footer, text cut off, text leaving the side margins.
@@ -164,10 +165,10 @@ More step words (Part 2, November 2026):
 
 - `lift: [slot]` holds a card raised for this step. Lift it, `swap` it left one place per step, then leave `lift` out and it drops (with a small pulse).
 - `sort: [a, b]` makes the cards in slots a to b glide into sorted order (a merge). Use it in place of `set` when the values only change places.
-- `quick: true` rests 0.3 s after the move, so a run of steps plays as one motion. `hold: 0.45` sets the rest in seconds yourself.
+- `quick: true` rests 0.3 s after the move, so a run of steps plays as one motion. If the step's `eq` changes it rests 0.9 s instead, and if its caption changes it gets the full reading time, so `quick` can never hide text. `hold: 0.45` sets the rest in seconds yourself, with the same floors.
 - A step whose `eq` has the same left part as the step before, where that step had no result, keeps the left part still and only lands the result.
 
-Timing is worked out per step: the move takes longer the further a card travels (0.5 to 1.3 s), then the picture rests long enough to read what is new on that step (about 1.2 to 1.7 s). Results, chips and landing cards pulse once. The video opens on the full input and its last 0.9 s dips from the answer back to that first frame, so it loops without a jump.
+Timing is worked out per step: the move takes longer the further a card travels (0.5 to 1.3 s), then the picture rests long enough to read what is new on that step (about 1.2 to 1.7 s). Every caption stays on screen at least 1.6 s + 0.03 s a character (2.2 to 3.2 s); a run of steps that would pass it sooner has its last step stretched. Results, chips and landing cards pulse once. The video opens on the full input and its last 0.9 s dips from the answer back to that first frame, so it loops without a jump.
 
 ## Filling the slide
 

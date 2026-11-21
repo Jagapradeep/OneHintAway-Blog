@@ -94,35 +94,46 @@
                 2,
                 3,
                 4
+              ],
+              "steel": [
+                0,
+                1,
+                2,
+                3
               ]
             },
             {
               "label": "row 1",
               "values": [
-                10,
-                11,
-                12,
-                5
+                5,
+                6,
+                7,
+                8
               ],
-              "gold": [
-                1,
-                2
+              "steel": [
+                3
               ]
             },
             {
               "label": "row 2",
               "values": [
                 9,
-                8,
-                7,
-                6
+                10,
+                11,
+                12
+              ],
+              "steel": [
+                3
+              ],
+              "gold": [
+                2
               ]
             }
           ]
         },
         {
           "type": "card",
-          "text": "The numbers show the order you mow. After each side, that [[edge of the lawn]] moves one step in."
+          "text": "Top and right are mowed; 11 is next. After each side, that [[edge]] moves one step in."
         }
       ]
     },

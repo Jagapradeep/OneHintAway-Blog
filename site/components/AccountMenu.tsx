@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { SignInForm } from "@/components/SignInForm";
 import {
@@ -8,10 +9,12 @@ import {
   deleteAccount,
   enterCode,
   onOpenSignIn,
+  refreshAccount,
   requestDeleteCode,
   signOut,
   useAccount,
 } from "@/lib/account";
+import { usePanelLock } from "@/lib/panel-lock";
 
 const DELETE_NOTE: Record<Exclude<CodeResult, "sent">, string> = {
   invalid: "That did not work. Please try again.",
@@ -48,6 +51,8 @@ export function AccountMenu({ total }: { total: number }) {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  usePanelLock(open, panelRef);
   // Opened from elsewhere on the page (the visualizer's sign-in card): close again once the
   // reader is signed in, so the panel does not cover what just unlocked.
   const fromPage = useRef(false);
@@ -82,9 +87,22 @@ export function AccountMenu({ total }: { total: number }) {
     };
   }, [open]);
 
+  // A page change inside the site keeps this component and the account store alive, so
+  // ask the API again: a session ended on another device then shows here on the next page
+  // instead of at the next 30-second check. Not on the first page (the store asks then).
+  const pathname = usePathname();
+  const lastPath = useRef(pathname);
+  useEffect(() => {
+    if (pathname === lastPath.current) return;
+    lastPath.current = pathname;
+    refreshAccount();
+  }, [pathname]);
+
   // Opening again returns to where the reader was (see SignInForm and the delete steps).
+  // Opening also asks the API, so a menu never keeps showing a session ended elsewhere.
   function toggle() {
     fromPage.current = false;
+    if (!open && email) refreshAccount(true);
     setOpen((o) => !o);
     setNote("");
   }
@@ -166,7 +184,7 @@ export function AccountMenu({ total }: { total: number }) {
         </button>
       </form>
       {open && (
-        <div className="acct-panel" id="acct-panel">
+        <div className="acct-panel" id="acct-panel" ref={panelRef}>
           {status === "checking" && (
             <>
               <p className="acct-title">Your account</p>

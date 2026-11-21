@@ -151,9 +151,17 @@ h2 { font-size: clamp(1.3rem, 1.15rem + 0.6vw, 1.5rem); font-weight: 700; margin
 h3 { font-size: 1.2rem; font-weight: 700; margin: 28px 0 8px; }
 strong { color: var(--text); font-weight: 700; }
 a { color: var(--steel-light); text-underline-offset: 3px; }
-a:hover { color: var(--gold); }
+@media (hover: hover) { a:hover { color: var(--gold); } }
 :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 4px; }
 ::selection { background: var(--selection); }
+/* Touch screens. Browsers draw a grey or blue box over whatever is tapped, square whatever
+   the element's shape: turned off. Every :hover rule sits behind @media (hover: hover), so
+   a tap no longer leaves a control lit until the next tap elsewhere. In their place, a tap
+   dims the control while the finger is down. Keyboard focus still shows (:focus-visible). */
+html { -webkit-tap-highlight-color: transparent; }
+@media (hover: none) {
+  a:active, button:not(:disabled):active, .practice li:active { opacity: 0.72; }
+}
 
 /* Chrome titles: light at the bottom so letters never fade into the ground. */
 .chrome {
@@ -200,7 +208,7 @@ a:hover { color: var(--gold); }
   font-family: var(--mono); font-weight: 600; font-size: 0.85rem; letter-spacing: 0.18em;
   color: var(--text); text-decoration: none;
 }
-.brand:hover { color: var(--text); }
+@media (hover: hover) { .brand:hover { color: var(--text); } }
 /* The logo keeps its own fixed colours in both themes (components/BrandMark.tsx). */
 .brand-mark { flex: none; width: 26px; height: 26px; }
 .site-nav { display: flex; gap: 4px; min-width: 0; }
@@ -208,7 +216,7 @@ a:hover { color: var(--gold); }
   padding: 6px 12px; border-radius: 999px; text-decoration: none; border: 1.5px solid transparent;
   color: var(--text-2); font-weight: 600; font-size: 0.95rem; white-space: nowrap;
 }
-.site-nav a:hover { color: var(--text); background: var(--card-top); }
+@media (hover: hover) { .site-nav a:hover { color: var(--text); background: var(--card-top); } }
 .site-nav a[aria-current="page"] { color: var(--gold-light); border-color: var(--copy-border); background: var(--active-bg); }
 
 .site-footer-wrap { border-top: 1px solid var(--border); }
@@ -224,7 +232,7 @@ a:hover { color: var(--gold); }
 }
 .footer-links { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .footer-links a { color: var(--text-2); text-decoration: none; font-weight: 600; }
-.footer-links a:hover { color: var(--gold); }
+@media (hover: hover) { .footer-links a:hover { color: var(--gold); } }
 
 /* Light / dark switch: shows the sun in dark mode (switch to light) and the moon in light mode. */
 .theme-toggle {
@@ -232,7 +240,7 @@ a:hover { color: var(--gold); }
   border: 1.5px solid var(--border-strong); border-radius: 50%; background: var(--card-top);
   color: var(--text-2); cursor: pointer;
 }
-.theme-toggle:hover { color: var(--gold); border-color: var(--accent-border); }
+@media (hover: hover) { .theme-toggle:hover { color: var(--gold); border-color: var(--accent-border); } }
 .theme-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .theme-toggle .icon-moon { display: none; }
 :root[data-theme="light"] .theme-toggle .icon-sun { display: none; }
@@ -263,9 +271,9 @@ a:hover { color: var(--gold); }
   box-shadow: 0 0 0 4px rgba(244, 207, 110, 0.1);
   color: var(--button-text); font-weight: 700; text-decoration: none;
 }
-.button:hover { color: var(--button-hover-text); border-color: var(--gold); }
+@media (hover: hover) { .button:hover { color: var(--button-hover-text); border-color: var(--gold); } }
 .button-ghost { background: var(--card-top); border-color: var(--border-strong); color: var(--text); box-shadow: none; }
-.button-ghost:hover { color: var(--gold); border-color: var(--accent-border); }
+@media (hover: hover) { .button-ghost:hover { color: var(--gold); border-color: var(--accent-border); } }
 
 /* Small mono caps line above a heading. */
 .eyebrow {
@@ -375,7 +383,7 @@ a:hover { color: var(--gold); }
 }
 .roadmap-tile.is-live .roadmap-num { color: var(--gold); }
 .roadmap-tile.is-live .roadmap-count { color: var(--steel); font-family: var(--mono); letter-spacing: 0.04em; }
-.roadmap-tile.is-live:hover { border-color: var(--accent-border); transform: translateY(-1px); color: var(--text); }
+@media (hover: hover) { .roadmap-tile.is-live:hover { border-color: var(--accent-border); transform: translateY(-1px); color: var(--text); } }
 
 .roadmap-section, .pattern-section { scroll-margin-top: calc(var(--header-h) + 20px); }
 .roadmap-section { margin-top: 36px; }
@@ -408,19 +416,19 @@ a:hover { color: var(--gold); }
   color: var(--text); text-decoration: none;
   transition: border-color 0.15s, transform 0.15s;
 }
-.post-card:hover { color: var(--text); border-color: var(--accent-border); transform: translateY(-1px); }
+@media (hover: hover) { .post-card:hover { color: var(--text); border-color: var(--accent-border); transform: translateY(-1px); } }
 .post-card-num {
   flex: 0 0 auto; min-width: 2.6em; text-align: center; padding: 4px 0;
   font-family: var(--mono); font-weight: 600; font-size: 1rem; color: var(--num-text);
   border: 2px solid var(--num-border); border-radius: 10px; background: var(--num-bg);
 }
-.post-card:hover .post-card-num { color: var(--gold-light); border-color: var(--accent-border); }
+@media (hover: hover) { .post-card:hover .post-card-num { color: var(--gold-light); border-color: var(--accent-border); } }
 .post-card-text { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .post-card-title { font-family: var(--title); font-weight: 700; font-size: 1.1rem; line-height: 1.3; }
 .post-card-pattern { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--steel); }
 .post-card-summary { color: var(--muted); font-size: 0.95rem; }
 .post-card-arrow { align-self: center; color: var(--muted); font-size: 1.2rem; transition: color 0.15s, transform 0.15s; }
-.post-card:hover .post-card-arrow { color: var(--gold); transform: translateX(3px); }
+@media (hover: hover) { .post-card:hover .post-card-arrow { color: var(--gold); transform: translateX(3px); } }
 
 /* ---------- Patterns page ---------- */
 .page-head { padding: 16px 0 8px; }
@@ -449,7 +457,7 @@ a:hover { color: var(--gold); }
   content: ""; position: absolute; left: 3px; top: 8px; bottom: 8px; width: 3px; border-radius: 3px;
   background: var(--gold); opacity: 0; transform: scaleY(0.4); transition: opacity 0.15s, transform 0.15s;
 }
-.pattern-nav a:hover { color: var(--text); background: var(--row-alt); }
+@media (hover: hover) { .pattern-nav a:hover { color: var(--text); background: var(--row-alt); } }
 .pattern-nav a.is-active { color: var(--gold-light); background: var(--active-bg); }
 .pattern-nav a.is-active::before { opacity: 1; transform: none; }
 /* Lesson count: a small number tile, the same family as the post-number tiles on the lists.
@@ -460,7 +468,7 @@ a:hover { color: var(--gold); }
   font-family: var(--mono); font-size: 0.74rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums;
   box-shadow: var(--card-shadow); transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.pattern-nav a:hover .pattern-nav-count { border-color: var(--border-strong); }
+@media (hover: hover) { .pattern-nav a:hover .pattern-nav-count { border-color: var(--border-strong); } }
 .pattern-nav a.is-active .pattern-nav-count { color: var(--button-text); border-color: var(--accent-border); background: var(--button-bg); }
 
 .pattern-section { margin-bottom: 40px; border-radius: var(--radius); }
@@ -554,7 +562,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
   border: 1.5px solid transparent; background: none; padding: 5px 12px; border-radius: 999px;
   cursor: pointer; font-family: var(--mono); font-weight: 600; font-size: 0.85rem; color: var(--muted);
 }
-.code-tabs-bar button:hover { color: var(--text); }
+@media (hover: hover) { .code-tabs-bar button:hover { color: var(--text); } }
 .code-tabs-bar button.active { color: var(--steel-light); border-color: var(--tab-active-border); background: var(--tab-active-bg); }
 .code-tabs-list {
   display: flex; gap: 4px; flex: 1; min-width: 0;
@@ -574,8 +582,9 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
   width: 15px; height: 15px; fill: none; stroke: currentColor;
   stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
 }
-.code-tabs-bar .code-copy:hover, .code-tabs-bar .code-copy.is-copied { border-color: var(--accent-border); }
-.code-tabs-bar .code-copy:hover { color: var(--gold-light); }
+.code-tabs-bar .code-copy.is-copied { border-color: var(--accent-border); }
+@media (hover: hover) { .code-tabs-bar .code-copy:hover { border-color: var(--accent-border); } }
+@media (hover: hover) { .code-tabs-bar .code-copy:hover { color: var(--gold-light); } }
 .code-tabs-bar .code-copy:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 .code-tabs [role="tabpanel"] pre { margin: 0; border: 0; border-radius: 0; background: none; }
 /* Shiki colours each token inline: VS Code Dark+, with Light+ in --shiki-light for the light
@@ -634,7 +643,7 @@ pre.shiki { background: var(--code-bg) !important; }
   font-size: 1.5rem; line-height: 1; width: 44px; height: 44px; border-radius: 50%;
   border: 1.5px solid var(--border-strong); background: var(--card-top); color: var(--text); cursor: pointer;
 }
-.gallery-controls button:hover:not(:disabled) { border-color: var(--accent-border); color: var(--gold); }
+@media (hover: hover) { .gallery-controls button:hover:not(:disabled) { border-color: var(--accent-border); color: var(--gold); } }
 .gallery-controls button:disabled { opacity: 0.3; cursor: default; }
 .gallery-controls .gallery-full { justify-self: end; border-radius: 12px; display: grid; place-items: center; }
 .gallery-full svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -656,7 +665,7 @@ pre.shiki { background: var(--code-bg) !important; }
   border: 1.5px solid var(--border-strong); border-radius: 999px; background: var(--card-top);
   font-family: var(--body); font-weight: 600; font-size: 0.95rem; color: var(--text-2); cursor: pointer;
 }
-.back-button:hover { color: var(--gold); border-color: var(--accent-border); }
+@media (hover: hover) { .back-button:hover { color: var(--gold); border-color: var(--accent-border); } }
 
 /* Practice */
 .practice ul { list-style: none; padding: 0; display: grid; gap: 10px; }
@@ -673,8 +682,9 @@ pre.shiki { background: var(--code-bg) !important; }
   display: inline-block; margin-left: 6px; font-weight: 400; color: var(--muted);
   transition: color 0.15s, transform 0.15s;
 }
-.practice li:hover a, .practice a:focus-visible { color: var(--gold-light); }
-.practice li:hover .practice-arrow { color: var(--gold); transform: translate(2px, -2px); }
+.practice a:focus-visible { color: var(--gold-light); }
+@media (hover: hover) { .practice li:hover a { color: var(--gold-light); } }
+@media (hover: hover) { .practice li:hover .practice-arrow { color: var(--gold); transform: translate(2px, -2px); } }
 .practice a:focus-visible { outline: none; }
 .practice li:has(a:focus-visible) { outline: 2px solid var(--gold); outline-offset: 2px; }
 .practice .level {
@@ -688,7 +698,7 @@ pre.shiki { background: var(--code-bg) !important; }
 .practice-note { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
 .practice-intro { margin: -4px 0 0; color: var(--muted); }
 .practice li { transition: border-color 0.15s; }
-.practice li:hover { border-color: var(--accent-border); }
+@media (hover: hover) { .practice li:hover { border-color: var(--accent-border); } }
 
 /* Previous / next */
 .post-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 48px; }
@@ -701,7 +711,7 @@ pre.shiki { background: var(--code-bg) !important; }
 .post-nav-next { grid-column: 2; text-align: right; }
 .post-nav-label { font-family: var(--mono); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--steel); }
 .post-nav-title { font-family: var(--title); font-weight: 700; line-height: 1.3; }
-.post-nav a:hover { border-color: var(--accent-border); color: var(--gold-light); transform: translateY(-1px); }
+@media (hover: hover) { .post-nav a:hover { border-color: var(--accent-border); color: var(--gold-light); transform: translateY(-1px); } }
 
 /* Tablets: hero stacks, the pattern list becomes a sticky row of chips. */
 @media (max-width: 960px) {
@@ -997,7 +1007,7 @@ pre.shiki { background: var(--code-bg) !important; }
   border: 1.5px solid var(--border-strong); border-radius: 12px;
   background: var(--num-bg); color: var(--text); font: inherit; cursor: pointer;
 }
-.vz-btn:hover:not(:disabled) { border-color: var(--accent-border); }
+@media (hover: hover) { .vz-btn:hover:not(:disabled) { border-color: var(--accent-border); } }
 .vz-btn:disabled { opacity: 0.45; cursor: default; }
 .vz-btn svg { width: 20px; height: 20px; fill: currentColor; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .vz-play, .vz-go { background: var(--button-bg); color: var(--button-text); border-color: var(--copy-border); }
@@ -1062,7 +1072,7 @@ pre.shiki { background: var(--code-bg) !important; }
   background: linear-gradient(180deg, var(--card-top), var(--card-bottom)); box-shadow: var(--card-shadow);
   color: var(--text); text-decoration: none;
 }
-.prose a.vz-card:hover { border-color: var(--accent-border); }
+@media (hover: hover) { .prose a.vz-card:hover { border-color: var(--accent-border); } }
 .vz-card strong { font-family: var(--title); font-size: 1.05rem; }
 .vz-card span { font-size: 0.9rem; line-height: 1.45; color: var(--muted); }
 .vz-badge {
@@ -1098,7 +1108,7 @@ pre.shiki { background: var(--code-bg) !important; }
   padding: 10px 26px; font: inherit; font-weight: 700; font-size: 0.95rem; cursor: pointer;
   color: var(--button-text); background: var(--button-bg); border: 1px solid var(--accent-border); border-radius: 10px;
 }
-.vz-gate-btn:hover { color: var(--button-hover-text); }
+@media (hover: hover) { .vz-gate-btn:hover { color: var(--button-hover-text); } }
 .vz-gate-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .vz-gate-code.pseudo-block { margin: 0; align-self: start; min-width: 0; }
 .vz-gate-code pre.shiki { font-size: 12.5px; line-height: 22px; }
@@ -1177,7 +1187,7 @@ body:has(.vz-one) .back-button { display: none; }
 .vz-one h1 { order: -1; font-size: clamp(1.3rem, 3vw, 1.6rem); }
 .vz-one > :not(h1):not(.vz-crumb) { flex: 1 1 100%; min-width: 0; }
 .prose .vz-crumb a { text-decoration: none; }
-.prose .vz-crumb a:hover { text-decoration: underline; }
+@media (hover: hover) { .prose .vz-crumb a:hover { text-decoration: underline; } }
 
 /* ---------- Search (only in builds with an API address) ---------- */
 .site-header.has-search { position: relative; grid-template-columns: 1fr auto auto auto; grid-template-areas: "brand nav search theme"; }
@@ -1187,13 +1197,15 @@ body:has(.vz-one) .back-button { display: none; }
   border: 1.5px solid var(--border-strong); border-radius: 50%; background: var(--card-top);
   color: var(--text-2); cursor: pointer;
 }
-.search-toggle:hover, .search-toggle[aria-expanded="true"] { color: var(--gold); border-color: var(--accent-border); }
+.search-toggle[aria-expanded="true"] { color: var(--gold); border-color: var(--accent-border); }
+@media (hover: hover) { .search-toggle:hover { color: var(--gold); border-color: var(--accent-border); } }
 .search-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 /* Hangs from the header, not from the button, so it can never run off a phone's left edge. */
 .search-panel {
   position: absolute; z-index: 60; top: calc(100% + 8px);
   right: max(var(--gutter), env(safe-area-inset-right)); left: max(var(--gutter), env(safe-area-inset-left));
   max-width: 400px; margin-left: auto; padding: 12px;
+  max-height: var(--panel-room, none); overflow-y: auto; overscroll-behavior: contain; /* --panel-room: lib/panel-lock.ts */
   border: 1px solid var(--border-strong); border-radius: var(--radius);
   background: var(--card-bottom); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
 }
@@ -1203,12 +1215,13 @@ body:has(.vz-one) .back-button { display: none; }
 }
 .search-input::placeholder { color: var(--muted); }
 .search-note { margin: 12px 4px 4px; font-size: 0.9rem; color: var(--muted); }
-.search-results { list-style: none; margin: 10px 0 0; padding: 0; max-height: min(60vh, 420px); overflow-y: auto; }
+.search-results { list-style: none; margin: 10px 0 0; padding: 0; max-height: min(60vh, 420px); overflow-y: auto; overscroll-behavior: contain; }
 .search-results a {
   display: grid; grid-template-columns: auto 1fr; gap: 0 12px; padding: 9px 10px;
   border-radius: 10px; text-decoration: none; color: var(--text);
 }
-.search-results a:hover, .search-results a:focus-visible { background: var(--active-bg); }
+.search-results a:focus-visible { background: var(--active-bg); }
+@media (hover: hover) { .search-results a:hover { background: var(--active-bg); } }
 .search-num { grid-row: span 2; align-self: center; font-family: var(--mono); font-weight: 600; font-size: 0.85rem; color: var(--gold); }
 .search-title { font-weight: 600; line-height: 1.3; }
 .search-pattern { font-size: 0.82rem; color: var(--muted); }
@@ -1230,12 +1243,12 @@ body:has(.vz-one) .back-button { display: none; }
   padding: 9px 14px; font: inherit; font-weight: 700; font-size: 0.92rem; cursor: pointer;
   color: var(--button-text); background: var(--button-bg); border: 1px solid var(--accent-border); border-radius: 10px;
 }
-.signup-row button:hover { color: var(--button-hover-text); }
+@media (hover: hover) { .signup-row button:hover { color: var(--button-hover-text); } }
 .signup-row button:disabled { opacity: 0.6; cursor: default; }
 .signup-status { margin: 8px 0 0; font-size: 0.92rem; color: var(--text-2); overflow-wrap: anywhere; }
 .signup-status strong { color: var(--text); font-weight: 600; }
 .signup-row button.signup-off { color: var(--text); background: var(--card-top); border-color: var(--border-strong); }
-.signup-row button.signup-off:hover { color: var(--gold); border-color: var(--accent-border); }
+@media (hover: hover) { .signup-row button.signup-off:hover { color: var(--gold); border-color: var(--accent-border); } }
 .signup-hint { margin: 8px 0 0; font-size: 0.88rem; color: var(--text-2); }
 .signup-note { margin: 4px 0 0; min-height: 1.4em; font-size: 0.88rem; color: var(--muted); }
 @media (max-width: 420px) { .signup-row { flex-direction: column; } }
@@ -1268,14 +1281,17 @@ body:has(.vz-one) .back-button { display: none; }
 :root[data-acct] .acct-btn.is-checking { padding: 0; width: 40px; }
 :root[data-acct] .acct-btn.is-checking .acct-btn-text { display: none; }
 .acct-avatar { font-family: var(--title); font-weight: 700; font-size: 1.05rem; line-height: 1; color: var(--button-text); }
-.acct-btn:not(.is-in):hover, .acct-btn:not(.is-in)[aria-expanded="true"] { color: var(--gold); border-color: var(--accent-border); }
-.acct-btn.is-in:hover, .acct-btn.is-in[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--accent-border); }
+.acct-btn:not(.is-in)[aria-expanded="true"] { color: var(--gold); border-color: var(--accent-border); }
+@media (hover: hover) { .acct-btn:not(.is-in):hover { color: var(--gold); border-color: var(--accent-border); } }
+.acct-btn.is-in[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--accent-border); }
+@media (hover: hover) { .acct-btn.is-in:hover { box-shadow: 0 0 0 3px var(--accent-border); } }
 .acct-btn svg { flex: none; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 /* Hangs from the header, like the search panel, so it can never run off a phone's edge. */
 .acct-panel {
   position: absolute; z-index: 60; top: calc(100% + 8px);
   right: max(var(--gutter), env(safe-area-inset-right)); left: max(var(--gutter), env(safe-area-inset-left));
   max-width: 360px; margin-left: auto; padding: 18px;
+  max-height: var(--panel-room, none); overflow-y: auto; overscroll-behavior: contain; /* --panel-room: lib/panel-lock.ts */
   border: 1px solid var(--border-strong); border-radius: var(--radius);
   background: var(--card-bottom); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
 }
@@ -1296,7 +1312,7 @@ body:has(.vz-one) .back-button { display: none; }
   margin-top: 14px; padding: 10px 14px; font: inherit; font-weight: 700; font-size: 0.95rem; cursor: pointer;
   color: var(--button-text); background: var(--button-bg); border: 1px solid var(--accent-border); border-radius: 10px;
 }
-.acct-submit:hover { color: var(--button-hover-text); }
+@media (hover: hover) { .acct-submit:hover { color: var(--button-hover-text); } }
 .acct-submit:disabled { opacity: 0.6; cursor: default; }
 .acct-linkbtn { padding: 0; font: inherit; color: var(--steel); background: none; border: 0; text-decoration: underline; cursor: pointer; }
 /* Turnstile: empty for most readers; a checkbox only when Cloudflare is unsure. */
@@ -1338,17 +1354,18 @@ body:has(.vz-one) .back-button { display: none; }
 .acct-item-text { display: flex; flex-direction: column; min-width: 0; }
 .acct-item-label { font-weight: 700; font-size: 0.95rem; }
 .acct-item-hint { margin-top: 1px; font-size: 0.82rem; color: var(--muted); }
-.acct-item:hover:not(:disabled), .acct-item:focus-visible { background: var(--card-top); }
-.acct-item:hover:not(:disabled) .acct-item-label { color: var(--gold); }
-.acct-item:hover:not(:disabled) svg { stroke: var(--gold); }
+.acct-item:focus-visible { background: var(--card-top); }
+@media (hover: hover) { .acct-item:hover:not(:disabled) { background: var(--card-top); } }
+@media (hover: hover) { .acct-item:hover:not(:disabled) .acct-item-label { color: var(--gold); } }
+@media (hover: hover) { .acct-item:hover:not(:disabled) svg { stroke: var(--gold); } }
 .acct-item:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
 .acct-item:disabled { opacity: 0.6; cursor: default; }
 .acct-item.is-danger { margin-top: 6px; position: relative; }
 .acct-item.is-danger::before { content: ""; position: absolute; top: -5px; left: 8px; right: 8px; border-top: 1px solid var(--border); }
 .acct-item.is-danger .acct-item-label, .acct-item.is-danger svg { color: var(--danger); stroke: var(--danger); }
-.acct-item.is-danger:hover:not(:disabled) { background: var(--danger-bg); }
-.acct-item.is-danger:hover:not(:disabled) .acct-item-label { color: var(--danger); }
-.acct-item.is-danger:hover:not(:disabled) svg { stroke: var(--danger); }
+@media (hover: hover) { .acct-item.is-danger:hover:not(:disabled) { background: var(--danger-bg); } }
+@media (hover: hover) { .acct-item.is-danger:hover:not(:disabled) .acct-item-label { color: var(--danger); } }
+@media (hover: hover) { .acct-item.is-danger:hover:not(:disabled) svg { stroke: var(--danger); } }
 .acct-menu-note:empty { min-height: 0; margin: 0; }
 .acct-foot { margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: 0.85rem; }
 .acct-foot a { color: var(--steel); }
@@ -1359,7 +1376,7 @@ body:has(.vz-one) .back-button { display: none; }
   color: var(--text-2); background: none; border: 0; border-radius: 8px; cursor: pointer;
 }
 .acct-back svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.acct-back:hover:not(:disabled) { color: var(--gold); background: var(--card-top); }
+@media (hover: hover) { .acct-back:hover:not(:disabled) { color: var(--gold); background: var(--card-top); } }
 .acct-back:focus-visible { outline: 2px solid var(--gold); outline-offset: 0; }
 .acct-gone { margin: 6px 0 0; padding-left: 20px; font-size: 0.92rem; color: var(--text-2); }
 .acct-gone li { margin-top: 2px; }
@@ -1377,9 +1394,9 @@ body:has(.vz-one) .back-button { display: none; }
   flex: 1 1 130px; padding: 10px 12px; font: inherit; font-weight: 700; font-size: 0.92rem; white-space: nowrap; cursor: pointer;
   color: var(--text); background: var(--card-top); border: 1px solid var(--border-strong); border-radius: 10px;
 }
-.acct-btn2:hover:not(:disabled) { border-color: var(--accent-border); }
+@media (hover: hover) { .acct-btn2:hover:not(:disabled) { border-color: var(--accent-border); } }
 .acct-btn2.is-danger { color: var(--danger); border-color: var(--danger-border); background: var(--danger-bg); }
-.acct-btn2.is-danger:hover:not(:disabled) { border-color: var(--danger); }
+@media (hover: hover) { .acct-btn2.is-danger:hover:not(:disabled) { border-color: var(--danger); } }
 .acct-btn2.is-danger.is-fill { color: var(--danger-fill-text); background: var(--danger-fill); border-color: var(--danger-fill); }
 .acct-btn2:disabled { opacity: 0.6; cursor: default; }
 .acct-btn2:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
@@ -1395,7 +1412,7 @@ body:has(.vz-one) .back-button { display: none; }
   display: inline-flex; align-items: center; gap: 10px; padding: 10px 18px 10px 12px; font: inherit; font-weight: 700; cursor: pointer;
   color: var(--text); background: var(--card-top); border: 1.5px solid var(--border-strong); border-radius: 999px;
 }
-.acct-done-btn:hover { border-color: var(--accent-border); }
+@media (hover: hover) { .acct-done-btn:hover { border-color: var(--accent-border); } }
 .acct-done-btn.is-done { color: var(--gold); border-color: var(--accent-border); }
 .acct-done-box {
   display: grid; place-items: center; width: 22px; height: 22px; font-size: 0.9rem; line-height: 1;

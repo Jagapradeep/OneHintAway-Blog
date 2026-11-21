@@ -20,6 +20,9 @@ import type { SignIn } from "@/visualizer/access.ts";
 // app/layout.tsx reads it before the page paints (ACCOUNT_SCRIPT in lib/site.ts).
 const FLAG = ACCOUNT_FLAG;
 const TIMEOUT_MS = 8000;
+// A signed-in page asks "am I still signed in?" this often while it is on screen, so
+// "Sign out everywhere" on another device or browser reaches this one without a reload.
+const POLL_MS = 30_000;
 
 type State = {
   ready: boolean; // false until the first check has finished
@@ -96,10 +99,42 @@ function onStorage(event: StorageEvent) {
   else set({ ready: true, email: null, done: new Set(), news: null, down: false });
 }
 
+// Sessions ended elsewhere ("Sign out everywhere" on another device or browser, or an
+// expired session) leave no trace in this browser: there is no storage event and the
+// API can't push to a static site. So a signed-in page asks again when the reader comes
+// back to it, on every page change and menu open (refreshAccount), and every POLL_MS
+// while it is visible. Only signed-in pages ask: a reader
+// who is signed out makes no extra request.
+
+// One question at a time: focus and visibilitychange often fire together.
+let checking: Promise<void> | null = null;
+
+function recheck(withProgress: boolean) {
+  if (!state.email || document.visibilityState !== "visible") return;
+  if (checking) return;
+  void check(withProgress);
+}
+
+function onReturn() {
+  recheck(true); // also picks up lessons marked done on another device
+}
+
+// The reader did something that shows their account: moved to another page inside the
+// site (links don't reload the page, so nothing else would ask) or opened the account
+// menu. withProgress also reloads the lessons marked done (the menu shows the count).
+export function refreshAccount(withProgress = false) {
+  recheck(withProgress);
+}
+
 async function start() {
   if (started) return;
   started = true;
   window.addEventListener("storage", onStorage);
+  document.addEventListener("visibilitychange", onReturn);
+  window.addEventListener("focus", onReturn);
+  window.addEventListener("pageshow", onReturn); // a page restored by the back button
+  window.addEventListener("online", onReturn);
+  setInterval(() => recheck(false), POLL_MS);
   if (!hasFlag()) {
     set({ ready: true });
     return;
@@ -107,17 +142,31 @@ async function start() {
   await check();
 }
 
-async function check() {
+function check(withProgress = true): Promise<void> {
+  if (checking) return checking;
+  checking = (async () => {
+    try {
+      await ask(withProgress);
+    } finally {
+      checking = null;
+    }
+  })();
+  return checking;
+}
+
+async function ask(withProgress: boolean) {
+  const was = state.email;
   const me = await call("GET", "/api/v1/auth/me");
   const email = (me.json as { email?: unknown } | null)?.email;
   if (me.status === 200 && typeof email === "string") {
     set({ ready: true, email, down: false });
-    void loadProgress();
+    if (withProgress || email !== was) void loadProgress();
   } else if (me.status === 401) {
     signedOut();
   } else {
-    // API down or slow: look signed out for now, and ask again on the next page. The
-    // visualizer fails open on this (signInStatus says "unknown", not "out").
+    // API down or slow: a reader who was signed in stays so (the next check decides);
+    // one who wasn't looks signed out for now. The visualizer fails open on this
+    // (signInStatus says "unknown", not "out").
     set({ ready: true, down: true });
   }
 }

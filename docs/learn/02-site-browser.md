@@ -85,6 +85,12 @@ home page all need to know who's signed in. Instead of each one calling the API,
 `lib/account.ts` keeps one module-level `state` and a set of listeners. React's
 `useSyncExternalStore` subscribes each component to it. When `state` changes, every subscriber
 re-renders. A `storage` event listener makes **other tabs** follow a sign-in or sign-out.
+Another *browser or device* gets no such event, and a static site can't be pushed to, so a
+signed-in page asks `/auth/me` again whenever the reader comes back to it (`focus`,
+`visibilitychange`, `pageshow`) and every 30 seconds while it is on screen. That is how
+"Sign out everywhere" on your phone signs out the laptop without a reload. This is **polling**:
+simple and good enough here; the alternative, a server push (SSE or WebSocket), would need a
+connection held open to the cluster from every reader.
 
 **4. Work before JavaScript arrives.** The account button sits inside
 `<form action="/sign-in/" method="get">`. Before hydration, a tap submits the form and opens the
@@ -106,6 +112,9 @@ Open http://localhost:3000 in Chrome or Edge with DevTools open.
    open `/about/`: they don't.
 4. **Two tabs.** Open the site in two tabs. Sign in in one (the code is in the API's log). Switch
    to the other: its header shows your initial without a reload. That's the `storage` event.
+   Now sign in in a second browser too (or a private window), and use **Sign out everywhere** in
+   the first. Click back into the second: it signs out at once. Leave it untouched instead and it
+   signs out within 30 seconds (watch `/auth/me` answer 401 in the Network tab).
 5. **Slow network.** Network → throttling → "Slow 4G", reload a post, and tap the account button
    immediately. Even before React loads, the form opens `/sign-in/`.
 

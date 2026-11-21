@@ -3,9 +3,13 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { apiGet } from "@/lib/api";
+import { usePanelLock } from "@/lib/panel-lock";
 
 type Hit = { slug: string; number: number; title: string; pattern: string; section: string };
 type Result = { q: string; hits: Hit[] | null };
+
+// Fewer letters than this match too many posts to help, so the box waits for more.
+const MIN_LETTERS = 3;
 
 // Header search: a round button that opens a small panel with a box and live results.
 // It is a button, not an always-open box, so the header keeps its height and fits a phone.
@@ -17,7 +21,11 @@ export function SearchBox() {
   const [result, setResult] = useState<Result | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const term = q.trim();
+  const panelRef = useRef<HTMLDivElement>(null);
+  usePanelLock(open, panelRef);
+  const typed = q.trim();
+  const tooShort = typed.length > 0 && typed.length < MIN_LETTERS;
+  const term = tooShort ? "" : typed;
 
   // Ask a moment after the reader stops typing; drop the answer to anything older.
   useEffect(() => {
@@ -65,7 +73,7 @@ export function SearchBox() {
         </svg>
       </button>
       {open && (
-        <div className="search-panel" id="search-panel">
+        <div className="search-panel" id="search-panel" ref={panelRef}>
           <input
             ref={inputRef}
             type="search"
@@ -77,6 +85,7 @@ export function SearchBox() {
             onChange={(e) => setQ(e.target.value)}
           />
           <div aria-live="polite">
+            {tooShort && <p className="search-note">Type at least {MIN_LETTERS} letters.</p>}
             {term && current && current.hits === null && <p className="search-note">Search is not available right now.</p>}
             {term && current && current.hits?.length === 0 && <p className="search-note">No posts match.</p>}
             {term && current && current.hits && current.hits.length > 0 && (

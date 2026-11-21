@@ -11,6 +11,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { expectedVisualizer } from "./lib/post-visualizer.mjs";
 import { loaders } from "../visualizer/loaders.ts";
 import { patterns } from "../visualizer/registry.ts";
 import { SCHEMA_VERSION, checkLimits, checkStep, traceOf } from "../visualizer/schema.ts";
@@ -72,6 +73,13 @@ const embedOf = {}; // pattern id -> slug of the first post that shows its playe
 for (const file of readdirSync(postsDir).filter((f) => f.endsWith(".mdx")).sort()) {
   const fm = readFileSync(join(postsDir, file), "utf8").match(/^---\r?\n([\s\S]*?)\r?\n---/);
   const m = fm?.[1].match(/^visualizer:[ \t]*(.*)$/m);
+  // A post that has a player (a pattern's post: field or its kit post.json says so) must show it.
+  const num = Number(fm?.[1].match(/^number:[ \t]*(\d+)/m)?.[1]);
+  const want = expectedVisualizer(num, file.replace(/^\d+-/, "").replace(/\.mdx$/, ""));
+  const has = m?.[1].trim().replace(/^["']|["']$/g, "");
+  if (want?.conflict) errors.push(`${file}: more than one player claims this post: ${want.conflict.join(", ")}`);
+  else if (want && has !== want.id)
+    errors.push(`${file}: ${has ? `says visualizer: ${has}` : "has no visualizer: line"}, but ${want.from} says ${want.id}. npm run add-post writes the line in.`);
   if (!m) continue;
   embeds++;
   const id = m[1].trim().replace(/^["']|["']$/g, "");

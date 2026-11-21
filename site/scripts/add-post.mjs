@@ -4,11 +4,14 @@
 //
 // Copies the MDX to content/posts/, puts slide-NN.png / slide-NN.mp4 in public/posts/NN/
 // (a zip may hold them in a subfolder), then checks the post against the contract.
+// When a pattern belongs to the post (its file says post: <slug>, or the post's kit
+// post.json names it) and the MDX has no `visualizer:` line, the line is written in.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import matter from "gray-matter";
+import { expectedVisualizer, withVisualizer } from "./lib/post-visualizer.mjs";
 
 const ROOT = path.join(import.meta.dirname, "..");
 const [mdxPath, slidesPath] = process.argv.slice(2);
@@ -18,11 +21,26 @@ if (!mdxPath || !slidesPath) {
 }
 const pad = (n) => String(n).padStart(2, "0");
 
-const raw = fs.readFileSync(mdxPath, "utf8");
+let raw = fs.readFileSync(mdxPath, "utf8");
 const { data: fm } = matter(raw);
 if (!Number.isInteger(fm.number) || typeof fm.slug !== "string") {
   console.error(`${mdxPath}: frontmatter needs "number" and "slug" (see the blog content contract).`);
   process.exit(1);
+}
+
+// 0. The post's player. Checked before anything is copied, so a conflict changes nothing.
+const viz = expectedVisualizer(fm.number, fm.slug);
+if (viz?.conflict) {
+  console.error(`${mdxPath}: more than one player claims this post (${viz.conflict.join(", ")}). Fix the pattern's post: field or the kit's post.json.`);
+  process.exit(1);
+}
+if (viz && fm.visualizer && fm.visualizer !== viz.id) {
+  console.error(`${mdxPath}: says visualizer: ${fm.visualizer}, but ${viz.from} says ${viz.id}.`);
+  process.exit(1);
+}
+if (viz && !fm.visualizer) {
+  raw = withVisualizer(raw, viz.id);
+  console.log(`Added "visualizer: ${viz.id}" to the post (from ${viz.from}).`);
 }
 const name = `${pad(fm.number)}-${fm.slug}.mdx`;
 

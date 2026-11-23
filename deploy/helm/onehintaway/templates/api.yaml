@@ -12,6 +12,9 @@ data:
   SITE_URL: {{ .Values.api.siteUrl | quote }}
   MAIL_FROM: {{ .Values.api.mailFrom | quote }}
   SESSION_COOKIE_SECURE: {{ .Values.api.sessionCookieSecure | quote }}
+  # Sign-in codes per caller address an hour, per pod. Many readers can share one address
+  # (mobile carrier NAT, campus Wi-Fi); Turnstile and the per-email limit stop abuse.
+  LINK_PER_HOUR: {{ .Values.api.linkPerHour | quote }}
   # Behind Traefik: take the reader's address from X-Forwarded-For.
   FORWARD_HEADERS: native
 ---

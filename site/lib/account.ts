@@ -213,10 +213,11 @@ export function openSignIn(): boolean {
 // "human": the Turnstile check didn't pass (403), so no code was sent.
 export type CodeResult = "sent" | "invalid" | "busy" | "human" | "down";
 
-// The API did not answer (or failed): the visualizer then opens up instead of asking
-// the reader to sign in through something that is not working.
+// The API did not answer (or failed), or refused to send a code (429: too many from this
+// network, e.g. a campus behind one address): the visualizer then opens up instead of
+// asking the reader to sign in through something that is not working for them.
 function noteDown(status: number) {
-  if (status === 0 || status >= 500) set({ down: true });
+  if (status === 0 || status === 429 || status >= 500) set({ down: true });
 }
 
 function codeResult(status: number): CodeResult {

@@ -16,6 +16,7 @@ api:
   siteUrl: http://localhost:3000      # where a confirmed reader is sent
   mailFrom: "One Hint Away <hello@onehintaway.com>"
   sessionCookieSecure: true           # accounts: the session cookie is HTTPS-only; never false in production
+  linkPerHour: 100                    # sign-in codes per caller address an hour, per pod (shared networks)
   resources:
     requests: { cpu: 100m, memory: 384Mi }
     limits: { memory: 512Mi }

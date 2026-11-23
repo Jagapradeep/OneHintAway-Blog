@@ -121,6 +121,10 @@
 
 /* Wider page on large screens, so code blocks get room. */
 @media (min-width: 1280px) { :root { --page-max: 960px; } }
+/* Large monitors: the shell grows with the screen instead of sitting in the middle third. */
+@media (min-width: 1600px) { :root { --shell-max: 1520px; } }
+@media (min-width: 1920px) { :root { --shell-max: 1800px; --page-max: 1080px; } }
+@media (min-width: 2400px) { :root { --shell-max: 2200px; --page-max: 1160px; } }
 
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -179,7 +183,26 @@ html { -webkit-tap-highlight-color: transparent; }
 }
 /* Header and footer span the wide shell; the reading column stays narrow except on wide pages. */
 .site-header, .site-footer { max-width: var(--shell-max); }
-.site-main:has(.page-wide) { max-width: var(--shell-max); }
+.site-main:has(.page-wide), .site-main:has(.vz-page:not(.vz-one)) { max-width: var(--shell-max); }
+
+/* Post page on large monitors: slides stay in view on the left while the text scrolls on the right. */
+@media (min-width: 1600px) {
+  .site-main:has(> .post) { max-width: var(--shell-max); }
+  .post {
+    --read-max: 900px;
+    display: grid; align-items: start; column-gap: clamp(40px, 3vw, 72px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, var(--read-max));
+  }
+  .post > * { grid-column: 2; min-width: 0; }
+  .post > .gallery:not(.is-full):not(.is-overlay) {
+    grid-column: 1; grid-row: 1 / span 30; justify-self: center;
+    position: sticky; top: calc(var(--header-h) + 24px);
+    width: min(100%, 760px, calc((100svh - 92px - var(--header-h) - 48px) * 0.8));
+    margin: 8px 0 32px;
+  }
+}
+@media (min-width: 1920px) { .post { --read-max: 960px; } }
+@media (min-width: 2400px) { .post { --read-max: 1040px; } }
 .site-main { flex: 1; padding-top: 24px; padding-bottom: 64px; }
 .site-main:focus { outline: none; }
 

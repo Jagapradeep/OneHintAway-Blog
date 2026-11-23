@@ -37,10 +37,12 @@ export default function TreeView({ view }: { view: TreeViewData }) {
     else place(root, 0);
   }
   const n = Math.max(1, compact ? leaves : view.nodes.length);
+  // One text size for the whole tree, set by its longest label, so every node matches.
+  const len = Math.max(1, ...view.nodes.map((nd) => String(nd.v).length));
   return (
     <>
       {view.label && <div className="vz-stack-label">{view.label}</div>}
-      <div className="vz-tree" style={vars({ "--n": n, "--rows": rows })}>
+      <div className="vz-tree" style={vars({ "--n": n, "--rows": rows, "--len": len })}>
         <svg className="vz-edges" viewBox={`0 0 ${n} ${Math.max(1, rows)}`} preserveAspectRatio="none">
           {view.nodes.map((nd) => {
             const a = at.get(nd.id);

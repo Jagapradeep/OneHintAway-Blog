@@ -870,7 +870,7 @@ pre.shiki { background: var(--code-bg) !important; }
 .vz-ghost span { border-color: transparent; background: none; color: transparent; }
 .vz-dash span { border-style: dashed; border-color: var(--border-strong); background: none; }
 
-.vz-idx { margin-top: 6px; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
+.vz-idx { margin-top: 12px; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
 .vz-idx span { text-align: center; font-family: var(--mono); font-size: 10px; line-height: 14px; color: var(--muted); }
 
 .vz-ptrs { position: relative; height: 30px; }
@@ -925,22 +925,31 @@ pre.shiki { background: var(--code-bg) !important; }
 
 /* Tree view (components/views/TreeView.tsx). A node is one column wide, like a cell;
    --rh is the height of one level. Nodes never move: only their colours change. */
-.vz-tree { position: relative; margin-top: 4px; --rh: clamp(22px, calc(100cqw / var(--n)), 30px); height: calc(var(--rows) * var(--rh)); }
+/* The row height is worked out once on .vz-tree (against the picture's width) and inherited as a
+   length, so the nodes inside can measure the tree itself: .vz-tree is their size container,
+   and 100cqw / --n inside it is exactly one node's column. */
+@property --rh { syntax: "<length>"; inherits: true; initial-value: 24px; }
+.vz-tree { container-type: inline-size; position: relative; margin-top: 4px; --rh: clamp(22px, calc(100cqw / var(--n)), 30px); height: calc(var(--rows) * var(--rh)); }
 .vz-edges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .vz-edges line { stroke: var(--border-strong); stroke-width: 1.5; vector-effect: non-scaling-stroke; transition: stroke var(--vz-dur); }
 .vz-edges .vz-edge-on { stroke: var(--steel); stroke-width: 2; }
 .vz-edges .vz-edge-off { stroke-dasharray: 3 4; }
 .vz-node {
-  position: absolute; left: 0; top: calc(var(--row) * var(--rh)); width: calc(100% / var(--n)); height: var(--rh); padding: 3px clamp(1px, calc(100cqw / var(--n) * 0.06), 3px);
+  position: absolute; left: 0; top: calc(var(--row) * var(--rh)); width: calc(100% / var(--n)); height: var(--rh); padding: 2px clamp(1px, calc(100cqw / var(--n) * 0.06), 3px);
   transform: translateX(calc(var(--at) * 100%));
 }
 /* Solid ground under every state, so the lines stop at the node's edge. */
 .vz-node span {
-  display: grid; place-items: center; width: 100%; height: 100%;
+  display: grid; place-items: center; width: 100%; height: 100%; line-height: 1;
   border: 1.5px solid var(--num-border); border-radius: 999px;
   background: var(--card-bottom); color: var(--num-text);
   font-family: var(--mono); font-weight: 600; letter-spacing: -0.04em; font-variant-numeric: tabular-nums;
-  font-size: clamp(8.5px, calc(100cqw / var(--n) * 0.36), 14px);
+  /* Text keeps clear of the border: trees with longer labels ("no 3", "[ ]") get smaller text
+     (about 0.58em per mono character, leaving room for the pill's round ends), and the text is
+     never taller than the pill (brackets reach about 1em; the inside is the row height minus
+     7px). --len (the tree's longest label) is set on .vz-tree, so every node has the same size. */
+  font-size: clamp(7px, min(calc(100cqw / var(--n) * 0.36), calc((100cqw / var(--n) * 0.88 - 15px) / (var(--len, 1) * 0.58)), calc((var(--rh) - 9px) / 1.05)), 14px);
+  white-space: nowrap; overflow: hidden;
   transition: color var(--vz-dur), border-color var(--vz-dur), background-color var(--vz-dur), box-shadow var(--vz-dur), transform var(--vz-dur);
 }
 /* Border and text follow the state, as on cells (.vz-node span above would otherwise win). */
@@ -1178,7 +1187,7 @@ pre.shiki { background: var(--code-bg) !important; }
   .vz-left { gap: 8px; }
   .vz-stage { padding: 0; }
   .vz-grid { width: min(100%, calc(var(--n) * 44px)); }
-  .vz-idx { margin-top: 4px; }
+  .vz-idx { margin-top: 9px; }
   .vz-ptrs { height: 26px; }
   .vz-stack-label { margin-top: 4px; }
   .vz-status { margin-top: 4px; }

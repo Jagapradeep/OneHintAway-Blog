@@ -1,0 +1,234 @@
+---
+number: 36
+title: "Count the letters"
+slug: string-patterns
+pattern: "Strings"
+section: "2D arrays and strings"
+summary: "Compare two words by counting one up and the other down in 26 boxes, and check a palindrome by walking two pointers in from the ends."
+practice:
+  - {
+      name: "LeetCode 125 Valid Palindrome",
+      url: "https://leetcode.com/problems/valid-palindrome/",
+      level: easy,
+      note: "Skip anything not a letter or digit; compare in lowercase.",
+    }
+  - {
+      name: "LeetCode 438 Find All Anagrams in a String",
+      url: "https://leetcode.com/problems/find-all-anagrams-in-a-string/",
+      level: medium,
+      note: "Slide a window over s and compare 26 counts.",
+    }
+slides: 8
+video: 2
+visualizer: anagram
+tags: [strings, frequency-array, anagram, palindrome, two-pointers]
+published: 2026-11-24
+---
+
+Asked whether two words use the same letters, or whether a word reads the same both ways? Two small string moves cover both. Worked examples: **stone** and **notes**, and **racecar**.
+
+## The idea
+
+**The frequency array.** Picture two bags of letter tiles. Tally the first bag up on a board with one box per letter, then tally the second bag down. If every box ends at 0, the bags hold the same tiles, and no sorting is needed.
+
+In code the board is an array of 26 counts. Letter a goes in box 0, b in box 1, and so on to z in box 25; the box number is the letter's alphabet index (s is 18). Count every letter of `s` up and every letter of `t` down, then check all 26 boxes. This is LeetCode 242, Valid Anagram, for lowercase letters.
+
+**The palindrome check.** A palindrome reads the same both ways. Put `left` on the first letter and `right` on the last. If they differ, it isn't a palindrome; if they match, step both inwards. When they meet, every pair has matched.
+
+## The walk
+
+Counting stone up, then notes down, in the boxes for e, n, o, s and t:
+
+| Step        | e   | n   | o   | s   | t   |
+| ----------- | --- | --- | --- | --- | --- |
+| start       | 0   | 0   | 0   | 0   | 0   |
+| after stone | 1   | 1   | 1   | 1   | 1   |
+| after notes | 0   | 0   | 0   | 0   | 0   |
+
+Every box is back at 0, so notes is an anagram of stone. For racecar, the pairs r and r, a and a, c and c match, and the pointers meet at e: a palindrome.
+
+Quick check: counting below up and elbow down leaves **0** boxes that are not 0, so they are anagrams.
+
+## Pseudocode
+
+`isPalindrome` walks two pointers inwards; `isAnagram` counts one word up and the other down.
+
+```
+function isPalindrome(word):
+    left = 0
+    right = length(word) - 1
+    while left < right:
+        if word[left] != word[right]:
+            return false
+        left = left + 1
+        right = right - 1
+    return true
+
+function isAnagram(s, t):
+    counts = array of 26 zeros
+    for each letter in s:
+        k = alphabet index of letter
+        counts[k] = counts[k] + 1
+    for each letter in t:
+        k = alphabet index of letter
+        counts[k] = counts[k] - 1
+    for each count in counts:
+        if count != 0:
+            return false
+    return true
+```
+
+**The trap:** skip the final loop over the counts and return true. For stone and note, the s box is still 1, but the check never looks: it answers true instead of false. Counting `t` down only catches letters `t` has too many of; the final check catches letters it is missing.
+
+## Java
+
+```java
+class Solution {
+    public boolean isPalindrome(String word) {
+        int left = 0;
+        int right = word.length() - 1;
+        while (left < right) {
+            if (word.charAt(left) != word.charAt(right)) {
+                return false;
+            }
+            left++;
+            right--;
+        }
+        return true;
+    }
+
+    public boolean isAnagram(String s, String t) {
+        int[] counts = new int[26];
+        for (char letter : s.toCharArray()) {
+            int k = letter - 'a'; // alphabet index
+            counts[k] = counts[k] + 1;
+        }
+        for (char letter : t.toCharArray()) {
+            int k = letter - 'a';
+            counts[k] = counts[k] - 1;
+        }
+        for (int count : counts) {
+            if (count != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+```
+
+## Python
+
+```python
+def is_palindrome(word):
+    left = 0
+    right = len(word) - 1
+    while left < right:
+        if word[left] != word[right]:
+            return False
+        left += 1
+        right -= 1
+    return True
+
+
+def is_anagram(s, t):
+    counts = [0] * 26
+    for letter in s:
+        k = ord(letter) - ord("a")  # alphabet index
+        counts[k] = counts[k] + 1
+    for letter in t:
+        k = ord(letter) - ord("a")
+        counts[k] = counts[k] - 1
+    for count in counts:
+        if count != 0:
+            return False
+    return True
+```
+
+## C++
+
+```cpp
+#include <string>
+#include <vector>
+using namespace std;
+
+bool isPalindrome(const string& word) {
+    int left = 0;
+    int right = (int)word.size() - 1;
+    while (left < right) {
+        if (word[left] != word[right]) {
+            return false;
+        }
+        left++;
+        right--;
+    }
+    return true;
+}
+
+bool isAnagram(const string& s, const string& t) {
+    vector<int> counts(26, 0);
+    for (char letter : s) {
+        int k = letter - 'a'; // alphabet index
+        counts[k] = counts[k] + 1;
+    }
+    for (char letter : t) {
+        int k = letter - 'a';
+        counts[k] = counts[k] - 1;
+    }
+    for (int count : counts) {
+        if (count != 0) {
+            return false;
+        }
+    }
+    return true;
+}
+```
+
+## JavaScript
+
+```javascript
+function isPalindrome(word) {
+  let left = 0;
+  let right = word.length - 1;
+  while (left < right) {
+    if (word[left] !== word[right]) {
+      return false;
+    }
+    left++;
+    right--;
+  }
+  return true;
+}
+
+function isAnagram(s, t) {
+  const counts = new Array(26).fill(0);
+  for (const letter of s) {
+    const k = letter.charCodeAt(0) - 97; // alphabet index
+    counts[k] = counts[k] + 1;
+  }
+  for (const letter of t) {
+    const k = letter.charCodeAt(0) - 97;
+    counts[k] = counts[k] - 1;
+  }
+  for (const count of counts) {
+    if (count !== 0) {
+      return false;
+    }
+  }
+  return true;
+}
+```
+
+The code assumes lowercase letters a to z, as LeetCode 242 does. For other characters, use a hash map from [post 05](/posts/hashing/) instead of the 26 boxes.
+
+## Complexity
+
+|                  | Cost                  | Why                                       |
+| ---------------- | --------------------- | ----------------------------------------- |
+| Anagram check    | O(n) time, O(1) space | One pass over each word; always 26 counts |
+| Palindrome check | O(n) time, O(1) space | Each pair is compared once                |
+| Sort both words  | O(n log n)            | The slower way to compare letters         |
+
+## How it was tested
+
+The anagram and palindrome checks was run in Java, Python, C++ and JavaScript on 1,314 inputs: hand-picked pairs (stone and notes, below and elbow, a missing letter, equal letter sets with different counts, one letter, palindromes of odd and even length, strings of 50,000 letters) and random lowercase strings of up to 8 letters, a third of them shuffles of each other. Every output matched a brute force that compares letter counts with a dictionary and compares each word with its reverse. The counts in the walk-through, the quick-check answer and the trap result come from running the code.

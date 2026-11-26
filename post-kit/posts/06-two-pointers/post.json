@@ -1,0 +1,364 @@
+{
+ "number": 6,
+ "slug": "two-pointers",
+ "kind": "concept",
+ "topic": "Two Pointers",
+ "category": "Two pointers",
+ "next_post": "Sliding window, fixed size",
+ "cover": {
+  "title": "Two pointers",
+  "lead": "A sorted array and a pair to find: start at both ends and walk inward.",
+  "use_it_when": "The array is sorted and you need a pair with some property, like a target sum.",
+  "why_it_matters": "It finds the pair in one walk with no extra memory, where the hash map needed a map.",
+  "blocks": [
+   {
+    "type": "boxes",
+    "size": "s",
+    "gap": 24,
+    "mt": 18,
+    "values": [
+     1,
+     3,
+     4,
+     6,
+     8,
+     11
+    ],
+    "gold": [
+     0,
+     5
+    ]
+   }
+  ],
+  "promise": "You'll write **two pointers** in {lines} lines.",
+  "promise_slide": "template"
+ },
+ "slides": [
+  {
+   "type": "video",
+   "teaser": "Watch the ends walk in",
+   "title": "Watch them meet",
+   "lead": "Find two numbers that add to 10 in 1 3 4 6 8 11.",
+   "video": {
+    "values": [
+     1,
+     3,
+     4,
+     6,
+     8,
+     11
+    ],
+    "stage_label": "SORTED ARRAY",
+    "chips_label": "EACH SUM",
+    "steps": "video_steps()",
+    "final": {
+     "gold": [
+      2,
+      3
+     ],
+     "eq": [
+      "answer:",
+      "[{{ANSWER[0]}}, {{ANSWER[1]}}]"
+     ],
+     "caption": "4 + 6 = 10 after {{CHECKS}} checks, not {{PAIRS}} pairs."
+    }
+   }
+  },
+  {
+   "type": "story",
+   "teaser": "The shelf idea",
+   "title": "Two ends of a shelf",
+   "scene": "Two friends stand at the ends of a shelf sorted by price. Too much? The pricey end steps in. Too little? The cheap end steps in.",
+   "blocks": [
+    {
+     "type": "boxes",
+     "label": "PRICES, CHEAP TO PRICEY",
+     "values": [
+      1,
+      3,
+      4,
+      6,
+      8,
+      11
+     ],
+     "gold": [
+      0,
+      5
+     ],
+     "pointers": {
+      "left": 0,
+      "right": 5
+     }
+    },
+    {
+     "type": "card",
+     "text": "Each step rules out one end for good, because the array is [[sorted]]."
+    }
+   ]
+  },
+  {
+   "type": "picture",
+   "teaser": "The walk, step by step",
+   "title": "One end moves",
+   "lead": "Sum too big: right moves in. Sum too small: left moves in.",
+   "blocks": [
+    {
+     "type": "steps",
+     "rows": [
+      {
+       "label": "1 + 11 = 12: right in",
+       "values": [
+        1,
+        3,
+        4,
+        6,
+        8,
+        11
+       ],
+       "gold": [
+        0,
+        5
+       ]
+      },
+      {
+       "label": "1 + 8 = 9: left in",
+       "values": [
+        1,
+        3,
+        4,
+        6,
+        8,
+        11
+       ],
+       "gold": [
+        0,
+        4
+       ],
+       "dim": [
+        5
+       ]
+      },
+      {
+       "label": "3 + 8 = 11: right in",
+       "values": [
+        1,
+        3,
+        4,
+        6,
+        8,
+        11
+       ],
+       "gold": [
+        1,
+        4
+       ],
+       "dim": [
+        0,
+        5
+       ]
+      },
+      {
+       "label": "3 + 6 = 9: left in",
+       "values": [
+        1,
+        3,
+        4,
+        6,
+        8,
+        11
+       ],
+       "gold": [
+        1,
+        3
+       ],
+       "dim": [
+        0,
+        4,
+        5
+       ]
+      },
+      {
+       "label": "4 + 6 = 10: found",
+       "values": [
+        1,
+        3,
+        4,
+        6,
+        8,
+        11
+       ],
+       "gold": [
+        2,
+        3
+       ],
+       "dim": [
+        0,
+        1,
+        4,
+        5
+       ]
+      }
+     ]
+    }
+   ],
+   "quickcheck": {
+    "question": "Two pointers on 2 7 11 15, target 9. Which positions, counted from 1?",
+    "answer": "Answer: {{sp(two_sum([2, 7, 11, 15], 9))}}. 2 + 15 is too big, 2 + 11 too, then 2 + 7 = 9.",
+    "check": "two_sum([2, 7, 11, 15], 9)"
+   }
+  },
+  {
+   "type": "extra",
+   "label": "WHY SKIPPING IS SAFE",
+   "board": "Answer + why it's safe",
+   "teaser": "The answer, then why it's safe",
+   "title": "No pair is missed",
+   "blocks": [
+    {
+     "type": "card",
+     "label": "SUM TOO BIG",
+     "text": "1 + 11 is already too big. 11 plus anything right of 1 is bigger still, so [[11 is out]]."
+    },
+    {
+     "type": "card",
+     "text": "1 + 8 is too small. 1 plus anything left of 8 is smaller still, so 1 is out."
+    }
+   ]
+  },
+  {
+   "type": "template",
+   "teaser": "Two pointers in 12 lines",
+   "title": "Two pointers",
+   "code": {
+    "lines": [
+     "function twoSum(nums, target):",
+     "    left = 0",
+     "    right = length(nums) - 1",
+     "    while left < right:",
+     "        total = nums[left] + nums[right]",
+     "        if total == target:",
+     "            return [left + 1, right + 1]",
+     "        else if total < target:",
+     "            left = left + 1",
+     "        else:",
+     "            right = right - 1",
+     "    return none"
+    ],
+    "highlight": [
+     8
+    ]
+   },
+   "explain": "Line 8 picks which end moves. LeetCode counts positions from 1, hence the + 1 on line 7.",
+   "example": {
+    "call": "twoSum([1, 3, 4, 6, 8, 11], 10)",
+    "expr": "two_sum([1, 3, 4, 6, 8, 11], 10)"
+   }
+  },
+  {
+   "type": "trap",
+   "teaser": "The bug that finds nothing",
+   "title": "Sorted input only",
+   "lead": "On unsorted input, moving an end no longer rules anything out.",
+   "trap": {
+    "call": "twoSum([1, 4, 6, 3], 10)",
+    "wrong": {
+     "code": [
+      "walk [1, 4, 6, 3]"
+     ],
+     "note": "Every sum is too small. 4 + 6 is never tried.",
+     "result": "none"
+    },
+    "right": {
+     "code": [
+      "walk [1, 3, 4, 6]"
+     ],
+     "note": "Sort first, then 4 + 6 is found.",
+     "result": "{{RIGHT[0]}} + {{RIGHT[1]}}"
+    }
+   },
+   "cost": {
+    "items": [
+     {
+      "label": "Time",
+      "value": "O(n)",
+      "gold": true
+     },
+     {
+      "label": "Extra space",
+      "value": "O(1)"
+     },
+     {
+      "label": "Every pair",
+      "value": "O(n²)"
+     }
+    ],
+    "note": "Unsorted input? Sort first, O(n log n), or use the hash map from post 05."
+   }
+  },
+  {
+   "type": "practice",
+   "teaser": "Last slide: your turn",
+   "learnt": [
+    "Start at both ends",
+    "Big: right in",
+    "Sorted input only"
+   ],
+   "problems": [
+    {
+     "difficulty": "Easy",
+     "id": 344,
+     "title": "Reverse String",
+     "note": "Swap the two ends, then move both pointers in.",
+     "complexity": "n",
+     "constraints": {
+      "n": 100000
+     },
+     "url": "https://leetcode.com/problems/reverse-string/"
+    },
+    {
+     "difficulty": "Medium",
+     "id": 15,
+     "title": "3Sum",
+     "note": "Sort first, fix one number, then run two pointers on the rest.",
+     "complexity": "n^2",
+     "constraints": {
+      "n": 3000
+     },
+     "url": "https://leetcode.com/problems/3sum/"
+    }
+   ]
+  }
+ ],
+ "blog": {
+  "pattern": "Two pointers",
+  "section": "Arrays and hashing",
+  "summary": "A sorted array and a pair to find: start at both ends and walk inward.",
+  "tags": [
+   "two-pointers",
+   "arrays"
+  ],
+  "worked": {
+   "name": "LeetCode 167 Two Sum II - Input Array Is Sorted",
+   "url": "https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/"
+  },
+  "tested_what": "The two-pointer walk",
+  "tested_inputs": "hand-picked cases (the LeetCode examples, equal values, negatives, sums at the 32-bit edge) and random sorted arrays of up to 12 values with exactly one pair or none, plus one sorted array of 3,000 large values",
+  "tested_against": "a brute force that checks every pair",
+  "tested_extra": "The walk, the check count and the trap result come from running the code."
+ },
+ "caption": {
+  "first": "Two pointers explained with LeetCode 167 Two Sum II: start at both ends of a sorted array and walk inward.",
+  "lines": [
+   "Sum too big: the right end moves in. Too small: the left end moves in.",
+   "The trap: on unsorted input like [1, 4, 6, 3] it misses 4 + 6.",
+   "Practice: LeetCode 344 (easy) and LeetCode 15 (medium)."
+  ],
+  "cta": "Save it for revision.",
+  "tags": [
+   "#dsa",
+   "#leetcode",
+   "#codinginterview",
+   "#twopointers"
+  ]
+ }
+}

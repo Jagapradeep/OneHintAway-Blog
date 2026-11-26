@@ -1,0 +1,515 @@
+{
+  "number": 2,
+  "slug": "big-o",
+  "topic": "Big-O",
+  "kind": "foundation",
+  "checks": [
+    [
+      "HALF[1000]",
+      9
+    ],
+    [
+      "LOOKS",
+      10
+    ],
+    [
+      "TWO[1000]",
+      2000
+    ],
+    [
+      "PAIR[1000]",
+      1000000
+    ],
+    [
+      "HALF_MILLION",
+      19
+    ]
+  ],
+  "long": {
+    "scenes": [
+      {
+        "id": "hook",
+        "layout": "title",
+        "chapter": "Why Big-O",
+        "kicker": "FOUNDATIONS · VIDEO 2",
+        "title": "Fast enough?\nKnow **before** you run it.",
+        "sub": "Big-O ignores seconds. It asks: when the input grows, how fast do the steps grow?",
+        "say": [
+          {
+            "say": "Will your solution be fast enough? You can know before you run it.",
+            "tone": "question"
+          },
+          "Big-O ignores seconds. It asks one question: when the input grows, how fast do the steps grow?"
+        ]
+      },
+      {
+        "id": "story",
+        "layout": "list",
+        "label": "THE STORY",
+        "title": "1,000 answer sheets",
+        "cols": 2,
+        "items": [
+          {
+            "head": "NOT SORTED",
+            "text": "Flip through one by one. On a bad day: **1,000 looks**."
+          },
+          {
+            "head": "SORTED BY ROLL NUMBER",
+            "text": "Open the middle, drop the half that can't hold yours. **{{LOOKS}} looks** at most.",
+            "accent": "gold"
+          }
+        ],
+        "say": [
+          {
+            "say": "Your teacher has a thousand answer sheets, and you want yours.",
+            "tone": "warm"
+          },
+          "If they're in no order, you flip through them one by one. On a bad day, you look at all one thousand.",
+          {
+            "say": "If they're sorted by roll number, open the middle and drop the half that can't hold yours. Ten looks, at most.",
+            "tone": "reveal"
+          }
+        ]
+      },
+      {
+        "id": "one",
+        "layout": "code",
+        "chapter": "Read it from the code",
+        "label": "SHAPE 1 · ONE LOOP",
+        "title": "One pass: O(n)",
+        "lines": [
+          "function onePass(nums):",
+          "    steps = 0",
+          "    for each x in nums:",
+          "        steps = steps + 1",
+          "    return steps          // n"
+        ],
+        "note": {
+          "text": "10 items → **{{ONE[10]}}** steps. 1,000 items → **{{ONE[1000]:,}}**.",
+          "at": 3
+        },
+        "say": [
+          {
+            "say": "Let's read the cost straight from code. Start a counter at zero.",
+            "upto": 2,
+            "hl": [
+              2
+            ],
+            "tone": "lift"
+          },
+          {
+            "say": "Loop over every item, and add one each time.",
+            "upto": 4,
+            "hl": [
+              3,
+              4
+            ]
+          },
+          {
+            "say": "Return the count. It's exactly n.",
+            "upto": 5,
+            "hl": [
+              5
+            ]
+          },
+          {
+            "say": "Ten items, ten steps. A thousand items, a thousand steps. The steps grow with n, so it's O of n.",
+            "show": "Ten items, ten steps. A thousand items, a thousand steps. The steps grow with n, so it's O(n).",
+            "tone": "warm"
+          }
+        ]
+      },
+      {
+        "id": "pair",
+        "layout": "code",
+        "label": "SHAPE 2 · LOOP INSIDE A LOOP",
+        "title": "Every pair: O(n²)",
+        "lines": [
+          "function everyPair(nums):",
+          "    steps = 0",
+          "    for each x in nums:",
+          "        for each y in nums:",
+          "            steps = steps + 1",
+          "    return steps          // n * n"
+        ],
+        "note": {
+          "text": "10 items → **{{PAIR[10]}}** steps. 1,000 items → **{{PAIR[1000]:,}}**.",
+          "at": 2
+        },
+        "say": [
+          {
+            "say": "Now, what if we put a loop inside a loop?",
+            "upto": 3,
+            "hl": [
+              3
+            ],
+            "tone": "question"
+          },
+          {
+            "say": "For every x, the inner loop runs over all n items again. So we count n times n.",
+            "upto": 6,
+            "hl": [
+              4,
+              5
+            ]
+          },
+          {
+            "say": "Ten items take a hundred steps. A thousand items take a million. That's O of n squared.",
+            "show": "Ten items take 100 steps. A thousand items take 1,000,000. That's O(n²).",
+            "tone": "reveal"
+          }
+        ]
+      },
+      {
+        "id": "half",
+        "layout": "code",
+        "label": "SHAPE 3 · HALVING",
+        "title": "Halving: O(log n)",
+        "lines": [
+          "function halvings(n):",
+          "    steps = 0",
+          "    while n > 1:",
+          "        n = floor(n / 2)",
+          "        steps = steps + 1",
+          "    return steps"
+        ],
+        "note": {
+          "text": "1,000 → **{{HALF[1000]}}** steps. 1,000,000 → only **{{HALF_MILLION}}**.",
+          "at": 2
+        },
+        "say": [
+          {
+            "say": "The third shape halves the input every step, like the sorted answer sheets.",
+            "upto": 3,
+            "hl": [
+              3
+            ],
+            "tone": "lift"
+          },
+          {
+            "say": "Cut n in half, count one step, and repeat while more than one is left.",
+            "upto": 6,
+            "hl": [
+              4,
+              5
+            ]
+          },
+          {
+            "say": "A thousand takes nine steps. A million takes only nineteen. That's O of log n.",
+            "show": "1,000 takes 9 steps. 1,000,000 takes only 19. That's O(log n).",
+            "tone": "lift"
+          }
+        ]
+      },
+      {
+        "id": "grow",
+        "layout": "table",
+        "chapter": "How they grow",
+        "label": "MEASURED",
+        "title": "Steps, by input size",
+        "head": [
+          "SHAPE",
+          "10 ITEMS",
+          "100 ITEMS",
+          "1,000 ITEMS"
+        ],
+        "widths": [
+          "1.2fr",
+          "1fr",
+          "1fr",
+          "1.2fr"
+        ],
+        "mono": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "rows": [
+          [
+            "O(1)",
+            "1",
+            "1",
+            "1"
+          ],
+          [
+            "O(log n)",
+            "{{HALF[10]}}",
+            "{{HALF[100]}}",
+            "{{HALF[1000]}}"
+          ],
+          [
+            "O(n)",
+            "{{ONE[10]}}",
+            "{{ONE[100]}}",
+            "{{ONE[1000]:,}}"
+          ],
+          [
+            "O(n²)",
+            "{{PAIR[10]}}",
+            "{{PAIR[100]:,}}",
+            "**{{PAIR[1000]:,}}**"
+          ]
+        ],
+        "at": [
+          0,
+          1,
+          1,
+          2
+        ],
+        "say": [
+          {
+            "say": "Here they are side by side. Reading one item, like the first one, is always one step: O of 1.",
+            "show": "Here they are side by side. Reading one item, like nums[0], is always one step: O(1).",
+            "tone": "pause"
+          },
+          "Log n and n grow slowly, and steadily.",
+          {
+            "say": "n squared explodes. A thousand items already take a million steps.",
+            "tone": "reveal"
+          }
+        ]
+      },
+      {
+        "id": "trap",
+        "layout": "compare",
+        "chapter": "The trap",
+        "label": "THE TRAP",
+        "title": "Loops in a row don't multiply",
+        "wrong": {
+          "head": "TWO LOOPS, ONE AFTER THE OTHER",
+          "code": [
+            "for each x in nums:",
+            "    steps = steps + 1",
+            "for each x in nums:",
+            "    steps = steps + 1"
+          ],
+          "result": "{{TWO[1000]:,}} steps: still O(n)"
+        },
+        "right": {
+          "head": "A LOOP INSIDE A LOOP",
+          "code": [
+            "for each x in nums:",
+            "    for each y in nums:",
+            "        steps = steps + 1",
+            ""
+          ],
+          "result": "{{PAIR[1000]:,}} steps: O(n²)"
+        },
+        "note": {
+          "text": "2n is still O(n): Big-O drops the constant.",
+          "at": 2
+        },
+        "say": [
+          {
+            "say": "Here's the trap. Two loops, one after the other, over a thousand items, take two thousand steps. That's still O of n.",
+            "show": "Here's the trap. Two loops, one after the other, over 1,000 items take 2,000 steps. That's still O(n).",
+            "tone": "low"
+          },
+          {
+            "say": "Only a loop inside a loop multiplies, to a million steps.",
+            "show": "Only a loop inside a loop multiplies, to 1,000,000 steps."
+          },
+          {
+            "say": "Two n is still O of n. Big-O drops the constant.",
+            "show": "2n is still O(n). Big-O drops the constant.",
+            "tone": "warm"
+          }
+        ]
+      },
+      {
+        "id": "space",
+        "layout": "list",
+        "chapter": "Space",
+        "label": "SPACE",
+        "title": "Memory counts the same way",
+        "cols": 2,
+        "items": [
+          {
+            "head": "O(1) SPACE",
+            "text": "A few variables, like `steps`. Same size for any input."
+          },
+          {
+            "head": "O(n) SPACE",
+            "text": "A new array, set or map that can hold all n items.",
+            "accent": "gold"
+          }
+        ],
+        "say": [
+          {
+            "say": "Memory counts the same way. A few variables, like our step counter, is O of 1 space.",
+            "show": "Memory counts the same way. A few variables, like steps, is O(1) space."
+          },
+          {
+            "say": "A new array, set, or map that can hold all n items is O of n space. Many fast solutions trade memory for time.",
+            "show": "A new array, set or map that can hold all n items is O(n) space. Many fast solutions trade memory for time."
+          }
+        ]
+      },
+      {
+        "id": "end",
+        "layout": "end",
+        "title": "Your turn",
+        "practice": [
+          {
+            "id": 217,
+            "title": "Contains Duplicate",
+            "level": "Easy",
+            "note": "Write the loop-in-a-loop version. What is its Big-O?",
+            "at": 0
+          },
+          {
+            "id": 11,
+            "title": "Container With Most Water",
+            "level": "Medium",
+            "note": "Write only the brute force, and count its steps.",
+            "at": 0
+          }
+        ],
+        "site": 1,
+        "say": [
+          {
+            "say": "For practice, write the brute force for these two, and name its Big-O before you run it."
+          },
+          {
+            "say": "Every function from this video, tested in four languages, is on one hint away dot com.",
+            "show": "Every function from this video, tested in four languages, is on onehintaway.com."
+          }
+        ]
+      }
+    ]
+  },
+  "short": {
+    "kind": "trap",
+    "title": "Two loops is not O(n²)",
+    "scenes": [
+      {
+        "id": "hook",
+        "layout": "code",
+        "label": "THE TRAP",
+        "title": "Is this O(n²)?",
+        "lines": [
+          "for each x in nums:",
+          "    steps = steps + 1",
+          "for each x in nums:",
+          "    steps = steps + 1"
+        ],
+        "say": [
+          {
+            "say": "Two loops in one function. Is this O of n squared?",
+            "show": "Two loops in one function. Is this O(n²)?",
+            "tone": "question",
+            "upto": 4,
+            "hl": [
+              1,
+              3
+            ]
+          }
+        ]
+      },
+      {
+        "id": "count",
+        "layout": "table",
+        "label": "COUNT THE STEPS",
+        "title": "1,000 items",
+        "head": [
+          "CODE",
+          "STEPS"
+        ],
+        "widths": [
+          "1.4fr",
+          "1fr"
+        ],
+        "mono": [
+          1
+        ],
+        "rows": [
+          [
+            "Loops in a row",
+            "{{TWO[1000]:,}}"
+          ],
+          [
+            "Loop inside a loop",
+            "**{{PAIR[1000]:,}}**"
+          ]
+        ],
+        "at": [
+          0,
+          1
+        ],
+        "say": [
+          {
+            "say": "Count it. Over a thousand items, two loops in a row take two thousand steps.",
+            "show": "Count it. Over 1,000 items, two loops in a row take 2,000 steps."
+          },
+          {
+            "say": "A loop inside a loop takes a million.",
+            "show": "A loop inside a loop takes 1,000,000.",
+            "tone": "reveal"
+          }
+        ]
+      },
+      {
+        "id": "rule",
+        "layout": "big",
+        "label": "THE RULE",
+        "title": "In a row: **add**.\nInside: **multiply**.",
+        "items": [
+          {
+            "text": "n + n = 2n → O(n)",
+            "style": "mono",
+            "at": 0
+          },
+          {
+            "text": "n × n → O(n²)",
+            "style": "mono",
+            "at": 1
+          }
+        ],
+        "say": [
+          {
+            "say": "Loops in a row add. n plus n is two n, still O of n.",
+            "show": "Loops in a row add. n + n is 2n, still O(n)."
+          },
+          {
+            "say": "Only loops inside each other multiply.",
+            "show": "Only loops inside each other multiply: O(n²).",
+            "tone": "low"
+          }
+        ]
+      },
+      {
+        "id": "end",
+        "layout": "big",
+        "title": "Big-O in one video",
+        "items": [
+          {
+            "text": "Full video on this channel.\nCode on onehintaway.com",
+            "style": "lead",
+            "at": 0
+          }
+        ],
+        "say": [
+          {
+            "say": "The three shapes of Big-O are in the full video. Code on one hint away dot com.",
+            "show": "The three shapes of Big-O are in the full video. Code on onehintaway.com."
+          }
+        ]
+      }
+    ]
+  },
+  "youtube": {
+    "title": "Big-O explained by counting steps: O(1), O(log n), O(n), O(n²)",
+    "description": "Big-O tells you if a solution is fast enough before you run it. We read it straight from the code: one loop, a loop inside a loop, and halving, with step counts measured by running the code. Plus the trap: two loops in a row are still O(n).\n\n{CHAPTERS}\n\nCode in Java, Python, C++ and JavaScript: https://onehintaway.com/posts/big-o/\nPractice: LeetCode 217, LeetCode 11\n\n#dsa #bigo #leetcode",
+    "tags": [
+      "big o notation",
+      "time complexity",
+      "space complexity",
+      "dsa",
+      "leetcode",
+      "o(n)",
+      "o(log n)",
+      "coding interview"
+    ]
+  }
+}

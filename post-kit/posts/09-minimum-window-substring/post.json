@@ -1,0 +1,408 @@
+{
+ "number": 9,
+ "slug": "minimum-window-substring",
+ "kind": "challenge",
+ "topic": "Minimum Window Substring",
+ "category": "Sliding window",
+ "next_post": "Prefix sum",
+ "cover": {
+  "title": "Minimum Window\n**Substring**",
+  "problem": {
+   "id": 76,
+   "title": "Minimum Window Substring",
+   "difficulty": "Hard"
+  },
+  "blocks": [
+   {
+    "type": "boxes",
+    "values": [
+     "A",
+     "B",
+     "D",
+     "B",
+     "C",
+     "A"
+    ],
+    "size": "l",
+    "label": "SHORTEST PART HOLDING A, B AND C?",
+    "label_color": "muted"
+   }
+  ],
+  "promise": "You'll solve **LeetCode 76** in O(m + n).",
+  "promise_slide": "solution"
+ },
+ "slides": [
+  {
+   "type": "story",
+   "teaser": "The problem, as a shelf of jars",
+   "title": "A recipe run",
+   "scene": "A recipe needs one A, one B and one C. Walk along the jars, grab until you hold all three, then put jars back from the left while you still do.",
+   "blocks": [
+    {
+     "type": "boxes",
+     "values": [
+      "A",
+      "B",
+      "D",
+      "B",
+      "C",
+      "A"
+     ],
+     "size": "l",
+     "gold": [
+      3,
+      4,
+      5
+     ],
+     "indexes": true
+    },
+    {
+     "type": "card",
+     "size": "big",
+     "text": "B C A holds all three. What is the shortest stretch that does?"
+    }
+   ]
+  },
+  {
+   "type": "problem",
+   "teaser": "The real problem",
+   "title": "LeetCode 76",
+   "lead": "Return the shortest part of s that holds every letter of t, repeats included.",
+   "blocks": [
+    {
+     "type": "kv",
+     "rows": [
+      [
+       "s",
+       "\"ABDBCA\""
+      ],
+      [
+       "t",
+       "\"ABC\""
+      ],
+      [
+       "output",
+       "\"{{BEST}}\"",
+       "steel"
+      ]
+     ]
+    },
+    {
+     "type": "text",
+     "text": "LeetCode's own example: ADOBECODEBANC with ABC gives {{LEET}}."
+    },
+    {
+     "type": "text",
+     "style": "muted",
+     "text": "s and t hold up to 100,000 letters. No answer: return \"\"."
+    }
+   ]
+  },
+  {
+   "type": "pause",
+   "try_first": "Find the shortest stretch of ABDBCA holding A, B and C by hand."
+  },
+  {
+   "type": "hint",
+   "teaser": "Hint 1: grow, then shrink",
+   "title": "Grow, then shrink",
+   "lead": "Post 08's window: grow the right end until every letter is inside, then shrink from the left.",
+   "blocks": [
+    {
+     "type": "boxes",
+     "card": true,
+     "label": "FIRST WINDOW WITH ALL THREE",
+     "values": [
+      "A",
+      "B",
+      "D",
+      "B",
+      "C",
+      "A"
+     ],
+     "size": "m",
+     "gold": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "pointers": {
+      "left": 0,
+      "right": 4
+     },
+     "note": "A B D B C holds A, B and C. Now try dropping from the left."
+    }
+   ]
+  },
+  {
+   "type": "hint",
+   "teaser": "Hint 2: count what's needed",
+   "title": "Count what's needed",
+   "lead": "Post 05's map: need[c] is how many more of letter c the window still lacks.",
+   "blocks": [
+    {
+     "type": "kv",
+     "rows": [
+      [
+       "need at the start",
+       "A 1, B 1, C 1"
+      ],
+      [
+       "after A B joins",
+       "A 0, B 0, C 1",
+       "steel"
+      ]
+     ]
+    },
+    {
+     "type": "text",
+     "text": "A letter joining lowers its need; leaving raises it."
+    }
+   ]
+  },
+  {
+   "type": "hint",
+   "teaser": "Hint 3: one number, missing",
+   "title": "One number: missing",
+   "lead": "missing = letters of t not covered yet. Lower it only when need[c] was above 0.",
+   "blocks": [
+    {
+     "type": "card",
+     "label": "THE SECOND B",
+     "text": "need[B] is already 0, so the extra B is [[not progress]]: missing stays 1."
+    }
+   ]
+  },
+  {
+   "type": "hint",
+   "teaser": "Hint 4: record, then shrink",
+   "title": "Record, then shrink",
+   "lead": "While missing is 0, record the window, then drop the left letter.",
+   "blocks": [
+    {
+     "type": "steps",
+     "rows": [
+      {
+       "label": "ABDBC · 5",
+       "values": [
+        "A",
+        "B",
+        "D",
+        "B",
+        "C",
+        "A"
+       ],
+       "gold": [
+        0,
+        1,
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "label": "DBCA · 4",
+       "values": [
+        "A",
+        "B",
+        "D",
+        "B",
+        "C",
+        "A"
+       ],
+       "gold": [
+        2,
+        3,
+        4,
+        5
+       ],
+       "dim": [
+        0,
+        1
+       ]
+      },
+      {
+       "label": "BCA · 3",
+       "values": [
+        "A",
+        "B",
+        "D",
+        "B",
+        "C",
+        "A"
+       ],
+       "gold": [
+        3,
+        4,
+        5
+       ],
+       "dim": [
+        0,
+        1,
+        2
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "bridge"
+  },
+  {
+   "type": "video",
+   "teaser": "Watch the window find it",
+   "title": "Watch it search",
+   "lead": "Grow and shrink on ABDBCA, looking for A, B and C.",
+   "video": {
+    "values": [
+     "A",
+     "B",
+     "D",
+     "B",
+     "C",
+     "A"
+    ],
+    "stage_label": "S",
+    "chips_label": "EACH NEW SHORTEST",
+    "steps": "video_steps()",
+    "final": {
+     "frame": [
+      3,
+      5
+     ],
+     "eq": [
+      "shortest =",
+      "{{BEST}}"
+     ],
+     "caption": "{{BEST}}: 3 letters with A, B and C."
+    }
+   }
+  },
+  {
+   "type": "solution",
+   "teaser": "Part 1: count and grow",
+   "title": "Count and grow",
+   "code": {
+    "lines": [
+     "function minWindow(s, t):",
+     "    need = empty map   // default 0",
+     "    for each c in t:",
+     "        need[c] = need[c] + 1",
+     "    missing = length(t)",
+     "    left = 0",
+     "    bestStart = 0",
+     "    bestLen = infinity",
+     "    for right from 0 to length(s) - 1:",
+     "        c = s[right]",
+     "        if need[c] > 0:",
+     "            missing = missing - 1",
+     "        need[c] = need[c] - 1",
+     "        while missing == 0:"
+    ],
+    "highlight": [
+     11
+    ]
+   }
+  },
+  {
+   "type": "solution",
+   "teaser": "Part 2: record and shrink",
+   "title": "Record and shrink",
+   "code": {
+    "lines": [
+     "            if right - left + 1 < bestLen:",
+     "                bestStart = left",
+     "                bestLen = right - left + 1",
+     "            d = s[left]",
+     "            need[d] = need[d] + 1",
+     "            if need[d] > 0:",
+     "                missing = missing + 1",
+     "            left = left + 1",
+     "    if bestLen == infinity:",
+     "        return \"\"",
+     "    return s from bestStart, bestLen letters"
+    ],
+    "highlight": [
+     20
+    ]
+   },
+   "cost": {
+    "label": false,
+    "mt": 0,
+    "items": [
+     {
+      "label": "Time",
+      "value": "O(m + n)",
+      "gold": true,
+      "note": "Each letter joins once, leaves once."
+     },
+     {
+      "label": "Space",
+      "value": "O(k)",
+      "note": "k different letters."
+     }
+    ]
+   }
+  },
+  {
+   "type": "closing",
+   "teaser": "Last slide: your turn",
+   "learnt": [
+    "Grow until complete",
+    "need and missing",
+    "Shrink while complete"
+   ],
+   "pattern": "Grow until nothing is missing, then shrink while nothing is.",
+   "problems": [
+    {
+     "difficulty": "Medium",
+     "id": 567,
+     "title": "Permutation in String",
+     "note": "Same need and missing, with a fixed-size window.",
+     "complexity": "n",
+     "constraints": {
+      "n": 10000
+     },
+     "url": "https://leetcode.com/problems/permutation-in-string/"
+    }
+   ]
+  }
+ ],
+ "blog": {
+  "pattern": "Sliding window",
+  "section": "Arrays and hashing",
+  "summary": "The shortest stretch that holds every letter of t: grow until nothing is missing, then shrink.",
+  "tags": [
+   "sliding-window",
+   "hash-map",
+   "strings",
+   "hard"
+  ],
+  "worked": {
+   "name": "LeetCode 76 Minimum Window Substring",
+   "url": "https://leetcode.com/problems/minimum-window-substring/"
+  },
+  "tested_what": "The grow-and-shrink window with need and missing",
+  "tested_inputs": "hand-picked cases (the LeetCode examples, no answer, t longer than s, repeated letters in t) and random strings of up to 12 letters from 2 to 4 letters, plus one string of 400 letters",
+  "tested_against": "a brute force that tries every stretch from the shortest up",
+  "tested_extra": "The walk, the answer and the trap result come from running the code."
+ },
+ "caption": {
+  "first": "LeetCode 76 Minimum Window Substring solved with hints: a sliding window plus need and missing counts.",
+  "lines": [
+   "Grow until nothing is missing, record, then shrink while nothing is.",
+   "The trap: lower missing for every letter and ABDBCA returns \"{{WRONG}}\".",
+   "Practice: LeetCode 567 (medium)."
+  ],
+  "cta": "Save it for revision.",
+  "tags": [
+   "#dsa",
+   "#leetcode",
+   "#codinginterview",
+   "#slidingwindow"
+  ]
+ }
+}

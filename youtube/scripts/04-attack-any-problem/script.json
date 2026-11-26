@@ -1,0 +1,576 @@
+{
+  "number": 4,
+  "slug": "attack-any-problem",
+  "topic": "How to attack any problem",
+  "kind": "foundation",
+  "checks": [
+    [
+      "ANSWER",
+      5
+    ],
+    [
+      "BEST[-1]",
+      5
+    ],
+    [
+      "TESTED",
+      2000
+    ],
+    [
+      "PAIRS",
+      10000000000
+    ]
+  ],
+  "long": {
+    "scenes": [
+      {
+        "id": "hook",
+        "layout": "title",
+        "chapter": "Blank screen?",
+        "kicker": "FOUNDATIONS · VIDEO 4",
+        "title": "Blank screen?\nRun **four steps**.",
+        "sub": "Before you write a single line of the real solution.",
+        "say": [
+          {
+            "say": "You open a problem, and the screen stays blank. What now?",
+            "tone": "question"
+          },
+          {
+            "say": "Run four steps, before you write a single line of the real solution.",
+            "tone": "warm"
+          }
+        ]
+      },
+      {
+        "id": "plan",
+        "layout": "list",
+        "label": "THE PLAN",
+        "title": "Four steps, in order",
+        "cols": 2,
+        "items": [
+          {
+            "head": "1 · READ THE CONSTRAINTS",
+            "text": "They tell you how fast it must be."
+          },
+          {
+            "head": "2 · BRUTE FORCE FIRST",
+            "text": "Slow, but correct."
+          },
+          {
+            "head": "3 · THEN OPTIMISE",
+            "text": "Find the work you repeat, and keep it.",
+            "accent": "gold"
+          },
+          {
+            "head": "4 · TEST THE EDGES",
+            "text": "Tiny, sorted, equal, empty."
+          }
+        ],
+        "say": [
+          {
+            "say": "Think of visiting a friend. First you check how long you have. That's reading the constraints.",
+            "tone": "warm"
+          },
+          "Then you take any route that works. That's the brute force.",
+          {
+            "say": "Then you look for a shortcut. That's optimising.",
+            "tone": "lift"
+          },
+          "And finally you check it's the right house. That's testing the edges."
+        ]
+      },
+      {
+        "id": "problem",
+        "layout": "list",
+        "chapter": "The worked example",
+        "label": "LEETCODE 121 · EASY",
+        "title": "Best Time to Buy and Sell Stock",
+        "cols": 1,
+        "items": [
+          {
+            "head": "THE PROBLEM",
+            "text": "`prices[i]` is the price on day i. Buy on one day, sell on a later day. Return the best profit, or 0."
+          },
+          {
+            "head": "EXAMPLE",
+            "text": "`prices = [7, 1, 5, 3, 6, 4]` → **{{ANSWER}}**: buy at 1, sell at 6.",
+            "accent": "gold"
+          }
+        ],
+        "say": [
+          {
+            "say": "Let's run the plan on a real one: LeetCode 121, Best Time to Buy and Sell Stock.",
+            "tone": "lift"
+          },
+          "You get the price for each day. Buy one day, sell on a later day, and return the best profit. For this input, it's 5: buy at 1, sell at 6."
+        ]
+      },
+      {
+        "id": "step1",
+        "layout": "table",
+        "chapter": "1 · Read the constraints",
+        "label": "STEP 1",
+        "title": "Read the constraints",
+        "head": [
+          "INPUT SIZE UP TO",
+          "AIM FOR",
+          "WHY"
+        ],
+        "widths": [
+          "1fr",
+          "0.8fr",
+          "2fr"
+        ],
+        "mono": [
+          0,
+          1
+        ],
+        "rows": [
+          [
+            "1,000",
+            "O(n²)",
+            "1,000² is a million steps. Fine."
+          ],
+          [
+            "100,000",
+            "O(n)",
+            "100,000² is **10 billion** steps. Too slow."
+          ],
+          [
+            "1,000,000,000",
+            "O(log n)",
+            "Even one pass is too many steps."
+          ]
+        ],
+        "at": [
+          1,
+          2,
+          3
+        ],
+        "say": [
+          {
+            "say": "The problem says up to a hundred thousand prices. A computer does about a hundred million basic steps a second.",
+            "show": "The problem says up to 100,000 prices. A computer does about 100,000,000 basic steps a second.",
+            "tone": "low"
+          },
+          "Up to a thousand items, a loop inside a loop is fine: a million steps.",
+          {
+            "say": "But a hundred thousand squared is ten billion steps. Too slow. So we aim for O of n.",
+            "show": "But 100,000² is 10,000,000,000 steps. Too slow. So we aim for O(n).",
+            "tone": "reveal"
+          },
+          "And at a billion, even one pass is too many. That calls for O of log n."
+        ]
+      },
+      {
+        "id": "step2",
+        "layout": "code",
+        "chapter": "2 · Brute force first",
+        "label": "STEP 2",
+        "title": "Brute force first",
+        "lines": [
+          "function maxProfit(prices):",
+          "    n = length(prices)",
+          "    best = 0",
+          "    for buy from 0 to n - 1:",
+          "        for sell from buy + 1 to n - 1:",
+          "            profit = prices[sell] - prices[buy]",
+          "            best = max(best, profit)",
+          "    return best"
+        ],
+        "note": {
+          "text": "Every buy day, every later sell day: O(n²). Slow, but correct.",
+          "at": 4
+        },
+        "say": [
+          {
+            "say": "Now the brute force. Start with the best profit at zero.",
+            "upto": 3,
+            "hl": [
+              3
+            ],
+            "tone": "lift"
+          },
+          {
+            "say": "Try every buy day.",
+            "upto": 4,
+            "hl": [
+              4
+            ]
+          },
+          {
+            "say": "And every sell day after it.",
+            "upto": 5,
+            "hl": [
+              5
+            ]
+          },
+          {
+            "say": "Work out the profit, and keep the best one. Return it.",
+            "upto": 8,
+            "hl": [
+              6,
+              7,
+              8
+            ]
+          },
+          {
+            "say": "It's O of n squared. Too slow for the limits, but it's correct, and that matters in a minute.",
+            "show": "It's O(n²). Too slow for the limits, but it's correct, and that matters in a minute.",
+            "tone": "warm"
+          }
+        ]
+      },
+      {
+        "id": "insight",
+        "layout": "table",
+        "chapter": "3 · Then optimise",
+        "label": "STEP 3",
+        "title": "What does each sell day need?",
+        "head": [
+          "DAY",
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "widths": [
+          "2.2fr",
+          "1fr",
+          "1fr",
+          "1fr",
+          "1fr",
+          "1fr",
+          "1fr"
+        ],
+        "mono": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "rows": [
+          [
+            "price",
+            "{{PRICE[0]}}",
+            "{{PRICE[1]}}",
+            "{{PRICE[2]}}",
+            "{{PRICE[3]}}",
+            "{{PRICE[4]}}",
+            "{{PRICE[5]}}"
+          ],
+          [
+            "cheapest so far",
+            "{{CHEAP[0]}}",
+            "{{CHEAP[1]}}",
+            "{{CHEAP[2]}}",
+            "{{CHEAP[3]}}",
+            "{{CHEAP[4]}}",
+            "{{CHEAP[5]}}"
+          ],
+          [
+            "best profit",
+            "{{BEST[0]}}",
+            "{{BEST[1]}}",
+            "{{BEST[2]}}",
+            "{{BEST[3]}}",
+            "**{{BEST[4]}}**",
+            "**{{BEST[5]}}**"
+          ]
+        ],
+        "at": [
+          0,
+          1,
+          2
+        ],
+        "say": [
+          {
+            "say": "Where's the repeated work? For each sell day, the brute force rescans every earlier day.",
+            "tone": "question"
+          },
+          {
+            "say": "But to sell on a given day, you only need one thing: the cheapest price before it. Keep it in one variable.",
+            "tone": "reveal"
+          },
+          "Then the best profit is today's price minus that cheapest price, updated as you go. One pass."
+        ]
+      },
+      {
+        "id": "step3",
+        "layout": "code",
+        "label": "STEP 3",
+        "title": "One pass",
+        "lines": [
+          "function maxProfit(prices):",
+          "    cheapest = prices[0]",
+          "    best = 0",
+          "    for each price in prices:",
+          "        cheapest = min(cheapest, price)",
+          "        best = max(best, price - cheapest)",
+          "    return best"
+        ],
+        "note": {
+          "text": "O(n) time, O(1) space.",
+          "at": 3
+        },
+        "say": [
+          {
+            "say": "Here's the code. Start with the first price as the cheapest, and best at zero.",
+            "upto": 3,
+            "hl": [
+              2,
+              3
+            ]
+          },
+          {
+            "say": "Walk the prices once.",
+            "upto": 4,
+            "hl": [
+              4
+            ]
+          },
+          {
+            "say": "Update the cheapest price so far, then the best profit if we sold today.",
+            "upto": 6,
+            "hl": [
+              5,
+              6
+            ]
+          },
+          {
+            "say": "Return best. One loop: O of n time, and O of 1 space.",
+            "show": "Return best. One loop: O(n) time, and O(1) space.",
+            "upto": 7,
+            "hl": [
+              7
+            ],
+            "tone": "lift"
+          }
+        ]
+      },
+      {
+        "id": "step4",
+        "layout": "table",
+        "chapter": "4 · Test the edges",
+        "label": "STEP 4",
+        "title": "Test the edges",
+        "head": [
+          "INPUT",
+          "WHY IT'S AN EDGE",
+          "ANSWER"
+        ],
+        "widths": [
+          "1.3fr",
+          "1.6fr",
+          "0.6fr"
+        ],
+        "mono": [
+          0,
+          2
+        ],
+        "rows": [
+          [
+            "[5]",
+            "one day: nothing to sell",
+            "{{EDGES['[5]']}}"
+          ],
+          [
+            "[7, 6, 4, 3, 1]",
+            "prices only fall",
+            "{{EDGES['[7, 6, 4, 3, 1]']}}"
+          ],
+          [
+            "[2, 2, 2]",
+            "all equal",
+            "{{EDGES['[2, 2, 2]']}}"
+          ]
+        ],
+        "at": [
+          0,
+          1,
+          2
+        ],
+        "say": [
+          "Last step: the edges. One day only. Nothing to sell, so zero.",
+          {
+            "say": "Prices that only fall. No profit, so zero, not a negative number.",
+            "tone": "low"
+          },
+          "All prices equal. Zero again."
+        ]
+      },
+      {
+        "id": "trap",
+        "layout": "compare",
+        "chapter": "The trap",
+        "label": "THE TRAP",
+        "title": "Keep the slow version",
+        "wrong": {
+          "head": "DELETE IT",
+          "text": "The fast one works on the example, so the brute force goes.",
+          "result": "a hidden bug stays hidden"
+        },
+        "right": {
+          "head": "KEEP BOTH",
+          "text": "Run both on many random inputs. Different answers? The fast one has a bug.",
+          "result": "matched on {{TESTED:,}} inputs"
+        },
+        "say": [
+          {
+            "say": "Here's the trap. The fast version passes the example, so you delete the slow one.",
+            "tone": "low"
+          },
+          {
+            "say": "Keep it. Run both on many random inputs. If they ever disagree, the fast one has a bug. These two matched on two thousand.",
+            "show": "Keep it. Run both on many random inputs. If they ever disagree, the fast one has a bug. These two matched on 2,000.",
+            "tone": "warm"
+          }
+        ]
+      },
+      {
+        "id": "end",
+        "layout": "end",
+        "title": "Your turn",
+        "practice": [
+          {
+            "id": 1,
+            "title": "Two Sum",
+            "level": "Easy",
+            "note": "Write the loop-in-a-loop version first. Can you beat O(n²)?",
+            "at": 0
+          },
+          {
+            "id": 238,
+            "title": "Product of Array Except Self",
+            "level": "Medium",
+            "note": "Brute force first, then find the repeated work.",
+            "at": 0
+          }
+        ],
+        "site": 1,
+        "say": [
+          {
+            "say": "Run the four steps on these two. Two Sum, and Product of Array Except Self.",
+            "tone": "warm"
+          },
+          {
+            "say": "Both versions of today's code, in four languages, are on one hint away dot com.",
+            "show": "Both versions of today's code, in four languages, are on onehintaway.com."
+          }
+        ]
+      }
+    ]
+  },
+  "short": {
+    "kind": "hack",
+    "title": "Read the constraints first",
+    "scenes": [
+      {
+        "id": "hook",
+        "layout": "big",
+        "label": "CODING HACK",
+        "title": "The constraints tell you the **Big-O**",
+        "items": [
+          {
+            "text": "1 <= n <= 10^5",
+            "style": "mono",
+            "at": 0
+          }
+        ],
+        "say": [
+          {
+            "say": "Before you solve anything, read the constraints. They tell you how fast your solution must be.",
+            "tone": "lift"
+          }
+        ]
+      },
+      {
+        "id": "math",
+        "layout": "table",
+        "label": "DO THE MATH",
+        "title": "About 10⁸ steps a second",
+        "head": [
+          "n UP TO",
+          "AIM FOR"
+        ],
+        "widths": [
+          "0.75fr",
+          "1.25fr"
+        ],
+        "mono": [
+          0,
+          1
+        ],
+        "rows": [
+          [
+            "1,000",
+            "O(n²)"
+          ],
+          [
+            "100,000",
+            "O(n log n) or O(n)"
+          ],
+          [
+            "10⁹",
+            "O(log n)"
+          ]
+        ],
+        "at": [
+          0,
+          1,
+          2
+        ],
+        "say": [
+          {
+            "say": "A computer does about a hundred million basic steps a second. Up to a thousand items, a loop in a loop is fine.",
+            "show": "A computer does about 100,000,000 basic steps a second. Up to 1,000 items, a loop in a loop is fine."
+          },
+          {
+            "say": "A hundred thousand squared is ten billion. Too slow. Aim for n log n, or n.",
+            "show": "100,000² is 10,000,000,000. Too slow. Aim for O(n log n) or O(n).",
+            "tone": "reveal"
+          },
+          {
+            "say": "At a billion, even one pass is too slow. That means log n.",
+            "show": "At 1,000,000,000, even one pass is too slow. That means O(log n)."
+          }
+        ]
+      },
+      {
+        "id": "end",
+        "layout": "big",
+        "title": "Four steps for any problem",
+        "items": [
+          {
+            "text": "Full video on this channel.\nCode on onehintaway.com",
+            "style": "lead",
+            "at": 0
+          }
+        ],
+        "say": [
+          {
+            "say": "That's step one of four. The full plan is on this channel. Code on one hint away dot com.",
+            "show": "That's step one of four. The full plan is on this channel. Code on onehintaway.com."
+          }
+        ]
+      }
+    ]
+  },
+  "youtube": {
+    "title": "How to attack any DSA problem: 4 steps, worked on LeetCode 121",
+    "description": "Blank screen? Read the constraints, write the brute force, then optimise, then test the edges. Worked step by step on LeetCode 121, Best Time to Buy and Sell Stock, with the code written line by line. Plus the trap: never delete the slow version.\n\n{CHAPTERS}\n\nCode in Java, Python, C++ and JavaScript: https://onehintaway.com/posts/attack-any-problem/\nPractice: LeetCode 1, LeetCode 238\n\n#dsa #leetcode #codinginterview",
+    "tags": [
+      "problem solving",
+      "leetcode 121",
+      "best time to buy and sell stock",
+      "brute force",
+      "dsa",
+      "coding interview",
+      "time complexity"
+    ]
+  }
+}

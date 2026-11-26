@@ -1,0 +1,333 @@
+{
+ "number": 14,
+ "slug": "moores-voting",
+ "kind": "concept",
+ "topic": "Moore's Voting",
+ "category": "Moore's voting",
+ "next_post": "Cyclic sort",
+ "cover": {
+  "title": "Moore's\n**voting**",
+  "lead": "The value that appears more than half the time, with one candidate and one count.",
+  "use_it_when": "You need the value that appears more than half the time, with O(1) extra space.",
+  "why_it_matters": "It finds a majority without a hash map: two variables, one pass.",
+  "blocks": [
+   {
+    "type": "boxes",
+    "size": "s",
+    "gap": 24,
+    "mt": 18,
+    "values": [
+     2,
+     1,
+     1,
+     3,
+     1
+    ],
+    "gold": [
+     1,
+     2,
+     4
+    ]
+   }
+  ],
+  "promise": "You'll write Moore's voting in {lines} lines.",
+  "promise_slide": "template"
+ },
+ "slides": [
+  {
+   "type": "video",
+   "teaser": "Watch the votes cancel",
+   "title": "Watch it vote",
+   "lead": "The majority of 2 1 1 3 1.",
+   "video": {
+    "values": [
+     2,
+     1,
+     1,
+     3,
+     1
+    ],
+    "stage_label": "VOTES",
+    "chips_label": "CANDIDATE: COUNT",
+    "steps": "video_steps()",
+    "final": {
+     "gold": [
+      1,
+      2,
+      4
+     ],
+     "eq": [
+      "majority =",
+      "{{ANSWER}}"
+     ],
+     "caption": "{{ANSWER}} outlasts every cancel."
+    }
+   }
+  },
+  {
+   "type": "story",
+   "teaser": "The tea-or-coffee idea",
+   "title": "Pair off and leave",
+   "scene": "At a party, people who want different drinks pair up and leave together. If one drink has over half the votes, its fans are the ones left.",
+   "blocks": [
+    {
+     "type": "boxes",
+     "label": "2 = COFFEE, 1 = TEA, 3 = JUICE",
+     "values": [
+      2,
+      1,
+      1,
+      3,
+      1
+     ],
+     "gold": [
+      1,
+      2,
+      4
+     ]
+    },
+    {
+     "type": "card",
+     "text": "Each pair takes away at most one tea. Tea has [[more than all the rest]], so tea is left."
+    }
+   ]
+  },
+  {
+   "type": "picture",
+   "teaser": "Each vote, step by step",
+   "title": "Count up or cancel",
+   "lead": "Count 0? This vote is the new candidate. Same as the candidate: +1. Different: −1.",
+   "blocks": [
+    {
+     "type": "steps",
+     "rows": [
+      {
+       "label": "2: new, count 1",
+       "values": [
+        2,
+        1,
+        1,
+        3,
+        1
+       ],
+       "gold": [
+        0
+       ]
+      },
+      {
+       "label": "1: cancels, 0",
+       "values": [
+        2,
+        1,
+        1,
+        3,
+        1
+       ],
+       "gold": [
+        1
+       ],
+       "dim": [
+        0
+       ]
+      },
+      {
+       "label": "1: new, count 1",
+       "values": [
+        2,
+        1,
+        1,
+        3,
+        1
+       ],
+       "gold": [
+        2
+       ],
+       "dim": [
+        0,
+        1
+       ]
+      },
+      {
+       "label": "3: cancels, 0",
+       "values": [
+        2,
+        1,
+        1,
+        3,
+        1
+       ],
+       "gold": [
+        3
+       ],
+       "dim": [
+        0,
+        1,
+        2
+       ]
+      }
+     ]
+    }
+   ],
+   "quickcheck": {
+    "question": "Moore's voting on 5 4 4. Which candidate comes out?",
+    "answer": "Answer: {{majority_element([5, 4, 4])}}. 5 and the first 4 cancel, so the last 4 is new.",
+    "check": "majority_element([5, 4, 4])"
+   }
+  },
+  {
+   "type": "extra",
+   "label": "NO MAJORITY?",
+   "board": "Answer + no majority",
+   "teaser": "The answer, then a warning",
+   "title": "Check when not promised",
+   "blocks": [
+    {
+     "type": "card",
+     "label": "1 2 3",
+     "text": "There is no majority, but the loop still returns [[{{majority_element(NOMAJ)}}]]."
+    },
+    {
+     "type": "text",
+     "text": "If a majority isn't promised, count the candidate once more: keep it only if it appears over n/2 times."
+    }
+   ]
+  },
+  {
+   "type": "template",
+   "teaser": "Moore's voting in 11 lines",
+   "title": "Majority element",
+   "code": {
+    "lines": [
+     "function majorityElement(nums):",
+     "    candidate = none",
+     "    count = 0",
+     "    for each x in nums:",
+     "        if count == 0:",
+     "            candidate = x   // new candidate",
+     "        if x == candidate:",
+     "            count = count + 1",
+     "        else:",
+     "            count = count - 1",
+     "    return candidate"
+    ],
+    "highlight": [
+     5
+    ]
+   },
+   "explain": "Line 5 picks a new candidate when the count hits 0. Lines 7 to 10 vote for or against it.",
+   "example": {
+    "call": "majorityElement([2, 1, 1, 3, 1])",
+    "expr": "ANSWER",
+    "show": "{{ANSWER}}"
+   }
+  },
+  {
+   "type": "trap",
+   "teaser": "The bug that invents a majority",
+   "title": "Verify if not promised",
+   "lead": "The loop always returns someone, majority or not.",
+   "trap": {
+    "call": "majority([1, 2, 3])",
+    "wrong": {
+     "code": [
+      "return candidate"
+     ],
+     "note": "3 appears once, not over half.",
+     "result": "{{majority_element(NOMAJ)}}"
+    },
+    "right": {
+     "code": [
+      "count it again,",
+      "over n / 2?"
+     ],
+     "note": "No value passes the check.",
+     "result": "none"
+    }
+   },
+   "cost": {
+    "items": [
+     {
+      "label": "Time",
+      "value": "O(n)",
+      "gold": true
+     },
+     {
+      "label": "Extra space",
+      "value": "O(1)"
+     },
+     {
+      "label": "Hash map count",
+      "value": "O(n)"
+     }
+    ],
+    "note": "A hash map also works, with O(n) space."
+   }
+  },
+  {
+   "type": "practice",
+   "teaser": "Last slide: your turn",
+   "learnt": [
+    "One candidate, one count",
+    "Different: cancel",
+    "Verify if not promised"
+   ],
+   "problems": [
+    {
+     "difficulty": "Easy",
+     "id": 169,
+     "title": "Majority Element",
+     "note": "This exact post: a majority is promised.",
+     "complexity": "n",
+     "constraints": {
+      "n": 50000
+     },
+     "url": "https://leetcode.com/problems/majority-element/"
+    },
+    {
+     "difficulty": "Medium",
+     "id": 229,
+     "title": "Majority Element II",
+     "note": "Over n/3 times now: keep two candidates.",
+     "complexity": "n",
+     "constraints": {
+      "n": 50000
+     },
+     "url": "https://leetcode.com/problems/majority-element-ii/"
+    }
+   ]
+  }
+ ],
+ "blog": {
+  "pattern": "Moore's voting",
+  "section": "Arrays and hashing",
+  "summary": "Find the value that appears more than half the time, with one candidate and one count.",
+  "tags": [
+   "moores-voting",
+   "boyer-moore",
+   "arrays"
+  ],
+  "worked": {
+   "name": "LeetCode 169 Majority Element",
+   "url": "https://leetcode.com/problems/majority-element/"
+  },
+  "tested_what": "Moore's voting",
+  "tested_inputs": "hand-picked cases (one value, the LeetCode examples, values at ±1,000,000,000) and random arrays of up to 15 values with a majority mixed in, plus one array of 3,000 values",
+  "tested_against": "counting every value",
+  "tested_extra": "The votes, the answer and the no-majority result come from running the code."
+ },
+ "caption": {
+  "first": "Moore's voting for LeetCode 169 Majority Element: one candidate and one count find the over-half value in one pass.",
+  "lines": [
+   "Count 0: new candidate. Same: +1. Different: −1.",
+   "The trap: with no promised majority, 1 2 3 still returns 3. Verify it.",
+   "Practice: LeetCode 169 (easy) and LeetCode 229 (medium)."
+  ],
+  "cta": "Save it for revision.",
+  "tags": [
+   "#dsa",
+   "#leetcode",
+   "#codinginterview",
+   "#arrays"
+  ]
+ }
+}

@@ -1,0 +1,779 @@
+{
+  "number": 1,
+  "slug": "eight-data-structures",
+  "topic": "Eight data structures",
+  "kind": "foundation",
+  "checks": [
+    [
+      "A2",
+      9
+    ],
+    [
+      "LEN",
+      5
+    ],
+    [
+      "LAST",
+      1
+    ],
+    [
+      "SUB",
+      "ode"
+    ],
+    [
+      "APPLE",
+      3
+    ],
+    [
+      "FIG",
+      false
+    ],
+    [
+      "SEEN_SIZE",
+      1
+    ],
+    [
+      "TOP",
+      5
+    ],
+    [
+      "POPPED",
+      5
+    ],
+    [
+      "TOP_AFTER",
+      3
+    ],
+    [
+      "FRONT",
+      4
+    ],
+    [
+      "REMOVED",
+      4
+    ],
+    [
+      "FRONT_AFTER",
+      8
+    ],
+    [
+      "SECOND_BOX",
+      2
+    ]
+  ],
+  "long": {
+    "scenes": [
+      {
+        "id": "hook",
+        "layout": "title",
+        "chapter": "Eight structures",
+        "kicker": "FOUNDATIONS · VIDEO 1",
+        "title": "Patterns are built on\n**eight structures**.",
+        "sub": "What each one is for, and what each step costs.",
+        "say": [
+          "Two pointers, sliding window, B F S, dynamic programming.",
+          {
+            "say": "Most patterns you'll meet are built on the same eight structures.",
+            "tone": "lift"
+          },
+          {
+            "say": "In this video: what each one is for, and what each step costs.",
+            "tone": "warm"
+          }
+        ]
+      },
+      {
+        "id": "array",
+        "layout": "boxes",
+        "chapter": "Array and string",
+        "label": "1 · ARRAY",
+        "title": "A row of boxes, each with an index",
+        "values": [
+          7,
+          2,
+          9,
+          4,
+          1
+        ],
+        "under": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "states": [
+          {
+            "at": 0,
+            "note": "a = [7, 2, 9, 4, 1]"
+          },
+          {
+            "at": 1,
+            "gold": [
+              2
+            ],
+            "note": "`a[2]` is **{{A2}}**, read straight away"
+          },
+          {
+            "at": 2,
+            "steel": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "note": "`length(a)` is **{{LEN}}**"
+          }
+        ],
+        "say": [
+          "An array is a row of boxes, side by side. Each box has a number, called its index, starting from zero.",
+          {
+            "say": "Ask for a at index 2, and you get {{A2}}, straight away. Reading by index costs O of 1.",
+            "show": "Ask for a[2], and you get {{A2}}, straight away. Reading by index costs O(1).",
+            "tone": "lift"
+          },
+          {
+            "say": "Its length is {{LEN}}. Searching for a value, though, means walking the whole row.",
+            "tone": "low"
+          }
+        ]
+      },
+      {
+        "id": "string",
+        "layout": "boxes",
+        "label": "2 · STRING",
+        "title": "A row of characters",
+        "values": [
+          "c",
+          "o",
+          "d",
+          "e"
+        ],
+        "under": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "states": [
+          {
+            "at": 0,
+            "gold": [
+              0
+            ],
+            "note": "`s[0]` is **'c'**"
+          },
+          {
+            "at": 1,
+            "steel": [
+              1,
+              2,
+              3
+            ],
+            "note": "`substring(s, 1)` is **\"{{SUB}}\"**"
+          }
+        ],
+        "say": [
+          "A string is the same idea: a row of characters, read by index. The box at index 0 holds c.",
+          {
+            "say": "Taking a substring copies characters, so it costs O of n. From index 1, you get o, d, e.",
+            "tone": "low"
+          }
+        ]
+      },
+      {
+        "id": "map",
+        "layout": "table",
+        "chapter": "Hash map and set",
+        "label": "3 · HASH MAP",
+        "title": "Key in, value out",
+        "head": [
+          "PSEUDOCODE",
+          "WHAT HAPPENS"
+        ],
+        "widths": [
+          "1fr",
+          "1fr"
+        ],
+        "mono": [
+          0
+        ],
+        "rows": [
+          [
+            "m[\"apple\"] = 3",
+            "stores the pair apple → 3"
+          ],
+          [
+            "m[\"apple\"]",
+            "gives back **{{APPLE}}**"
+          ],
+          [
+            "\"fig\" in m",
+            "**false**, no such key"
+          ]
+        ],
+        "at": [
+          0,
+          1,
+          2
+        ],
+        "say": [
+          "A hash map stores pairs: a key, and its value. Store apple with the value 3.",
+          {
+            "say": "Give it the key apple, and it hands back 3, on average in O of 1.",
+            "show": "Give it the key apple, and it hands back 3, on average in O(1).",
+            "tone": "lift"
+          },
+          "Ask whether fig is in it, and the answer is false."
+        ]
+      },
+      {
+        "id": "set",
+        "layout": "boxes",
+        "label": "4 · HASH SET",
+        "title": "Have I seen this before?",
+        "values": [
+          9
+        ],
+        "states": [
+          {
+            "at": 0,
+            "gold": [
+              0
+            ],
+            "note": "`add 9 to seen`"
+          },
+          {
+            "at": 1,
+            "steel": [
+              0
+            ],
+            "note": "add 9 again: **still one 9**"
+          },
+          {
+            "at": 2,
+            "steel": [
+              0
+            ],
+            "note": "`4 in seen` is **false**"
+          }
+        ],
+        "say": [
+          "A hash set is a bag of unique values. Add 9.",
+          {
+            "say": "Add 9 again, and nothing changes. It keeps one copy.",
+            "tone": "reveal"
+          },
+          {
+            "say": "It answers one question, fast. Have I seen this value? Is 4 in it? No.",
+            "tone": "question"
+          }
+        ]
+      },
+      {
+        "id": "stack",
+        "layout": "boxes",
+        "chapter": "Stack and queue",
+        "label": "5 · STACK",
+        "title": "Last in, first out",
+        "values": [
+          3
+        ],
+        "states": [
+          {
+            "at": 0,
+            "values": [
+              3,
+              5
+            ],
+            "gold": [
+              1
+            ],
+            "note": "`push 5`: it lands on top"
+          },
+          {
+            "at": 1,
+            "values": [
+              3,
+              5
+            ],
+            "gold": [
+              1
+            ],
+            "note": "`top of st` is **{{TOP}}**, only a look"
+          },
+          {
+            "at": 2,
+            "values": [
+              3
+            ],
+            "steel": [
+              0
+            ],
+            "note": "`pop` removes **{{POPPED}}**, now the top is **{{TOP_AFTER}}**"
+          }
+        ],
+        "say": [
+          {
+            "say": "A stack is a pile of plates. You only touch the top one. Push 5 onto a stack holding 3.",
+            "tone": "warm"
+          },
+          "Look at the top, and you see 5, without removing it.",
+          {
+            "say": "Pop, and 5 comes off. The top is 3 again. Each of these is O of 1.",
+            "tone": "reveal"
+          }
+        ]
+      },
+      {
+        "id": "queue",
+        "layout": "boxes",
+        "label": "6 · QUEUE",
+        "title": "First in, first out",
+        "values": [
+          4,
+          8
+        ],
+        "under": [
+          "front",
+          "back"
+        ],
+        "states": [
+          {
+            "at": 0,
+            "gold": [
+              1
+            ],
+            "note": "`add 8 to q`: joins at the back"
+          },
+          {
+            "at": 1,
+            "values": [
+              4,
+              8
+            ],
+            "gold": [
+              0
+            ],
+            "note": "`remove front of q` gives **{{REMOVED}}**"
+          },
+          {
+            "at": 2,
+            "values": [
+              "",
+              8
+            ],
+            "dim": [
+              0
+            ],
+            "steel": [
+              1
+            ],
+            "note": "now the front is **{{FRONT_AFTER}}**"
+          }
+        ],
+        "say": [
+          "A queue is a ticket line. You join at the back. Add 8 behind 4.",
+          {
+            "say": "You leave from the front. Remove the front, and you get 4, the one that came first.",
+            "tone": "lift"
+          },
+          "Now 8 is at the front. Breadth-first search runs on this."
+        ]
+      },
+      {
+        "id": "list",
+        "layout": "boxes",
+        "chapter": "Linked list and tree",
+        "label": "7 · LINKED LIST",
+        "title": "Each node knows only the next",
+        "values": [
+          7,
+          "→",
+          2,
+          "→",
+          9,
+          "→",
+          "none"
+        ],
+        "states": [
+          {
+            "at": 0,
+            "gold": [
+              0
+            ],
+            "dim": [
+              1,
+              3,
+              5
+            ],
+            "note": "`head` is the first node"
+          },
+          {
+            "at": 1,
+            "steel": [
+              0,
+              2,
+              4
+            ],
+            "dim": [
+              1,
+              3,
+              5
+            ],
+            "gold": [
+              6
+            ],
+            "note": "`cur = cur.next` until **none**"
+          }
+        ],
+        "say": [
+          "A linked list is a chain of nodes. Each node holds a value, and a pointer to the next node.",
+          {
+            "say": "To reach the third node, you walk from the head, one step at a time. So reaching node k costs O of k.",
+            "tone": "low"
+          }
+        ]
+      },
+      {
+        "id": "tree",
+        "layout": "big",
+        "label": "8 · BINARY TREE",
+        "title": "Up to two children each",
+        "items": [
+          {
+            "text": "      8\n    ╱   ╲\n   3     10",
+            "style": "mono",
+            "at": 0
+          },
+          {
+            "text": "`root.value` = 8 · `root.left.value` = 3 · `root.right.value` = 10",
+            "style": "lead",
+            "at": 1
+          }
+        ],
+        "say": [
+          "A binary tree starts at the root. Every node has up to two children, a left and a right.",
+          {
+            "say": "The root holds 8. Its left child holds 3, and its right child holds 10. A node with no children is a leaf.",
+            "tone": "warm"
+          }
+        ]
+      },
+      {
+        "id": "cost",
+        "layout": "table",
+        "chapter": "What each step costs",
+        "label": "THE COST",
+        "title": "What each step costs",
+        "head": [
+          "STRUCTURE",
+          "STEP",
+          "COST"
+        ],
+        "widths": [
+          "1fr",
+          "1.3fr",
+          "1.3fr"
+        ],
+        "mono": [
+          2
+        ],
+        "rows": [
+          [
+            "Array, string",
+            "read by index",
+            "O(1)"
+          ],
+          [
+            "Array, string",
+            "search, insert in the middle",
+            "O(n)"
+          ],
+          [
+            "Hash map, set",
+            "add, look up",
+            "O(1) on average"
+          ],
+          [
+            "Stack, queue",
+            "push, pop, front",
+            "O(1)"
+          ],
+          [
+            "Linked list, tree",
+            "walk node by node",
+            "O(n)"
+          ]
+        ],
+        "at": [
+          0,
+          0,
+          1,
+          2,
+          3
+        ],
+        "say": [
+          {
+            "say": "Here's the whole picture. Reading by index is instant. Searching a row means looking at every box.",
+            "tone": "pause"
+          },
+          "Maps and sets add and find in constant time, on average.",
+          "Stacks and queues work only at their ends, so every step is constant.",
+          "Lists and trees are walked one node at a time."
+        ]
+      },
+      {
+        "id": "trap",
+        "layout": "compare",
+        "chapter": "The trap",
+        "label": "THE TRAP",
+        "title": "Indexes start at 0",
+        "wrong": {
+          "head": "WRONG",
+          "code": [
+            "a = [7, 2, 9, 4, 1]",
+            "a[2]  // the second box?"
+          ],
+          "result": "expects {{SECOND_BOX}}"
+        },
+        "right": {
+          "head": "RIGHT",
+          "code": [
+            "a = [7, 2, 9, 4, 1]",
+            "a[2]  // the third box"
+          ],
+          "result": "gets {{A2}}"
+        },
+        "note": {
+          "text": "The last box is `a[length(a) - 1]`. `a[length(a)]` is past the end.",
+          "at": 2
+        },
+        "say": [
+          {
+            "say": "Here's a mistake beginners make. They read a at index 2 as the second box, and expect 2.",
+            "show": "Here's a mistake beginners make. They read a[2] as the second box, and expect 2.",
+            "tone": "low"
+          },
+          {
+            "say": "But counting starts at zero, so index 2 is the third box. The answer is 9.",
+            "tone": "reveal"
+          },
+          {
+            "say": "So the last box is at length minus 1. Ask for index length, and you've gone past the end.",
+            "show": "So the last box is a[length(a) - 1]. a[length(a)] is past the end."
+          }
+        ]
+      },
+      {
+        "id": "end",
+        "layout": "end",
+        "title": "Your turn",
+        "practice": [
+          {
+            "id": 217,
+            "title": "Contains Duplicate",
+            "level": "Easy",
+            "note": "A hash set answers it in one pass.",
+            "at": 0
+          },
+          {
+            "id": 20,
+            "title": "Valid Parentheses",
+            "level": "Easy",
+            "note": "A stack, one bracket at a time.",
+            "at": 0
+          }
+        ],
+        "site": 1,
+        "say": [
+          "Practise two of them. Contains Duplicate needs a hash set. Valid Parentheses needs a stack.",
+          {
+            "say": "The code for all eight structures, in four languages, is on one hint away dot com.",
+            "show": "The code for all eight structures, in four languages, is on onehintaway.com."
+          }
+        ]
+      }
+    ]
+  },
+  "short": {
+    "kind": "trap",
+    "title": "a[2] is not the second box",
+    "scenes": [
+      {
+        "id": "hook",
+        "layout": "boxes",
+        "label": "THE TRAP",
+        "title": "What is a[2]?",
+        "values": [
+          7,
+          2,
+          9,
+          4,
+          1
+        ],
+        "states": [
+          {
+            "at": 0,
+            "note": "a = [7, 2, 9, 4, 1]"
+          },
+          {
+            "at": 1,
+            "red": [
+              1
+            ],
+            "note": "**{{SECOND_BOX}}**? The second box?"
+          }
+        ],
+        "say": [
+          {
+            "say": "Quick one. In this array, what is a at index 2?",
+            "show": "Quick one. In this array, what is a[2]?",
+            "tone": "question"
+          },
+          {
+            "say": "If you said 2, the second box, you've hit the trap.",
+            "tone": "low"
+          }
+        ]
+      },
+      {
+        "id": "fix",
+        "layout": "boxes",
+        "label": "INDEXES START AT 0",
+        "title": "Count from **zero**",
+        "values": [
+          7,
+          2,
+          9,
+          4,
+          1
+        ],
+        "under": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "states": [
+          {
+            "at": 0,
+            "steel": [
+              0,
+              1
+            ],
+            "note": "index 0, index 1…"
+          },
+          {
+            "at": 1,
+            "gold": [
+              2
+            ],
+            "steel": [
+              0,
+              1
+            ],
+            "note": "`a[2]` is **{{A2}}**, the third box"
+          }
+        ],
+        "say": [
+          "Indexes start at zero. The first box is index 0, the second is index 1.",
+          {
+            "say": "So index 2 is the third box. The answer is 9.",
+            "tone": "reveal"
+          }
+        ]
+      },
+      {
+        "id": "last",
+        "layout": "boxes",
+        "label": "SAME TRAP, LAST BOX",
+        "title": "The last box",
+        "values": [
+          7,
+          2,
+          9,
+          4,
+          1,
+          ""
+        ],
+        "under": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "states": [
+          {
+            "at": 0,
+            "gold": [
+              4
+            ],
+            "dim": [
+              5
+            ],
+            "note": "`a[length(a) - 1]` is **{{LAST}}**"
+          },
+          {
+            "at": 1,
+            "red": [
+              5
+            ],
+            "steel": [
+              4
+            ],
+            "note": "`a[length(a)]` is past the end"
+          }
+        ],
+        "say": [
+          {
+            "say": "Same trap at the other end. The last box is at length minus 1, which is 4.",
+            "show": "Same trap at the other end. The last box is a[length(a) - 1], index 4."
+          },
+          {
+            "say": "Index 5 doesn't exist. That's the out of bounds error.",
+            "show": "Index 5 doesn't exist. That's the index-out-of-bounds error."
+          }
+        ]
+      },
+      {
+        "id": "end",
+        "layout": "big",
+        "title": "Eight structures, one video",
+        "items": [
+          {
+            "text": "Full video on this channel.\nCode on onehintaway.com",
+            "style": "lead",
+            "at": 0
+          }
+        ],
+        "say": [
+          {
+            "say": "All eight data structures are in the full video. Code on one hint away dot com.",
+            "show": "All eight data structures are in the full video. Code on onehintaway.com."
+          }
+        ]
+      }
+    ]
+  },
+  "youtube": {
+    "title": "The 8 data structures DSA patterns are built on",
+    "description": "Array, string, hash map, hash set, stack, queue, linked list and binary tree: what each one is for, and what each step costs in Big-O. Plus the index trap, and how to avoid it.\n\n{CHAPTERS}\n\nCode in Java, Python, C++ and JavaScript: https://onehintaway.com/posts/eight-data-structures/\nPractice: LeetCode 217, LeetCode 20\n\n#dsa #datastructures #leetcode",
+    "tags": [
+      "data structures",
+      "dsa",
+      "array",
+      "hash map",
+      "stack",
+      "queue",
+      "linked list",
+      "binary tree",
+      "big o",
+      "leetcode"
+    ]
+  }
+}

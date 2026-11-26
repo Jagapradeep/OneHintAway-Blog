@@ -1,0 +1,334 @@
+{
+ "number": 16,
+ "slug": "merge-intervals",
+ "kind": "concept",
+ "topic": "Merge Intervals",
+ "category": "Merge intervals",
+ "next_post": "Next permutation",
+ "cover": {
+  "title": "Merge intervals",
+  "lead": "Overlapping ranges to combine: sort by start, then stretch the last block or start a new one.",
+  "use_it_when": "Ranges like bookings or time slots overlap and must be combined.",
+  "why_it_matters": "Sorting by start turns a tangle of ranges into one pass.",
+  "blocks": [
+   {
+    "type": "boxes",
+    "size": "s",
+    "gap": 24,
+    "mt": 18,
+    "values": [
+     "1–4",
+     "5–9"
+    ],
+    "steel": [
+     0,
+     1
+    ]
+   }
+  ],
+  "promise": "You'll write it in {lines} lines.",
+  "promise_slide": "template"
+ },
+ "slides": [
+  {
+   "type": "video",
+   "teaser": "Watch the blocks form",
+   "title": "Watch them merge",
+   "lead": "Five bookings, sorted by start.",
+   "video": {
+    "values": [
+     "1–3",
+     "2–4",
+     "5–8",
+     "6–7",
+     "8–9"
+    ],
+    "stage_label": "BOOKINGS",
+    "chips_label": "BLOCK AFTER EACH BOOKING",
+    "steps": "video_steps()",
+    "final": {
+     "gold": [
+      0,
+      2
+     ],
+     "dim": [
+      1,
+      3,
+      4
+     ],
+     "eq": [
+      "blocks:",
+      "{{len(MERGED)}}"
+     ],
+     "caption": "Two blocks: {{fmt(MERGED)}}."
+    }
+   }
+  },
+  {
+   "type": "story",
+   "teaser": "The meeting-room idea",
+   "title": "One meeting room",
+   "scene": "A room's bookings arrive in any order. Sort them by start hour, and each one either stretches the current block or starts a new one.",
+   "blocks": [
+    {
+     "type": "boxes",
+     "label": "SORTED BY START",
+     "values": [
+      "1–3",
+      "2–4",
+      "5–8",
+      "6–7",
+      "8–9"
+     ],
+     "steel": [
+      0,
+      1
+     ]
+    },
+    {
+     "type": "card",
+     "text": "2–4 starts before 1–3 ends, so they [[join into 1–4]]."
+    }
+   ]
+  },
+  {
+   "type": "picture",
+   "teaser": "Each booking, step by step",
+   "title": "Stretch or start",
+   "lead": "Overlap if the next start ≤ the block's end. Then end = max of the two ends.",
+   "blocks": [
+    {
+     "type": "steps",
+     "rows": [
+      {
+       "label": "2 ≤ 3: join",
+       "values": [
+        "1–3",
+        "2–4",
+        "5–8",
+        "6–7",
+        "8–9"
+       ],
+       "gold": [
+        0
+       ],
+       "steel": [
+        1
+       ]
+      },
+      {
+       "label": "5 > 4: new",
+       "values": [
+        "1–4",
+        "2–4",
+        "5–8",
+        "6–7",
+        "8–9"
+       ],
+       "gold": [
+        2
+       ],
+       "dim": [
+        1
+       ]
+      },
+      {
+       "label": "6 ≤ 8: join",
+       "values": [
+        "1–4",
+        "2–4",
+        "5–8",
+        "6–7",
+        "8–9"
+       ],
+       "gold": [
+        2
+       ],
+       "steel": [
+        3
+       ],
+       "dim": [
+        1
+       ]
+      },
+      {
+       "label": "8 ≤ 8: join",
+       "values": [
+        "1–4",
+        "2–4",
+        "5–8",
+        "6–7",
+        "8–9"
+       ],
+       "gold": [
+        2
+       ],
+       "steel": [
+        4
+       ],
+       "dim": [
+        1,
+        3
+       ]
+      }
+     ]
+    }
+   ],
+   "quickcheck": {
+    "question": "Merge [2, 4], [1, 3], [6, 8]. What comes out?",
+    "answer": "Answer: {{fmt(merge([[2, 4], [1, 3], [6, 8]]))}}. Sorted, 2 starts before 3 ends.",
+    "check": "fmt(merge([[2, 4], [1, 3], [6, 8]]))"
+   }
+  },
+  {
+   "type": "extra",
+   "label": "WHY SORT FIRST",
+   "board": "Answer + why sort first",
+   "teaser": "The answer, then why sort",
+   "title": "Sort makes it one pass",
+   "blocks": [
+    {
+     "type": "card",
+     "label": "AFTER SORTING",
+     "text": "A booking can only overlap [[the last block]]. Every earlier block ended before it."
+    },
+    {
+     "type": "text",
+     "text": "Unsorted, any booking could overlap any block, so you'd compare everything with everything."
+    }
+   ]
+  },
+  {
+   "type": "template",
+   "teaser": "Merge intervals in 12 lines",
+   "title": "Merge intervals",
+   "code": {
+    "lines": [
+     "function merge(intervals):",
+     "    sort intervals by start",
+     "    merged = empty array",
+     "    add intervals[0] to merged",
+     "    for i from 1 to length(intervals) - 1:",
+     "        [start, end] = intervals[i]",
+     "        last = merged[length(merged) - 1]",
+     "        if start <= last[1]:",
+     "            last[1] = max(last[1], end)",
+     "        else:",
+     "            add [start, end] to merged",
+     "    return merged"
+    ],
+    "highlight": [
+     9
+    ]
+   },
+   "explain": "Line 8 checks for overlap with the last block. Line 9 stretches it, but never shrinks it."
+  },
+  {
+   "type": "trap",
+   "teaser": "The bug that splits a block",
+   "title": "Keep the max",
+   "lead": "A booking inside the block must not shrink it.",
+   "trap": {
+    "call": "merge([[5, 8], [1, 3], [8, 9], [6, 7], [2, 4]])",
+    "wrong": {
+     "code": [
+      "last[1] = end"
+     ],
+     "note": "6–7 shrinks 5–8 to 5–7, so 8–9 splits off.",
+     "result": "{{fmt(WRONG)}}"
+    },
+    "right": {
+     "code": [
+      "last[1] = max(last[1], end)"
+     ],
+     "note": "5–8 keeps its end; 8–9 joins.",
+     "result": "{{fmt(MERGED)}}"
+    }
+   },
+   "cost": {
+    "items": [
+     {
+      "label": "Time",
+      "value": "O(n log n)",
+      "gold": true
+     },
+     {
+      "label": "Space",
+      "value": "O(n)"
+     },
+     {
+      "label": "Every pair",
+      "value": "O(n²)"
+     }
+    ],
+    "note": "The sort is the cost; the merge itself is one pass."
+   }
+  },
+  {
+   "type": "practice",
+   "teaser": "Last slide: your turn",
+   "learnt": [
+    "Sort by start",
+    "Overlap: start ≤ end",
+    "End = max"
+   ],
+   "problems": [
+    {
+     "difficulty": "Easy",
+     "id": 2848,
+     "title": "Points That Intersect With Cars",
+     "note": "Merge, then add end − start + 1 per block.",
+     "complexity": "n*log(n)",
+     "constraints": {
+      "n": 100
+     },
+     "url": "https://leetcode.com/problems/points-that-intersect-with-cars/"
+    },
+    {
+     "difficulty": "Medium",
+     "id": 57,
+     "title": "Insert Interval",
+     "note": "Already sorted. Add the new one, then merge.",
+     "complexity": "n*log(n)",
+     "constraints": {
+      "n": 10000
+     },
+     "url": "https://leetcode.com/problems/insert-interval/"
+    }
+   ]
+  }
+ ],
+ "blog": {
+  "pattern": "Merge intervals",
+  "section": "Arrays and hashing",
+  "summary": "Overlapping ranges to combine: sort by start, then stretch the last block or start a new one.",
+  "tags": [
+   "merge-intervals",
+   "sorting",
+   "arrays"
+  ],
+  "worked": {
+   "name": "LeetCode 56 Merge Intervals",
+   "url": "https://leetcode.com/problems/merge-intervals/"
+  },
+  "tested_what": "Sort, then merge",
+  "tested_inputs": "hand-picked cases (the LeetCode examples, touching ranges, one range inside another, single points) and random lists of up to 8 ranges, plus one list of 2,000 ranges",
+  "tested_against": "a brute force that marks every covered point",
+  "tested_extra": "The blocks, the quick-check answer and the trap result come from running the code."
+ },
+ "caption": {
+  "first": "Merge intervals for LeetCode 56: sort by start, then stretch the last block or start a new one.",
+  "lines": [
+   "Overlap if the next start ≤ the block's end; the end becomes the max.",
+   "The trap: last[1] = end lets 6–7 shrink 5–8, and the block splits in two.",
+   "Practice: LeetCode 2848 (easy) and LeetCode 57 (medium)."
+  ],
+  "cta": "Save it for revision.",
+  "tags": [
+   "#dsa",
+   "#leetcode",
+   "#codinginterview",
+   "#intervals"
+  ]
+ }
+}

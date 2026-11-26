@@ -1,0 +1,347 @@
+{
+ "number": 18,
+ "slug": "trapping-rain-water",
+ "kind": "challenge",
+ "topic": "Trapping Rain Water",
+ "category": "Two pointers",
+ "next_post": "GCD and primes",
+ "cover": {
+  "title": "Trapping\n**Rain Water**",
+  "problem": {
+   "id": 42,
+   "title": "Trapping Rain Water",
+   "difficulty": "Hard"
+  },
+  "blocks": [
+   {
+    "type": "boxes",
+    "values": [
+     3,
+     0,
+     1,
+     4,
+     0,
+     2
+    ],
+    "size": "l",
+    "label": "BAR HEIGHTS: HOW MUCH WATER STAYS?",
+    "label_color": "muted"
+   }
+  ],
+  "promise": "You'll solve **LeetCode 42** in O(n).",
+  "promise_slide": "solution"
+ },
+ "slides": [
+  {
+   "type": "story",
+   "teaser": "The problem, as rain on a wall",
+   "title": "Rain on a wall",
+   "scene": "Rain falls on a row of walls of different heights. Water collects in the dips between them and spills over the lower side.",
+   "blocks": [
+    {
+     "type": "bars",
+     "heights": [
+      3,
+      0,
+      1,
+      4,
+      0,
+      2
+     ],
+     "water": {
+      "1": 3,
+      "2": 2,
+      "4": 2
+     },
+     "indexes": true
+    },
+    {
+     "type": "card",
+     "size": "big",
+     "text": "How many squares of water stay on top?"
+    }
+   ]
+  },
+  {
+   "type": "problem",
+   "teaser": "The real problem",
+   "title": "LeetCode 42",
+   "lead": "Given bar heights, return how much water is trapped after rain.",
+   "blocks": [
+    {
+     "type": "kv",
+     "rows": [
+      [
+       "height",
+       "[3, 0, 1, 4, 0, 2]"
+      ],
+      [
+       "output",
+       "{{WATER}}",
+       "steel"
+      ]
+     ]
+    },
+    {
+     "type": "text",
+     "text": "Water above each bar: {{sp(LEVELS)}}."
+    },
+    {
+     "type": "text",
+     "style": "muted",
+     "text": "Up to 20,000 bars, each up to 100,000 tall."
+    }
+   ]
+  },
+  {
+   "type": "pause",
+   "try_first": "Work out the water above each of the 6 bars by hand."
+  },
+  {
+   "type": "hint",
+   "teaser": "Hint 1: one bar at a time",
+   "title": "Water above one bar",
+   "lead": "Water above a bar = the lower of the tallest walls on its two sides, minus the bar.",
+   "blocks": [
+    {
+     "type": "bars",
+     "card": true,
+     "label": "BAR 1: min(3, 4) − 0 = 3",
+     "heights": [
+      3,
+      0,
+      1,
+      4,
+      0,
+      2
+     ],
+     "gold": [
+      1
+     ],
+     "steel": [
+      0,
+      3
+     ],
+     "water": {
+      "1": 3
+     }
+    }
+   ]
+  },
+  {
+   "type": "hint",
+   "teaser": "Hint 2: too slow",
+   "title": "Don't rescan",
+   "lead": "Scanning both sides for every bar is O(n²). Each tallest wall can be carried along instead.",
+   "blocks": [
+    {
+     "type": "kv",
+     "rows": [
+      [
+       "tallest from the left",
+       "3 3 3 4 4 4"
+      ],
+      [
+       "tallest from the right",
+       "4 4 4 4 2 2",
+       "steel"
+      ]
+     ]
+    },
+    {
+     "type": "text",
+     "text": "Two arrays make it O(n) time, but O(n) space too."
+    }
+   ]
+  },
+  {
+   "type": "hint",
+   "teaser": "Hint 3: two walkers",
+   "title": "Two walkers",
+   "lead": "Start at both ends. Settle the lower side: its own tallest wall decides its water.",
+   "blocks": [
+    {
+     "type": "bars",
+     "card": true,
+     "label": "2 < 3, SO SETTLE THE RIGHT",
+     "heights": [
+      3,
+      0,
+      1,
+      4,
+      0,
+      2
+     ],
+     "gold": [
+      5
+     ],
+     "steel": [
+      0
+     ]
+    }
+   ]
+  },
+  {
+   "type": "hint",
+   "teaser": "Hint 4: why the lower side",
+   "title": "Why lower is safe",
+   "lead": "The other side holds a bar at least as tall, so the lower side's own wall is the limit.",
+   "blocks": [
+    {
+     "type": "card",
+     "label": "AT THE 0 ON THE RIGHT",
+     "text": "rightMax is 2 and the left end is 3, so the water is [[2 − 0 = 2]], whatever lies between."
+    }
+   ]
+  },
+  {
+   "type": "bridge"
+  },
+  {
+   "type": "video",
+   "teaser": "Watch the water settle",
+   "title": "Watch it fill",
+   "lead": "Two walkers on 3 0 1 4 0 2.",
+   "video": {
+    "mode": "bars",
+    "values": [
+     3,
+     0,
+     1,
+     4,
+     0,
+     2
+    ],
+    "stage_label": "HEIGHTS",
+    "steps": "video_steps()",
+    "final": {
+     "water": {
+      "1": 3,
+      "2": 2,
+      "4": 2
+     },
+     "eq": [
+      "water =",
+      "{{WATER}}"
+     ],
+     "caption": "{{WATER}} squares of water stay."
+    }
+   }
+  },
+  {
+   "type": "solution",
+   "teaser": "Part 1: the two walkers",
+   "title": "Two walkers",
+   "code": {
+    "lines": [
+     "function trap(height):",
+     "    left = 0",
+     "    right = length(height) - 1",
+     "    leftMax = 0",
+     "    rightMax = 0",
+     "    water = 0",
+     "    while left < right:",
+     "        if height[left] < height[right]:",
+     "            bar = height[left]",
+     "            leftMax = max(leftMax, bar)",
+     "            water = water + leftMax - bar",
+     "            left = left + 1"
+    ],
+    "highlight": [
+     8
+    ]
+   }
+  },
+  {
+   "type": "solution",
+   "teaser": "Part 2: the right side",
+   "title": "The other side",
+   "code": {
+    "lines": [
+     "        else:",
+     "            bar = height[right]",
+     "            rightMax = max(rightMax, bar)",
+     "            water = water + rightMax - bar",
+     "            right = right - 1",
+     "    return water"
+    ],
+    "highlight": [
+     16
+    ]
+   },
+   "cost": {
+    "label": false,
+    "mt": 0,
+    "items": [
+     {
+      "label": "Time",
+      "value": "O(n)",
+      "gold": true,
+      "note": "Each bar is settled once."
+     },
+     {
+      "label": "Space",
+      "value": "O(1)",
+      "note": "Four numbers, no arrays."
+     }
+    ]
+   }
+  },
+  {
+   "type": "closing",
+   "teaser": "Last slide: your turn",
+   "learnt": [
+    "min(walls) − bar",
+    "Settle the lower side",
+    "Two walkers, O(1)"
+   ],
+   "pattern": "Two pointers that settle the lower side, using that side's tallest wall.",
+   "problems": [
+    {
+     "difficulty": "Medium",
+     "id": 11,
+     "title": "Container With Most Water",
+     "note": "Same walls, same two walkers, a new question.",
+     "complexity": "n",
+     "constraints": {
+      "n": 100000
+     },
+     "url": "https://leetcode.com/problems/container-with-most-water/"
+    }
+   ]
+  }
+ ],
+ "blog": {
+  "pattern": "Two pointers",
+  "section": "Arrays and hashing",
+  "summary": "Water above each bar is the lower of the tallest walls on its two sides, minus the bar.",
+  "tags": [
+   "two-pointers",
+   "arrays",
+   "hard"
+  ],
+  "worked": {
+   "name": "LeetCode 42 Trapping Rain Water",
+   "url": "https://leetcode.com/problems/trapping-rain-water/"
+  },
+  "tested_what": "The two-walker solution",
+  "tested_inputs": "hand-picked cases (the LeetCode examples, one or two bars, rising, falling, flat, very tall walls) and random rows of up to 14 bars, plus one row of 3,000 bars",
+  "tested_against": "a brute force that finds both tallest walls for every bar",
+  "tested_extra": "The water per bar, the total and the trap result come from running the code."
+ },
+ "caption": {
+  "first": "LeetCode 42 Trapping Rain Water solved with hints: two walkers settle the lower side in O(n) time and O(1) space.",
+  "lines": [
+   "Water above a bar = min(tallest left, tallest right) − bar.",
+   "The trap: settle the taller side and 3 0 1 4 0 2 gives 5 instead of 7.",
+   "Practice: LeetCode 11 (medium)."
+  ],
+  "cta": "Save it for revision.",
+  "tags": [
+   "#dsa",
+   "#leetcode",
+   "#codinginterview",
+   "#twopointers"
+  ]
+ }
+}

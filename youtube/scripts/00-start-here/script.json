@@ -1,0 +1,407 @@
+{
+  "number": 0,
+  "slug": "start-here",
+  "topic": "Start here",
+  "kind": "foundation",
+  "long": {
+    "scenes": [
+      {
+        "id": "hook",
+        "layout": "list",
+        "chapter": "Sound familiar?",
+        "label": "SOUND FAMILIAR?",
+        "title": "Tutorial makes sense. **Then a blank page.**",
+        "cols": 3,
+        "items": [
+          {
+            "head": "1",
+            "text": "You watch the tutorial. It makes sense."
+          },
+          {
+            "head": "2",
+            "text": "You open a problem on your own."
+          },
+          {
+            "head": "3",
+            "text": "Your mind goes blank.",
+            "accent": "red"
+          }
+        ],
+        "say": [
+          {
+            "say": "You watch a tutorial, and every step makes sense.",
+            "tone": "warm"
+          },
+          "Then you open a problem on your own.",
+          {
+            "say": "And your mind goes blank.",
+            "tone": "reveal"
+          }
+        ]
+      },
+      {
+        "id": "idea",
+        "layout": "title",
+        "kicker": "ONE HINT AWAY",
+        "title": "The right **hint**,\nat the right time.",
+        "sub": "Learn the pattern once. Then solve the problem yourself, one hint at a time.",
+        "say": [
+          {
+            "say": "Another tutorial won't fix that.",
+            "tone": "low"
+          },
+          "What helps is the right hint, at the right moment, while you still do the thinking.",
+          {
+            "say": "That's what this channel is: one hint away.",
+            "tone": "lift"
+          }
+        ]
+      },
+      {
+        "id": "concept",
+        "layout": "list",
+        "chapter": "Two kinds of video",
+        "label": "VIDEO TYPE 1",
+        "title": "Pattern videos",
+        "cols": 3,
+        "items": [
+          {
+            "head": "SPOT IT",
+            "text": "The clue that points to the pattern."
+          },
+          {
+            "head": "STORY",
+            "text": "An everyday example. No code."
+          },
+          {
+            "head": "PICTURE",
+            "text": "A dry run on a tiny input."
+          },
+          {
+            "head": "CODE",
+            "text": "Written **line by line**.",
+            "accent": "gold"
+          },
+          {
+            "head": "TRAP",
+            "text": "The mistake beginners make."
+          },
+          {
+            "head": "PRACTICE",
+            "text": "Two problems for you."
+          }
+        ],
+        "say": [
+          {
+            "say": "There are two kinds of video here. The first teaches a pattern.",
+            "tone": "lift"
+          },
+          "You learn the clue that tells you the pattern fits.",
+          "Then an everyday story, with no code at all.",
+          "Then a picture: a dry run on a tiny input.",
+          {
+            "say": "Then the code, written line by line, in the same order as the explanation.",
+            "tone": "reveal"
+          },
+          {
+            "say": "Then the trap, the mistake beginners really make.",
+            "tone": "low"
+          },
+          "And two problems to practise."
+        ]
+      },
+      {
+        "id": "ladder",
+        "layout": "list",
+        "label": "VIDEO TYPE 2",
+        "title": "Hint ladders",
+        "cols": 2,
+        "items": [
+          {
+            "head": "THE PROBLEM",
+            "text": "A hard problem, told as a real-life situation."
+          },
+          {
+            "head": "PAUSE",
+            "text": "Stop the video and try it yourself.",
+            "accent": "gold"
+          },
+          {
+            "head": "HINT 1, 2, 3…",
+            "text": "One hint at a time. Pause and try again after each."
+          },
+          {
+            "head": "SOLUTION",
+            "text": "The walk-through, then the code line by line."
+          }
+        ],
+        "say": [
+          {
+            "say": "The second kind is the hint ladder, for hard problems.",
+            "tone": "lift"
+          },
+          {
+            "say": "You get the problem, and then you pause the video and try it.",
+            "tone": "warm"
+          },
+          {
+            "say": "Stuck? Each hint gives you one more step. Pause, and try again.",
+            "tone": "question"
+          },
+          "At the end, the walk-through, and the code, line by line."
+        ]
+      },
+      {
+        "id": "pause",
+        "layout": "pause",
+        "label": "HOW PAUSES WORK",
+        "text": "When you see this, pause the video\nand try before the next hint.",
+        "say": [
+          "When a hint lands, you'll see this. Pause the video and try it yourself."
+        ]
+      },
+      {
+        "id": "map",
+        "layout": "table",
+        "chapter": "The map",
+        "label": "THE MAP",
+        "title": "Ten stages, in order",
+        "head": [
+          "STAGES 1 TO 5",
+          "STAGES 6 TO 10"
+        ],
+        "widths": [
+          "1fr",
+          "1fr"
+        ],
+        "mono": [],
+        "rows": [
+          [
+            "`1` Foundations",
+            "`6` Stacks and queues"
+          ],
+          [
+            "`2` Arrays, hashing, maths",
+            "`7` Trees and heaps"
+          ],
+          [
+            "`3` Recursion, sorting, search",
+            "`8` Graphs"
+          ],
+          [
+            "`4` Matrices, strings, backtracking",
+            "`9` Dynamic programming"
+          ],
+          [
+            "`5` Lists, bits, greedy",
+            "`10` Tries and advanced"
+          ]
+        ],
+        "at": [
+          0,
+          0,
+          1,
+          1,
+          2
+        ],
+        "say": [
+          {
+            "say": "Here's the map. Ten stages, and each one builds on the last.",
+            "tone": "lift"
+          },
+          "We start with foundations, then arrays, hashing and recursion, sorting and searching.",
+          {
+            "say": "Later come trees, graphs, and dynamic programming. You never meet an idea before the one it needs.",
+            "tone": "warm"
+          }
+        ]
+      },
+      {
+        "id": "foundations",
+        "layout": "list",
+        "label": "STAGE 1",
+        "title": "Foundations, before any pattern",
+        "cols": 2,
+        "items": [
+          {
+            "head": "VIDEO 1",
+            "text": "Eight data structures, and what each step costs."
+          },
+          {
+            "head": "VIDEO 2",
+            "text": "Big-O: will it be fast enough?"
+          },
+          {
+            "head": "VIDEO 3",
+            "text": "One pseudocode, four languages."
+          },
+          {
+            "head": "VIDEO 4",
+            "text": "How to attack any problem.",
+            "accent": "gold"
+          }
+        ],
+        "say": [
+          {
+            "say": "Stage one is four foundation videos.",
+            "tone": "lift"
+          },
+          "The eight data structures every pattern uses.",
+          "Big-O, so you can tell if an idea is fast enough before you run it.",
+          "How one pseudocode becomes Java, Python, C plus plus and JavaScript.",
+          "And a four-step plan for any problem."
+        ]
+      },
+      {
+        "id": "use",
+        "layout": "list",
+        "chapter": "Use it like this",
+        "label": "THREE HABITS",
+        "cols": 1,
+        "items": [
+          {
+            "head": "1 · PAPER FIRST",
+            "text": "Trace the tiny example by hand. Then code."
+          },
+          {
+            "head": "2 · PAUSE WHEN ASKED",
+            "text": "Try before the next hint."
+          },
+          {
+            "head": "3 · AI FOR HINTS, NOT ANSWERS",
+            "text": "`Give me one hint for LeetCode 1.\nDon't show the solution unless I ask.`",
+            "accent": "gold"
+          }
+        ],
+        "say": [
+          {
+            "say": "Three habits make this work.",
+            "tone": "pause"
+          },
+          "Solve on paper first. Trace the tiny example by hand, then code.",
+          "Pause when the video asks. A hint only helps if you try before the next one.",
+          {
+            "say": "And if you use AI, ask it for one hint, not the answer. Here's a prompt you can copy.",
+            "tone": "lift"
+          }
+        ]
+      },
+      {
+        "id": "end",
+        "layout": "end",
+        "title": "Code for every video",
+        "site": 0,
+        "say": [
+          {
+            "say": "The code for every video, in four languages, is on one hint away dot com.",
+            "show": "The code for every video, in four languages, is on onehintaway.com."
+          }
+        ]
+      }
+    ]
+  },
+  "short": {
+    "kind": "hack",
+    "title": "Ask AI for hints, not answers",
+    "scenes": [
+      {
+        "id": "hook",
+        "layout": "big",
+        "label": "CODING HACK",
+        "title": "Stop asking AI\nfor the **answer**.",
+        "items": [
+          {
+            "text": "Ask it for one hint.",
+            "style": "gold",
+            "at": 1
+          }
+        ],
+        "say": [
+          {
+            "say": "Stop asking AI for the answer.",
+            "tone": "lift"
+          },
+          "Ask it for one hint instead."
+        ]
+      },
+      {
+        "id": "why",
+        "layout": "compare",
+        "label": "WHY",
+        "title": "Same AI, two prompts",
+        "wrong": {
+          "head": "SOLVE LEETCODE 1",
+          "text": "You read a solution.\nNext problem: blank again.",
+          "at": 0
+        },
+        "right": {
+          "head": "GIVE ME ONE HINT",
+          "text": "You still do the thinking.\nThat's what sticks.",
+          "at": 1
+        },
+        "say": [
+          {
+            "say": "Ask for the solution, and you read a solution. The next problem is blank again.",
+            "tone": "low"
+          },
+          "Ask for one hint, and you still do the thinking. That's the part that sticks."
+        ]
+      },
+      {
+        "id": "prompt",
+        "layout": "big",
+        "label": "COPY THIS",
+        "title": "The prompt",
+        "items": [
+          {
+            "text": "`Give me one hint for LeetCode 1.\nDon't show the solution\nunless I ask.`",
+            "style": "lead",
+            "at": 0
+          },
+          {
+            "text": "Stuck again? Ask for the next hint.",
+            "style": "gold",
+            "at": 1
+          }
+        ],
+        "say": [
+          "Copy this. Give me one hint for LeetCode 1. Don't show the solution unless I ask.",
+          {
+            "say": "Still stuck? Ask for the next hint, not the code.",
+            "tone": "question"
+          }
+        ]
+      },
+      {
+        "id": "end",
+        "layout": "big",
+        "title": "Learn the pattern first",
+        "items": [
+          {
+            "text": "Full videos on this channel.\nCode on onehintaway.com",
+            "style": "lead",
+            "at": 0
+          }
+        ],
+        "say": [
+          {
+            "say": "The patterns behind the hints are on this channel. Code on one hint away dot com.",
+            "show": "The patterns behind the hints are on this channel. Code on onehintaway.com."
+          }
+        ]
+      }
+    ]
+  },
+  "youtube": {
+    "title": "Start here: how to learn DSA one hint at a time",
+    "description": "Tutorials make sense, then a new problem leaves you blank. This channel teaches DSA patterns one idea at a time and hard problems one hint at a time, with pauses for you to try first.\n\n{CHAPTERS}\n\nCode in Java, Python, C++ and JavaScript: https://onehintaway.com/posts/start-here/\nInstagram: @onehintaway\n\n#dsa #leetcode #codinginterview",
+    "tags": [
+      "dsa",
+      "data structures and algorithms",
+      "leetcode",
+      "coding interview",
+      "dsa roadmap",
+      "learn dsa"
+    ]
+  }
+}

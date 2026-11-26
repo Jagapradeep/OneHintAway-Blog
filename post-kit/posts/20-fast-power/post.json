@@ -1,0 +1,335 @@
+{
+  "number": 20,
+  "slug": "fast-power",
+  "kind": "concept",
+  "topic": "Fast Power",
+  "category": "Number theory",
+  "next_post": "Recursion",
+  "cover": {
+    "title": "Fast power",
+    "lead": "A huge power, or an answer mod 1,000,000,007: square the block, halve n, use the block when n is odd.",
+    "use_it_when": "You need x to the power n with a huge n, or an answer \"mod 1,000,000,007\".",
+    "why_it_matters": "n multiplications become about log n, and the numbers never grow past m².",
+    "blocks": [
+      {
+        "type": "boxes",
+        "size": "s",
+        "gap": 24,
+        "mt": 18,
+        "values": [
+          3,
+          9,
+          81,
+          561
+        ],
+        "gold": [
+          0,
+          2,
+          3
+        ],
+        "dim": [
+          1
+        ]
+      }
+    ],
+    "promise": "You'll write fast power in {lines} lines.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch the blocks multiply",
+      "title": "Watch it halve",
+      "lead": "3 to the 13, mod 1000.",
+      "video": {
+        "values": [
+          3,
+          9,
+          81,
+          561
+        ],
+        "stage_label": "BLOCKS: 3, 3², 3⁴, 3⁸ (MOD 1000)",
+        "chips_label": "ANSWER AFTER EACH ROUND",
+        "steps": "video_steps()",
+        "final": {
+          "gold": [
+            0,
+            2,
+            3
+          ],
+          "dim": [
+            1
+          ],
+          "eq": [
+            "answer =",
+            "{{ANSWER}}"
+          ],
+          "caption": "{{ANSWER}}: the last 3 digits of {{FULL}}."
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "The coin-bag idea",
+      "title": "Bags of coins",
+      "scene": "To pay 13 coins fast, keep bags of 1, 2, 4 and 8 coins, each bag twice the last. Hand over 8 + 4 + 1, three bags instead of 13 coins.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "label": "BAGS: 3¹, 3², 3⁴, 3⁸",
+          "values": [
+            3,
+            9,
+            81,
+            561
+          ],
+          "gold": [
+            0,
+            2,
+            3
+          ],
+          "dim": [
+            1
+          ]
+        },
+        {
+          "type": "card",
+          "text": "13 = 8 + 4 + 1, so 3¹³ = 3⁸ × 3⁴ × 3¹. Each block is the [[square of the last]]."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "Each round, step by step",
+      "title": "Halve n each round",
+      "lead": "n odd: multiply the answer by the block. Every round: square the block, halve n.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "n = 13, odd: × 3",
+              "values": [
+                3,
+                9,
+                81,
+                561
+              ],
+              "gold": [
+                0
+              ]
+            },
+            {
+              "label": "n = 6, even: skip",
+              "values": [
+                3,
+                9,
+                81,
+                561
+              ],
+              "dim": [
+                1
+              ],
+              "steel": [
+                0
+              ]
+            },
+            {
+              "label": "n = 3, odd: × 81",
+              "values": [
+                3,
+                9,
+                81,
+                561
+              ],
+              "gold": [
+                2
+              ],
+              "steel": [
+                0
+              ],
+              "dim": [
+                1
+              ]
+            },
+            {
+              "label": "n = 1, odd: × 561",
+              "values": [
+                3,
+                9,
+                81,
+                561
+              ],
+              "gold": [
+                3
+              ],
+              "steel": [
+                0,
+                2
+              ],
+              "dim": [
+                1
+              ]
+            }
+          ]
+        }
+      ],
+      "quickcheck": {
+        "question": "How many rounds does the loop take for n = 100?",
+        "answer": "Answer: {{rounds(100)}}. n goes 100, 50, 25, 12, 6, 3, 1, then 0.",
+        "check": "rounds(100)"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "WHY MOD EVERY STEP",
+      "board": "Answer + mod every step",
+      "teaser": "The answer, then why mod",
+      "title": "Mod as you go",
+      "blocks": [
+        {
+          "type": "equation",
+          "text": "(a × b) mod m = ((a mod m) × (b mod m)) mod m"
+        },
+        {
+          "type": "text",
+          "text": "So the code never builds 1,594,323. Every number stays below m, and every product below m²."
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "Fast power in 9 lines",
+      "title": "Fast power",
+      "code": {
+        "lines": [
+          "function power(x, n, m):",
+          "    answer = 1 mod m",
+          "    block = x mod m",
+          "    while n > 0:",
+          "        if n mod 2 == 1:",
+          "            answer = (answer * block) mod m",
+          "        block = (block * block) mod m",
+          "        n = floor(n / 2)",
+          "    return answer"
+        ],
+        "highlight": [
+          5
+        ]
+      },
+      "explain": "Line 5 uses the block when n is odd. Lines 7 and 8 square the block and halve n.",
+      "example": {
+        "call": "power(3, 13, 1000)",
+        "expr": "ANSWER",
+        "show": "{{ANSWER}}"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "The bug that returns {{wrong_power(X, N, M)}}",
+      "title": "Start the answer at 1",
+      "lead": "Before any block is used the answer is 1. Start at 0 and it stays 0.",
+      "trap": {
+        "call": "power(3, 13, 1000)",
+        "wrong": {
+          "code": [
+            "answer = 0"
+          ],
+          "note": "0 times anything is 0.",
+          "result": "{{wrong_power(X, N, M)}}"
+        },
+        "right": {
+          "code": [
+            "answer = 1 mod m"
+          ],
+          "note": "1 × 3 × 81 × 561, mod 1000.",
+          "result": "{{ANSWER}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Time",
+            "value": "O(log n)",
+            "gold": true
+          },
+          {
+            "label": "Space",
+            "value": "O(1)"
+          },
+          {
+            "label": "Multiply n times",
+            "value": "O(n)"
+          }
+        ],
+        "note": "1 mod m, not just 1, keeps m = 1 right: anything mod 1 is 0."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Square the block",
+        "Odd n: use it",
+        "Mod every step"
+      ],
+      "problems": [
+        {
+          "difficulty": "Medium",
+          "id": 50,
+          "title": "Pow(x, n)",
+          "note": "Drop the mod. If n is negative, use 1 / x and −n (in 64 bits).",
+          "complexity": "log(n)",
+          "constraints": {
+            "n": 2147483648
+          },
+          "url": "https://leetcode.com/problems/powx-n/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 1922,
+          "title": "Count Good Numbers",
+          "note": "5 choices on even places, 4 on odd: two fast powers, mod 1,000,000,007.",
+          "complexity": "log(n)",
+          "constraints": {
+            "n": 1000000000000000
+          },
+          "url": "https://leetcode.com/problems/count-good-numbers/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Number theory",
+    "section": "Maths",
+    "summary": "A huge power, or an answer mod 1,000,000,007: square the block, halve n, and use the block whenever n is odd.",
+    "tags": [
+      "number-theory",
+      "fast-power",
+      "modular-arithmetic"
+    ],
+    "worked": {
+      "name": "GeeksforGeeks Modular Exponentiation for Large Numbers",
+      "url": "https://www.geeksforgeeks.org/problems/modular-exponentiation-for-large-numbers5537/1"
+    },
+    "tested_what": "Fast power with a mod",
+    "tested_inputs": "hand-picked cases (n = 0, x = 0, m = 1, the worked example, n near 10¹²) and random x, n and m, small and large",
+    "tested_against": "Python's built-in pow(x, n, m)",
+    "tested_extra": "The blocks, the rounds and the trap result come from running the code."
+  },
+  "caption": {
+    "first": "Fast power (binary exponentiation) for x to the n mod m: square the block, halve n, use the block when n is odd.",
+    "lines": [
+      "n multiplications become about log n rounds.",
+      "The trap: start the answer at 0 and power(3, 13, 1000) gives 0, not 323.",
+      "Practice: LeetCode 50 and LeetCode 1922 (both medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#math"
+    ]
+  }
+}

@@ -1,0 +1,395 @@
+{
+ "number": 17,
+ "slug": "next-permutation",
+ "kind": "challenge",
+ "topic": "Next Permutation",
+ "category": "Next permutation",
+ "next_post": "Trapping Rain Water",
+ "cover": {
+  "title": "Next\n**Permutation**",
+  "problem": {
+   "id": 31,
+   "title": "Next Permutation",
+   "difficulty": "Medium"
+  },
+  "blocks": [
+   {
+    "type": "boxes",
+    "values": [
+     1,
+     3,
+     5,
+     4,
+     2
+    ],
+    "size": "l",
+    "label": "WHAT COMES RIGHT AFTER 1 3 5 4 2?",
+    "label_color": "muted"
+   }
+  ],
+  "promise": "You'll solve **LeetCode 31** in O(n).",
+  "promise_slide": "solution"
+ },
+ "slides": [
+  {
+   "type": "story",
+   "teaser": "The problem, as a dictionary",
+   "title": "Dictionary order",
+   "scene": "List every order of 1 2 3 4 5 the way a dictionary lists words. Find 1 3 5 4 2 in that list. What sits right after it?",
+   "blocks": [
+    {
+     "type": "boxes",
+     "values": [
+      1,
+      3,
+      5,
+      4,
+      2
+     ],
+     "size": "l",
+     "indexes": true
+    },
+    {
+     "type": "card",
+     "size": "big",
+     "text": "The next order changes as little as possible, as far right as possible."
+    }
+   ]
+  },
+  {
+   "type": "problem",
+   "teaser": "The real problem",
+   "title": "LeetCode 31",
+   "lead": "Rearrange nums into the next bigger order, in place. The biggest order wraps to the smallest.",
+   "blocks": [
+    {
+     "type": "kv",
+     "rows": [
+      [
+       "nums",
+       "[1, 3, 5, 4, 2]"
+      ],
+      [
+       "output",
+       "[{{', '.join(map(str, ANSWER))}}]",
+       "steel"
+      ]
+     ]
+    },
+    {
+     "type": "text",
+     "text": "Edge case: 3 2 1 → {{sp(EDGE)}}."
+    },
+    {
+     "type": "text",
+     "style": "muted",
+     "text": "Up to 100 numbers, O(1) extra memory."
+    }
+   ]
+  },
+  {
+   "type": "pause",
+   "try_first": "Write the order right after 1 3 5 4 2 by hand. Which numbers had to change?"
+  },
+  {
+   "type": "hint",
+   "teaser": "Hint 1: the falling tail",
+   "title": "The tail can't grow",
+   "lead": "From the right, 5 4 2 falls. A falling tail is already in its biggest order.",
+   "blocks": [
+    {
+     "type": "boxes",
+     "card": true,
+     "label": "5 4 2 FALLS",
+     "values": [
+      1,
+      3,
+      5,
+      4,
+      2
+     ],
+     "size": "m",
+     "steel": [
+      2,
+      3,
+      4
+     ],
+     "note": "No rearranging of 5 4 2 gives a bigger order. Something to its left must change."
+    }
+   ]
+  },
+  {
+   "type": "hint",
+   "teaser": "Hint 2: the pivot",
+   "title": "Find the pivot",
+   "lead": "Walk left while the numbers fall. The first number smaller than its right neighbour is the pivot.",
+   "blocks": [
+    {
+     "type": "boxes",
+     "card": true,
+     "label": "3 < 5, SO 3 IS THE PIVOT",
+     "values": [
+      1,
+      3,
+      5,
+      4,
+      2
+     ],
+     "size": "m",
+     "gold": [
+      1
+     ],
+     "steel": [
+      2,
+      3,
+      4
+     ],
+     "pointers": {
+      "i": 1
+     },
+     "note": "The pivot is the rightmost place a bigger order can start."
+    }
+   ]
+  },
+  {
+   "type": "hint",
+   "teaser": "Hint 3: the smallest step up",
+   "title": "Swap the partner",
+   "lead": "From the right, find the first number bigger than the pivot, and swap the two.",
+   "blocks": [
+    {
+     "type": "steps",
+     "rows": [
+      {
+       "label": "partner of 3: 4",
+       "values": [
+        1,
+        3,
+        5,
+        4,
+        2
+       ],
+       "gold": [
+        1,
+        3
+       ]
+      },
+      {
+       "label": "after the swap",
+       "values": [
+        1,
+        4,
+        5,
+        3,
+        2
+       ],
+       "gold": [
+        1
+       ],
+       "steel": [
+        2,
+        3,
+        4
+       ]
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": "4 is the smallest number in the tail that still beats 3."
+    }
+   ]
+  },
+  {
+   "type": "hint",
+   "teaser": "Hint 4: the tail, smallest",
+   "title": "Reverse the tail",
+   "lead": "The tail 5 3 2 still falls. Reverse it into its smallest order.",
+   "blocks": [
+    {
+     "type": "steps",
+     "rows": [
+      {
+       "label": "tail falls",
+       "values": [
+        1,
+        4,
+        5,
+        3,
+        2
+       ],
+       "steel": [
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "label": "reversed",
+       "values": [
+        1,
+        4,
+        2,
+        3,
+        5
+       ],
+       "steel": [
+        2,
+        3,
+        4
+       ]
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": "Reversing a falling run sorts it, in place."
+    }
+   ]
+  },
+  {
+   "type": "bridge"
+  },
+  {
+   "type": "video",
+   "teaser": "Watch the next order appear",
+   "title": "Watch it step up",
+   "lead": "Pivot, partner, swap, reverse on 1 3 5 4 2.",
+   "video": {
+    "values": [
+     1,
+     3,
+     5,
+     4,
+     2
+    ],
+    "stage_label": "NUMS",
+    "chips_label": "MOVES",
+    "steps": "video_steps()",
+    "final": {
+     "steel": [
+      2,
+      3,
+      4
+     ],
+     "gold": [
+      1
+     ],
+     "eq": [
+      "next:",
+      "{{sp(ANSWER)}}"
+     ],
+     "caption": "The next order is {{sp(ANSWER)}}."
+    }
+   }
+  },
+  {
+   "type": "solution",
+   "teaser": "Part 1: find the pivot",
+   "title": "Find the pivot",
+   "lead": "Walk left past the falling tail.",
+   "code": {
+    "lines": [
+     "function nextPermutation(nums):",
+     "    n = length(nums)",
+     "    i = n - 2",
+     "    while i >= 0 and nums[i] >= nums[i + 1]:",
+     "        i = i - 1"
+    ],
+    "highlight": [
+     4
+    ]
+   }
+  },
+  {
+   "type": "solution",
+   "teaser": "Part 2: swap and reverse",
+   "title": "Swap, then reverse",
+   "code": {
+    "lines": [
+     "    if i >= 0:",
+     "        j = n - 1",
+     "        while nums[j] <= nums[i]:",
+     "            j = j - 1",
+     "        swap nums[i], nums[j]",
+     "    reverse nums from i + 1 to n - 1"
+    ],
+    "highlight": [
+     11
+    ]
+   },
+   "cost": {
+    "label": false,
+    "mt": 0,
+    "items": [
+     {
+      "label": "Time",
+      "value": "O(n)",
+      "gold": true,
+      "note": "At most three walks."
+     },
+     {
+      "label": "Space",
+      "value": "O(1)",
+      "note": "All in place."
+     }
+    ]
+   }
+  },
+  {
+   "type": "closing",
+   "teaser": "Last slide: your turn",
+   "learnt": [
+    "Falling tail: biggest",
+    "Swap the partner",
+    "Reverse the tail"
+   ],
+   "pattern": "Find the pivot, swap it with the next bigger number, reverse the tail.",
+   "problems": [
+    {
+     "difficulty": "Medium",
+     "id": 556,
+     "title": "Next Greater Element III",
+     "note": "The same idea on the digits of a number.",
+     "complexity": "n",
+     "constraints": {
+      "n": 10
+     },
+     "url": "https://leetcode.com/problems/next-greater-element-iii/"
+    }
+   ]
+  }
+ ],
+ "blog": {
+  "pattern": "Next permutation",
+  "section": "Arrays and hashing",
+  "summary": "The next bigger order of an array: find the pivot, swap it with its partner, reverse the tail.",
+  "tags": [
+   "next-permutation",
+   "arrays"
+  ],
+  "worked": {
+   "name": "LeetCode 31 Next Permutation",
+   "url": "https://leetcode.com/problems/next-permutation/"
+  },
+  "tested_what": "The pivot, swap and reverse",
+  "tested_inputs": "hand-picked cases (the biggest order, one number, all equal, repeated numbers) and random arrays of up to 7 numbers from 0 to 5",
+  "tested_against": "listing every distinct order in sorted order and taking the next one",
+  "tested_extra": "The walk, the answer and the trap result come from running the code."
+ },
+ "caption": {
+  "first": "LeetCode 31 Next Permutation solved with hints: find the pivot, swap it with its partner, reverse the tail.",
+  "lines": [
+   "A falling tail is already its biggest order, so the pivot sits just left of it.",
+   "The trap: stop after the swap and 1 3 5 4 2 becomes 1 4 5 3 2, not the next one.",
+   "Practice: LeetCode 556 (medium)."
+  ],
+  "cta": "Save it for revision.",
+  "tags": [
+   "#dsa",
+   "#leetcode",
+   "#codinginterview",
+   "#arrays"
+  ]
+ }
+}

@@ -1,0 +1,297 @@
+{
+ "number": 13,
+ "slug": "three-way-partition",
+ "kind": "concept",
+ "topic": "Three-Way Partition",
+ "category": "Three-way partition",
+ "next_post": "Moore's voting",
+ "cover": {
+  "title": "Three-way\n**partition**",
+  "lead": "Only three kinds of values to group in place: three pointers, one pass.",
+  "use_it_when": "The array holds three kinds of values (like 0, 1, 2) to group in place.",
+  "why_it_matters": "Quick sort (post 26) uses the same idea to split around a pivot.",
+  "blocks": [
+   {
+    "type": "boxes",
+    "size": "s",
+    "gap": 24,
+    "mt": 18,
+    "values": [
+     0,
+     0,
+     1,
+     1,
+     2,
+     2
+    ],
+    "steel": [
+     0,
+     1,
+     4,
+     5
+    ]
+   }
+  ],
+  "promise": "You'll write it in {lines} lines.",
+  "promise_slide": "template"
+ },
+ "slides": [
+  {
+   "type": "video",
+   "teaser": "Watch the colours split",
+   "title": "Watch it split",
+   "lead": "Group 1 0 2 2 1 0 into 0s, 1s and 2s.",
+   "video": {
+    "values": [
+     1,
+     0,
+     2,
+     2,
+     1,
+     0
+    ],
+    "stage_label": "NUMS",
+    "steps": "video_steps()",
+    "final": {
+     "steel": "all",
+     "eq": [
+      "sorted:",
+      "{{sp(SORTED)}}"
+     ],
+     "caption": "Grouped in {{STEPS}} steps, one pass."
+    }
+   }
+  },
+  {
+   "type": "story",
+   "teaser": "The laundry idea",
+   "title": "Three piles",
+   "scene": "Sorting laundry on one rail: whites go to the front, darks to the back, colours stay where they are.",
+   "blocks": [
+    {
+     "type": "boxes",
+     "label": "FRONT · MIDDLE · BACK",
+     "values": [
+      0,
+      0,
+      1,
+      1,
+      2,
+      2
+     ],
+     "steel": [
+      0,
+      1,
+      4,
+      5
+     ]
+    },
+    {
+     "type": "card",
+     "text": "Each piece is looked at once and moved [[at most once]]."
+    }
+   ]
+  },
+  {
+   "type": "picture",
+   "teaser": "Four zones on one rail",
+   "title": "Four zones",
+   "lead": "low and high fence off finished 0s and 2s. Everything from mid to high is still unchecked.",
+   "blocks": [
+    {
+     "type": "boxes",
+     "values": [
+      0,
+      1,
+      1,
+      2,
+      2,
+      2
+     ],
+     "steel": [
+      0,
+      3,
+      4,
+      5
+     ],
+     "gold": [
+      2
+     ],
+     "pointers": {
+      "low": 1,
+      "mid": 2,
+      "high": 2
+     },
+     "under": {
+      "0": "0s",
+      "1": "1s",
+      "5": "2s"
+     }
+    },
+    {
+     "type": "text",
+     "text": "0s before low, 1s from low to mid, unchecked up to high, 2s after."
+    }
+   ],
+   "quickcheck": {
+    "question": "Three-way partition on 2 0 1. How many loop steps does it take?",
+    "answer": "Answer: {{loop_steps([2, 0, 1])}}. The 2 swaps back, the 1 comes in, then the 0 goes to the front.",
+    "check": "loop_steps([2, 0, 1])"
+   }
+  },
+  {
+   "type": "extra",
+   "label": "WHY MID STAYS",
+   "board": "Answer + why mid stays",
+   "teaser": "The answer, then why mid stays",
+   "title": "Check what came back",
+   "blocks": [
+    {
+     "type": "card",
+     "label": "AFTER A SWAP WITH HIGH",
+     "text": "The number that came back from high is [[unchecked]]. mid stays to look at it."
+    },
+    {
+     "type": "text",
+     "text": "After a swap with low, the number that came back was already checked, so mid moves on."
+    }
+   ]
+  },
+  {
+   "type": "template",
+   "teaser": "The partition in 14 lines",
+   "title": "Sort colors",
+   "code": {
+    "lines": [
+     "function sortColors(nums):",
+     "    low = 0                   // next 0",
+     "    mid = 0                   // to check",
+     "    high = length(nums) - 1   // next 2",
+     "    while mid <= high:",
+     "        if nums[mid] == 0:",
+     "            swap nums[low], nums[mid]",
+     "            low = low + 1",
+     "            mid = mid + 1",
+     "        else if nums[mid] == 1:",
+     "            mid = mid + 1",
+     "        else:",
+     "            swap nums[mid], nums[high]",
+     "            high = high - 1   // mid stays"
+    ],
+    "highlight": [
+     14
+    ]
+   },
+   "explain": "0 swaps to low, 1 stays, 2 swaps to high; then mid stays."
+  },
+  {
+   "type": "trap",
+   "teaser": "The bug that leaves a 0 behind",
+   "title": "mid stays after high",
+   "lead": "Move mid after swapping with high and the number that came back is skipped.",
+   "trap": {
+    "call": "sortColors([1, 2, 0])",
+    "wrong": {
+     "code": [
+      "high = high - 1",
+      "mid = mid + 1"
+     ],
+     "note": "The 0 from the back is never checked.",
+     "result": "{{sp(wrong_sort_colors(TRAP))}}"
+    },
+    "right": {
+     "code": [
+      "high = high - 1",
+      "// mid stays"
+     ],
+     "note": "mid checks the 0 next.",
+     "result": "{{sp(sort_colors(TRAP))}}"
+    }
+   },
+   "cost": {
+    "items": [
+     {
+      "label": "Time",
+      "value": "O(n)",
+      "gold": true
+     },
+     {
+      "label": "Extra space",
+      "value": "O(1)"
+     },
+     {
+      "label": "Counting sort",
+      "value": "O(n)"
+     }
+    ],
+    "note": "One pass and in place. Counting works too, but takes two passes."
+   }
+  },
+  {
+   "type": "practice",
+   "teaser": "Last slide: your turn",
+   "learnt": [
+    "Three pointers",
+    "0 low, 2 high",
+    "mid stays after high"
+   ],
+   "problems": [
+    {
+     "difficulty": "Easy",
+     "id": 905,
+     "title": "Sort Array By Parity",
+     "note": "Two zones this time: evens, then odds.",
+     "complexity": "n",
+     "constraints": {
+      "n": 5000
+     },
+     "url": "https://leetcode.com/problems/sort-array-by-parity/"
+    },
+    {
+     "difficulty": "Medium",
+     "id": 2161,
+     "title": "Partition Array According to Given Pivot",
+     "note": "Same three groups, but keep their order.",
+     "complexity": "n",
+     "constraints": {
+      "n": 100000
+     },
+     "url": "https://leetcode.com/problems/partition-array-according-to-given-pivot/"
+    }
+   ]
+  }
+ ],
+ "blog": {
+  "pattern": "Three-way partition",
+  "section": "Arrays and hashing",
+  "summary": "Only three kinds of values to group in place: three pointers, one pass.",
+  "tags": [
+   "three-way-partition",
+   "dutch-national-flag",
+   "arrays"
+  ],
+  "worked": {
+   "name": "LeetCode 75 Sort Colors",
+   "url": "https://leetcode.com/problems/sort-colors/"
+  },
+  "tested_what": "The three-pointer partition",
+  "tested_inputs": "hand-picked cases (one value, all equal, reversed, the trap input 1 2 0) and random arrays of up to 14 values from 0 to 2, plus one array of 300 values",
+  "tested_against": "a plain sort",
+  "tested_extra": "The steps, the loop count and the trap result come from running the code."
+ },
+ "caption": {
+  "first": "Three-way partition for LeetCode 75 Sort Colors: low, mid and high pointers group 0s, 1s and 2s in one pass.",
+  "lines": [
+   "A 0 swaps to low, a 1 stays, a 2 swaps to high.",
+   "The trap: move mid after the high swap and 1 2 0 becomes 1 0 2.",
+   "Practice: LeetCode 905 (easy) and LeetCode 2161 (medium)."
+  ],
+  "cta": "Save it for revision.",
+  "tags": [
+   "#dsa",
+   "#leetcode",
+   "#codinginterview",
+   "#sorting"
+  ]
+ }
+}

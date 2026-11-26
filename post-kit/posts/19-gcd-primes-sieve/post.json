@@ -1,0 +1,386 @@
+{
+ "number": 19,
+ "slug": "gcd-primes-sieve",
+ "kind": "concept",
+ "topic": "GCD, Primes and the Sieve",
+ "category": "Number theory",
+ "next_post": "Fast power",
+ "cover": {
+  "title": "Primes and\n**GCD**",
+  "lead": "Count primes below n by crossing out multiples; get a GCD by taking remainders until one is zero.",
+  "use_it_when": "A problem asks how many primes are below n, or for the GCD of two numbers.",
+  "why_it_matters": "Both come back in fraction, divisor and counting problems.",
+  "blocks": [
+   {
+    "type": "boxes",
+    "size": "s",
+    "gap": 16,
+    "mt": 18,
+    "values": [
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11
+    ],
+    "steel": [
+     0,
+     1,
+     3,
+     5,
+     9
+    ],
+    "dim": [
+     2,
+     4,
+     6,
+     7,
+     8
+    ]
+   }
+  ],
+  "promise": "You'll write the sieve in {lines} lines.",
+  "promise_slide": "template"
+ },
+ "slides": [
+  {
+   "type": "video",
+   "teaser": "Watch the sieve cross out",
+   "title": "Watch the sieve",
+   "lead": "The primes below 12.",
+   "video": {
+    "values": [
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11
+    ],
+    "stage_label": "2 TO 11",
+    "chips_label": "CROSSED OUT",
+    "steps": "video_steps()",
+    "final": {
+     "steel": [
+      0,
+      1,
+      3,
+      5,
+      9
+     ],
+     "dim": [
+      2,
+      4,
+      6,
+      7,
+      8
+     ],
+     "eq": [
+      "primes below 12:",
+      "{{COUNT}}"
+     ],
+     "caption": "{{sp(PRIMES)}} survive: {{COUNT}} primes."
+    }
+   }
+  },
+  {
+   "type": "story",
+   "teaser": "The number-chart idea",
+   "title": "A number chart",
+   "scene": "On a chart of numbers, circle 2 and cross out its multiples. Circle the next number left standing, cross out its multiples, and so on.",
+   "blocks": [
+    {
+     "type": "boxes",
+     "label": "AFTER CROSSING OUT 2s AND 3s",
+     "values": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+     ],
+     "steel": [
+      0,
+      1,
+      3,
+      5,
+      9
+     ],
+     "dim": [
+      2,
+      4,
+      6,
+      7,
+      8
+     ]
+    },
+    {
+     "type": "card",
+     "text": "Whatever no smaller number divides is [[prime]]."
+    }
+   ]
+  },
+  {
+   "type": "picture",
+   "teaser": "The sieve, step by step",
+   "title": "Cross out multiples",
+   "lead": "For each prime p, cross out p × p, p × p + p, and so on.",
+   "blocks": [
+    {
+     "type": "boxes",
+     "size": "s",
+     "gap": 16,
+     "label": "p = 2: 4, 6, 8, 10 OUT",
+     "values": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+     ],
+     "gold": [
+      0
+     ],
+     "dim": [
+      2,
+      4,
+      6,
+      8
+     ]
+    },
+    {
+     "type": "boxes",
+     "size": "s",
+     "gap": 16,
+     "label": "p = 3: 9 OUT, THEN 4 × 4 ≥ 12",
+     "values": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+     ],
+     "gold": [
+      1
+     ],
+     "steel": [
+      0
+     ],
+     "dim": [
+      2,
+      4,
+      6,
+      7,
+      8
+     ]
+    }
+   ],
+   "quickcheck": {
+    "question": "How many primes are there below 30?",
+    "answer": "Answer: {{count_primes(30)}}. 2, 3, 5, 7, 11, 13, 17, 19, 23 and 29.",
+    "check": "count_primes(30)"
+   }
+  },
+  {
+   "type": "extra",
+   "label": "WHY START AT p × p",
+   "board": "Answer + why p × p",
+   "teaser": "The answer, then why p × p",
+   "title": "Start at p × p",
+   "blocks": [
+    {
+     "type": "equation",
+     "text": "p = 3: 6 is already out (2 × 3)"
+    },
+    {
+     "type": "text",
+     "text": "Every multiple of p below p × p has a smaller factor, so a smaller prime already crossed it out. That's also why the loop stops once p × p ≥ n."
+    }
+   ]
+  },
+  {
+   "type": "extra",
+   "label": "SECOND IDEA: GCD",
+   "board": "GCD",
+   "teaser": "The second idea: GCD",
+   "title": "GCD by remainders",
+   "blocks": [
+    {
+     "type": "code",
+     "lines": [
+      "function gcd(a, b):",
+      "    while b != 0:",
+      "        remainder = a mod b",
+      "        a = b",
+      "        b = remainder",
+      "    return a"
+     ]
+    },
+    {
+     "type": "text",
+     "style": "muted",
+     "text": "gcd(18, 12): 18 mod 12 = 6, then 12 mod 6 = 0, so the GCD is {{gcd(18, 12)}}."
+    }
+   ]
+  },
+  {
+   "type": "template",
+   "teaser": "The sieve in 14 lines",
+   "title": "Count primes",
+   "code": {
+    "lines": [
+     "function countPrimes(n):",
+     "    if n < 3:",
+     "        return 0",
+     "    isPrime = array of n values, all true",
+     "    set isPrime[0] and isPrime[1] to false",
+     "    p = 2",
+     "    while p * p < n:",
+     "        if isPrime[p]:",
+     "            m = p * p",
+     "            while m < n:",
+     "                isPrime[m] = false",
+     "                m = m + p",
+     "        p = p + 1",
+     "    return number of true values in isPrime"
+    ],
+    "highlight": [
+     9
+    ]
+   },
+   "explain": "Line 9 starts at p × p; line 5 keeps 0 and 1 out."
+  },
+  {
+   "type": "trap",
+   "teaser": "The bug that counts {{wrong_count_primes(10)}}",
+   "title": "Mark 0 and 1",
+   "lead": "0 and 1 start as true. Skip line 5 and they get counted.",
+   "trap": {
+    "call": "countPrimes(10)",
+    "wrong": {
+     "code": [
+      "no line 5"
+     ],
+     "note": "0 and 1 count as primes.",
+     "result": "{{wrong_count_primes(10)}}"
+    },
+    "right": {
+     "code": [
+      "isPrime[0], [1] = false"
+     ],
+     "note": "Only 2, 3, 5 and 7.",
+     "result": "{{count_primes(10)}}"
+    }
+   },
+   "cost": {
+    "items": [
+     {
+      "label": "Sieve",
+      "value": "O(n log log n)",
+      "gold": true
+     },
+     {
+      "label": "Space",
+      "value": "O(n)"
+     },
+     {
+      "label": "GCD",
+      "value": "O(log min(a, b))"
+     }
+    ],
+    "note": "Testing each number on its own costs O(n √n)."
+   }
+  },
+  {
+   "type": "practice",
+   "teaser": "Last slide: your turn",
+   "learnt": [
+    "Cross out from p × p",
+    "Stop at p × p ≥ n",
+    "GCD by remainders"
+   ],
+   "problems": [
+    {
+     "difficulty": "Easy",
+     "id": 1979,
+     "title": "Find Greatest Common Divisor of Array",
+     "note": "Take the smallest and largest, then run the GCD loop.",
+     "complexity": "n",
+     "constraints": {
+      "n": 1000
+     },
+     "url": "https://leetcode.com/problems/find-greatest-common-divisor-of-array/"
+    },
+    {
+     "difficulty": "Medium",
+     "id": 2523,
+     "title": "Closest Prime Numbers in Range",
+     "note": "Sieve up to right, then compare neighbouring primes.",
+     "complexity": "n",
+     "constraints": {
+      "n": 1000000
+     },
+     "url": "https://leetcode.com/problems/closest-prime-numbers-in-range/"
+    }
+   ]
+  }
+ ],
+ "blog": {
+  "pattern": "Number theory",
+  "section": "Maths",
+  "summary": "Count primes below n by crossing out multiples; get a GCD by taking remainders until one is zero.",
+  "tags": [
+   "number-theory",
+   "primes",
+   "sieve",
+   "gcd"
+  ],
+  "worked": {
+   "name": "LeetCode 204 Count Primes",
+   "url": "https://leetcode.com/problems/count-primes/"
+  },
+  "tested_what": "countPrimes and gcd",
+  "tested_inputs": "hand-picked cases (n of 0, 1, 2, 3, 30 and 5,000,000; GCDs with a zero, coprime pairs, equal numbers, large numbers) and random n up to 2,000 and random pairs up to 1,000,000",
+  "tested_against": "trial division for primes and the largest common divisor found by trying every divisor",
+  "tested_extra": "The crossed-out numbers, both answers and the trap result come from running the code."
+ },
+ "caption": {
+  "first": "The Sieve of Eratosthenes for LeetCode 204 Count Primes, plus Euclid's GCD by remainders.",
+  "lines": [
+   "For each prime p, cross out p × p, p × p + p, … and stop when p × p ≥ n.",
+   "The trap: forget to mark 0 and 1 and countPrimes(10) gives 6, not 4.",
+   "Practice: LeetCode 1979 (easy) and LeetCode 2523 (medium)."
+  ],
+  "cta": "Save it for revision.",
+  "tags": [
+   "#dsa",
+   "#leetcode",
+   "#codinginterview",
+   "#math"
+  ]
+ }
+}

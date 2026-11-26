@@ -1,0 +1,345 @@
+{
+ "number": 15,
+ "slug": "cyclic-sort",
+ "kind": "concept",
+ "topic": "Cyclic Sort",
+ "category": "Cyclic sort",
+ "next_post": "Merge intervals",
+ "cover": {
+  "title": "Cyclic sort",
+  "lead": "Numbers from 0 to n in about n seats: put each number in its own seat, then spot the wrong one.",
+  "use_it_when": "The array holds numbers from 0 to n (or 1 to n) and something is missing or repeated.",
+  "why_it_matters": "It finds missing and repeated numbers in place, with no extra array.",
+  "blocks": [
+   {
+    "type": "boxes",
+    "size": "s",
+    "gap": 24,
+    "mt": 18,
+    "values": [
+     0,
+     1,
+     5,
+     3,
+     4
+    ],
+    "steel": [
+     0,
+     1,
+     3,
+     4
+    ],
+    "gold": [
+     2
+    ]
+   }
+  ],
+  "promise": "You'll write cyclic sort in {lines} lines.",
+  "promise_slide": "template"
+ },
+ "slides": [
+  {
+   "type": "video",
+   "teaser": "Watch the numbers find seats",
+   "title": "Watch them sit",
+   "lead": "Which number from 0 to 5 is missing in 3 0 4 1 5?",
+   "video": {
+    "values": [
+     3,
+     0,
+     4,
+     1,
+     5
+    ],
+    "stage_label": "SEATS 0 TO 4",
+    "steps": "video_steps()",
+    "final": {
+     "gold": [
+      2
+     ],
+     "steel": [
+      0,
+      1,
+      3,
+      4
+     ],
+     "eq": [
+      "missing =",
+      "{{ANSWER}}"
+     ],
+     "caption": "Seat 2 holds 5, so 2 is missing."
+    }
+   }
+  },
+  {
+   "type": "story",
+   "teaser": "The cinema-seat idea",
+   "title": "Numbered seats",
+   "scene": "Ticket 3 sits in seat 3, ticket 0 in seat 0. When everyone is seated, the seat with the wrong ticket shows who never came.",
+   "blocks": [
+    {
+     "type": "boxes",
+     "label": "AFTER EVERYONE SITS",
+     "values": [
+      0,
+      1,
+      5,
+      3,
+      4
+     ],
+     "indexes": true,
+     "steel": [
+      0,
+      1,
+      3,
+      4
+     ],
+     "gold": [
+      2
+     ]
+    },
+    {
+     "type": "card",
+     "text": "Seat 2 holds 5, not 2. So [[2 is the missing number]]."
+    }
+   ]
+  },
+  {
+   "type": "picture",
+   "teaser": "The swaps, step by step",
+   "title": "Swap until home",
+   "lead": "Swap nums[i] into its seat. Move i on when the number is home or has no seat.",
+   "blocks": [
+    {
+     "type": "steps",
+     "rows": [
+      {
+       "label": "3 → seat 3",
+       "values": [
+        1,
+        0,
+        4,
+        3,
+        5
+       ],
+       "steel": [
+        3
+       ],
+       "gold": [
+        0
+       ]
+      },
+      {
+       "label": "1 → seat 1",
+       "values": [
+        0,
+        1,
+        4,
+        3,
+        5
+       ],
+       "steel": [
+        0,
+        1,
+        3
+       ]
+      },
+      {
+       "label": "4 → seat 4",
+       "values": [
+        0,
+        1,
+        5,
+        3,
+        4
+       ],
+       "steel": [
+        0,
+        1,
+        3,
+        4
+       ],
+       "gold": [
+        2
+       ]
+      },
+      {
+       "label": "5: no seat",
+       "values": [
+        0,
+        1,
+        5,
+        3,
+        4
+       ],
+       "steel": [
+        0,
+        1,
+        3,
+        4
+       ],
+       "gold": [
+        2
+       ]
+      }
+     ]
+    }
+   ],
+   "quickcheck": {
+    "question": "Cyclic sort on 1 2 0. Which number from 0 to 3 is missing?",
+    "answer": "Answer: {{missing_number([1, 2, 0])}}. Every seat matches, so the missing one is n.",
+    "check": "missing_number([1, 2, 0])"
+   }
+  },
+  {
+   "type": "extra",
+   "label": "WHY IT'S LINEAR",
+   "board": "Answer + why it's linear",
+   "teaser": "The answer, then why it's fast",
+   "title": "Each swap seats one",
+   "blocks": [
+    {
+     "type": "card",
+     "label": "THE COUNT",
+     "text": "Every swap puts at least one number [[home for good]]. So there are at most n swaps."
+    },
+    {
+     "type": "text",
+     "text": "On 3 0 4 1 5: {{SWAPS}} swaps and {{SKIPS}} skip, then one scan."
+    }
+   ]
+  },
+  {
+   "type": "template",
+   "teaser": "Cyclic sort in 13 lines",
+   "title": "Missing number",
+   "code": {
+    "lines": [
+     "function missingNumber(nums):",
+     "    n = length(nums)",
+     "    i = 0",
+     "    while i < n:",
+     "        seat = nums[i]",
+     "        if seat < n and nums[seat] != seat:",
+     "            swap nums[i], nums[seat]",
+     "        else:",
+     "            i = i + 1",
+     "    for i from 0 to n - 1:",
+     "        if nums[i] != i:",
+     "            return i",
+     "    return n"
+    ],
+    "highlight": [
+     6
+    ]
+   },
+   "explain": "Line 6 swaps a number home. Lines 10 to 12 find the wrong seat."
+  },
+  {
+   "type": "trap",
+   "teaser": "The bug that crashes",
+   "title": "Check seat < n first",
+   "lead": "The number n has no seat. Look it up and you read past the end.",
+   "trap": {
+    "call": "missingNumber([3, 0, 4, 1, 5])",
+    "wrong": {
+     "code": [
+      "if nums[seat] != seat:"
+     ],
+     "note": "5 looks up seat 5.",
+     "result": "{{wrong_missing(EXAMPLE)}}"
+    },
+    "right": {
+     "code": [
+      "if seat < n and ..."
+     ],
+     "note": "5 is skipped.",
+     "result": "{{ANSWER}}"
+    }
+   },
+   "cost": {
+    "items": [
+     {
+      "label": "Time",
+      "value": "O(n)",
+      "gold": true
+     },
+     {
+      "label": "Extra space",
+      "value": "O(1)"
+     },
+     {
+      "label": "Sort first",
+      "value": "O(n log n)"
+     }
+    ],
+    "note": "At most n swaps, then one scan."
+   }
+  },
+  {
+   "type": "practice",
+   "teaser": "Last slide: your turn",
+   "learnt": [
+    "Number x sits in seat x",
+    "Swap until home",
+    "Wrong seat = answer"
+   ],
+   "problems": [
+    {
+     "difficulty": "Easy",
+     "id": 448,
+     "title": "Find All Numbers Disappeared in an Array",
+     "note": "Values 1 to n now: the seat for x is x − 1.",
+     "complexity": "n",
+     "constraints": {
+      "n": 100000
+     },
+     "url": "https://leetcode.com/problems/find-all-numbers-disappeared-in-an-array/"
+    },
+    {
+     "difficulty": "Medium",
+     "id": 442,
+     "title": "Find All Duplicates in an Array",
+     "note": "After the swaps, a wrong number is a repeat.",
+     "complexity": "n",
+     "constraints": {
+      "n": 100000
+     },
+     "url": "https://leetcode.com/problems/find-all-duplicates-in-an-array/"
+    }
+   ]
+  }
+ ],
+ "blog": {
+  "pattern": "Cyclic sort",
+  "section": "Arrays and hashing",
+  "summary": "Numbers from 0 to n in an array of about n seats: put each number in its own seat.",
+  "tags": [
+   "cyclic-sort",
+   "arrays"
+  ],
+  "worked": {
+   "name": "LeetCode 268 Missing Number",
+   "url": "https://leetcode.com/problems/missing-number/"
+  },
+  "tested_what": "Cyclic sort and the scan",
+  "tested_inputs": "hand-picked cases (one number, the missing number at either end, the LeetCode examples) and random shuffles of 0 to n with one number taken out for n up to 15, plus one shuffle of 0 to 5,000",
+  "tested_against": "checking every number from 0 to n",
+  "tested_extra": "The swaps, the skip count and the trap's crash come from running the code."
+ },
+ "caption": {
+  "first": "Cyclic sort for LeetCode 268 Missing Number: seat each number at its own index, then find the wrong seat.",
+  "lines": [
+   "Swap nums[i] into seat nums[i] until it's home or has no seat.",
+   "The trap: forget seat < n and the number n reads past the end.",
+   "Practice: LeetCode 448 (easy) and LeetCode 442 (medium)."
+  ],
+  "cta": "Save it for revision.",
+  "tags": [
+   "#dsa",
+   "#leetcode",
+   "#codinginterview",
+   "#arrays"
+  ]
+ }
+}

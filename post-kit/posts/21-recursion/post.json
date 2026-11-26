@@ -1,0 +1,335 @@
+{
+  "number": 21,
+  "slug": "recursion",
+  "kind": "concept",
+  "topic": "Recursion",
+  "category": "Recursion",
+  "next_post": "Insertion sort",
+  "cover": {
+    "title": "Recursion",
+    "lead": "A problem that holds a smaller copy of itself: answer the tiny case, call yourself on a smaller input, let the calls wait.",
+    "use_it_when": "The answer for n is built from the answer for a smaller n, like factorial(4) = 4 × factorial(3).",
+    "why_it_matters": "Merge sort, quick sort, trees and backtracking are all built on it.",
+    "blocks": [
+      {
+        "type": "boxes",
+        "size": "s",
+        "gap": 24,
+        "mt": 18,
+        "values": [
+          24,
+          6,
+          2,
+          1,
+          1
+        ],
+        "gold": [
+          0
+        ],
+        "steel": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ],
+    "promise": "You'll write factorial in {lines} lines.",
+    "promise_slide": "template"
+  },
+  "slides": [
+    {
+      "type": "video",
+      "teaser": "Watch the calls stack up",
+      "title": "Watch the calls",
+      "lead": "factorial(4), call by call.",
+      "video": {
+        "values": [
+          4,
+          3,
+          2,
+          1,
+          0
+        ],
+        "stage_label": "CALLS: factorial(n)",
+        "chips_label": "ANSWERS, LAST CALL FIRST",
+        "steps": "video_steps()",
+        "final": {
+          "gold": [
+            0
+          ],
+          "steel": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "eq": [
+            "factorial(4) =",
+            "{{ANSWER}}"
+          ],
+          "caption": "{{HEIGHT}} calls waited; the answer is {{ANSWER}}."
+        }
+      }
+    },
+    {
+      "type": "story",
+      "teaser": "The nesting-doll idea",
+      "title": "Nesting dolls",
+      "scene": "To count nested dolls, open one and ask the same question of the smaller doll inside, until you reach the doll that doesn't open.",
+      "blocks": [
+        {
+          "type": "boxes",
+          "label": "EACH CALL WAITS FOR THE NEXT",
+          "values": [
+            4,
+            3,
+            2,
+            1,
+            0
+          ],
+          "gold": [
+            4
+          ],
+          "steel": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "type": "card",
+          "text": "The doll that doesn't open is the [[base case]]: factorial(0) = 1."
+        }
+      ]
+    },
+    {
+      "type": "picture",
+      "teaser": "The answers coming back",
+      "title": "Answers come back",
+      "lead": "The base case answers first. Each waiting call multiplies, then hands its answer back.",
+      "blocks": [
+        {
+          "type": "steps",
+          "rows": [
+            {
+              "label": "factorial(0) = 1",
+              "values": [
+                4,
+                3,
+                2,
+                1,
+                1
+              ],
+              "gold": [
+                4
+              ]
+            },
+            {
+              "label": "2 × 1 = 2",
+              "values": [
+                4,
+                3,
+                2,
+                1,
+                1
+              ],
+              "gold": [
+                2
+              ],
+              "steel": [
+                3,
+                4
+              ]
+            },
+            {
+              "label": "3 × 2 = 6",
+              "values": [
+                4,
+                6,
+                2,
+                1,
+                1
+              ],
+              "gold": [
+                1
+              ],
+              "steel": [
+                2,
+                3,
+                4
+              ]
+            },
+            {
+              "label": "4 × 6 = 24",
+              "values": [
+                24,
+                6,
+                2,
+                1,
+                1
+              ],
+              "gold": [
+                0
+              ],
+              "steel": [
+                1,
+                2,
+                3,
+                4
+              ]
+            }
+          ]
+        }
+      ],
+      "quickcheck": {
+        "question": "For factorial(6), how many calls sit on the stack at its tallest?",
+        "answer": "Answer: {{stack_height(6)}}. factorial(6) down to factorial(0).",
+        "check": "stack_height(6)"
+      }
+    },
+    {
+      "type": "extra",
+      "label": "THE CALL STACK",
+      "board": "Answer + the call stack",
+      "teaser": "The answer, then the stack",
+      "title": "Calls wait in a stack",
+      "blocks": [
+        {
+          "type": "card",
+          "label": "TWO RULES",
+          "text": "A [[base case]] that every input reaches, and a call on a [[smaller input]]."
+        },
+        {
+          "type": "text",
+          "text": "Every waiting call takes stack space, so n calls deep means O(n) memory."
+        }
+      ]
+    },
+    {
+      "type": "template",
+      "teaser": "Factorial in 4 lines",
+      "title": "Factorial",
+      "code": {
+        "lines": [
+          "function factorial(n):",
+          "    if n == 0:",
+          "        return 1  // base case",
+          "    return n * factorial(n - 1)"
+        ],
+        "highlight": [
+          2
+        ]
+      },
+      "explain": "Line 2 is the base case. Line 4 calls itself on a smaller input and waits.",
+      "example": {
+        "call": "factorial(4)",
+        "expr": "ANSWER",
+        "show": "{{ANSWER}}"
+      }
+    },
+    {
+      "type": "trap",
+      "teaser": "The bug that never stops",
+      "title": "Base case skipped",
+      "lead": "With base case n == 1, factorial(0) calls factorial(−1), −2, … and never stops.",
+      "trap": {
+        "call": "factorial(0)",
+        "wrong": {
+          "code": [
+            "if n == 1:"
+          ],
+          "note": "0 skips past 1.",
+          "result": "{{wrong_factorial(0)}}"
+        },
+        "right": {
+          "code": [
+            "if n == 0:"
+          ],
+          "note": "Answers at once.",
+          "result": "{{factorial(0)}}"
+        }
+      },
+      "cost": {
+        "items": [
+          {
+            "label": "Time",
+            "value": "O(n)",
+            "gold": true
+          },
+          {
+            "label": "Stack space",
+            "value": "O(n)"
+          },
+          {
+            "label": "A loop",
+            "value": "O(1)"
+          }
+        ],
+        "note": "A loop needs no stack. Recursion pays off when a call splits in two."
+      }
+    },
+    {
+      "type": "practice",
+      "teaser": "Last slide: your turn",
+      "learnt": [
+        "Base case first",
+        "Call on smaller input",
+        "Answers come back up"
+      ],
+      "problems": [
+        {
+          "difficulty": "Easy",
+          "id": 509,
+          "title": "Fibonacci Number",
+          "note": "fib(n − 1) + fib(n − 2), with fib(0) = 0 and fib(1) = 1.",
+          "complexity": "1.618^n",
+          "constraints": {
+            "n": 30
+          },
+          "url": "https://leetcode.com/problems/fibonacci-number/"
+        },
+        {
+          "difficulty": "Medium",
+          "id": 779,
+          "title": "K-th Symbol in Grammar",
+          "note": "Symbol k copies symbol (k + 1) / 2 above; even k flips it.",
+          "complexity": "n",
+          "constraints": {
+            "n": 30
+          },
+          "url": "https://leetcode.com/problems/k-th-symbol-in-grammar/"
+        }
+      ]
+    }
+  ],
+  "blog": {
+    "pattern": "Recursion",
+    "section": "Recursion and sorting",
+    "summary": "A problem that holds a smaller copy of itself: answer the tiny case directly, call yourself on a smaller input, and let the call stack wait.",
+    "tags": [
+      "recursion",
+      "call-stack"
+    ],
+    "tested_what": "Recursive factorial",
+    "tested_inputs": "every n from 0 to 20, the range a 64-bit integer holds",
+    "tested_against": "a loop that multiplies 1 × 2 × … × n",
+    "tested_extra": "The calls, the answers on the way back and the trap's stack overflow come from running the code."
+  },
+  "caption": {
+    "first": "Recursion explained with factorial: a base case, a call on a smaller input, and a call stack that waits.",
+    "lines": [
+      "factorial(n) = n × factorial(n − 1), and factorial(0) = 1.",
+      "The trap: base case n == 1 sends factorial(0) into a stack overflow.",
+      "Practice: LeetCode 509 (easy) and LeetCode 779 (medium)."
+    ],
+    "cta": "Save it for revision.",
+    "tags": [
+      "#dsa",
+      "#leetcode",
+      "#codinginterview",
+      "#recursion"
+    ]
+  }
+}

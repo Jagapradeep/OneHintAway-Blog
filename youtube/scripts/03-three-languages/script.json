@@ -1,0 +1,596 @@
+{
+  "number": 3,
+  "slug": "three-languages",
+  "topic": "One pseudocode, four languages",
+  "kind": "foundation",
+  "long": {
+    "scenes": [
+      {
+        "id": "hook",
+        "layout": "title",
+        "chapter": "One idea, four languages",
+        "kicker": "FOUNDATIONS · VIDEO 3",
+        "title": "Learn it once.\nWrite it in **any language**.",
+        "sub": "Every language does the same things. Only the words you type change.",
+        "say": [
+          "Every language can do the same things. Only the words you type are different.",
+          {
+            "say": "So learn the idea once, in pseudocode, and look up the words in your language.",
+            "tone": "warm"
+          }
+        ]
+      },
+      {
+        "id": "map1",
+        "layout": "big",
+        "label": "ONE LINE, FOUR WAYS",
+        "title": "m = empty map",
+        "items": [
+          {
+            "text": "Java        new HashMap<>()\nPython      {}\nC++         unordered_map<string, int>\nJavaScript  new Map()",
+            "style": "mono",
+            "at": 1
+          },
+          {
+            "text": "Same steps. Same Big-O. Different words.",
+            "style": "gold",
+            "at": 2
+          }
+        ],
+        "say": [
+          {
+            "say": "Take one pseudocode line: m equals an empty map.",
+            "tone": "pause"
+          },
+          {
+            "say": "In Java it's a HashMap. In Python, a dict. In C plus plus, an unordered map. In JavaScript, a Map.",
+            "tone": "lift"
+          },
+          {
+            "say": "What it does, the steps you write, and what it costs, stay the same in all four.",
+            "tone": "reveal"
+          }
+        ]
+      },
+      {
+        "id": "array",
+        "layout": "table",
+        "chapter": "Array and hash map",
+        "label": "ARRAY",
+        "title": "A list that grows",
+        "head": [
+          "PSEUDOCODE",
+          "JAVA",
+          "PYTHON",
+          "C++",
+          "JAVASCRIPT"
+        ],
+        "widths": [
+          "auto",
+          "auto",
+          "auto",
+          "auto",
+          "auto"
+        ],
+        "mono": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "rows": [
+          [
+            "append 7 to a",
+            "a.add(7)",
+            "a.append(7)",
+            "a.push_back(7)",
+            "a.push(7)"
+          ],
+          [
+            "a[0]",
+            "a.get(0)",
+            "a[0]",
+            "a[0]",
+            "a[0]"
+          ],
+          [
+            "length(a)",
+            "a.size()",
+            "len(a)",
+            "a.size()",
+            "a.length"
+          ]
+        ],
+        "at": [
+          0,
+          1,
+          2
+        ],
+        "say": [
+          {
+            "say": "Arrays first. Appending 7 is add in Java, append in Python, push back in C plus plus, and push in JavaScript.",
+            "tone": "warm"
+          },
+          "Reading the first item is a bracket with index 0 everywhere, except a Java list, which uses get.",
+          "And the length: size, len, size, and length."
+        ],
+        "compact": true
+      },
+      {
+        "id": "map",
+        "layout": "table",
+        "label": "HASH MAP",
+        "title": "Key in, value out",
+        "head": [
+          "PSEUDOCODE",
+          "JAVA",
+          "PYTHON",
+          "C++",
+          "JAVASCRIPT"
+        ],
+        "widths": [
+          "auto",
+          "auto",
+          "auto",
+          "auto",
+          "auto"
+        ],
+        "mono": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "rows": [
+          [
+            "m[\"k\"] = 3",
+            "m.put(\"k\", 3)",
+            "m[\"k\"] = 3",
+            "m[\"k\"] = 3",
+            "m.set(\"k\", 3)"
+          ],
+          [
+            "m[\"k\"]",
+            "m.get(\"k\")",
+            "m[\"k\"]",
+            "m[\"k\"]",
+            "m.get(\"k\")"
+          ],
+          [
+            "\"k\" in m",
+            "m.containsKey(\"k\")",
+            "\"k\" in m",
+            "m.count(\"k\") > 0",
+            "m.has(\"k\")"
+          ]
+        ],
+        "at": [
+          0,
+          1,
+          2
+        ],
+        "note": {
+          "text": "In JavaScript, use a `Map`, not a plain object: it takes keys of any type and has `has()` built in.",
+          "at": 3
+        },
+        "say": [
+          {
+            "say": "A hash map. Storing a value is put in Java, and set in JavaScript. Python and C plus plus use brackets.",
+            "tone": "lift"
+          },
+          "Reading it back: get, or brackets.",
+          "Checking for a key: contains key, the word in, count greater than zero, and has.",
+          {
+            "say": "In JavaScript, use a real Map rather than a plain object. It takes keys of any type.",
+            "tone": "warm"
+          }
+        ],
+        "compact": true
+      },
+      {
+        "id": "set",
+        "layout": "table",
+        "chapter": "Set, stack and queue",
+        "label": "HASH SET",
+        "title": "Have I seen it?",
+        "head": [
+          "PSEUDOCODE",
+          "JAVA",
+          "PYTHON",
+          "C++",
+          "JAVASCRIPT"
+        ],
+        "widths": [
+          "auto",
+          "auto",
+          "auto",
+          "auto",
+          "auto"
+        ],
+        "mono": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "rows": [
+          [
+            "add 9 to s",
+            "s.add(9)",
+            "s.add(9)",
+            "s.insert(9)",
+            "s.add(9)"
+          ],
+          [
+            "9 in s",
+            "s.contains(9)",
+            "9 in s",
+            "s.count(9) > 0",
+            "s.has(9)"
+          ],
+          [
+            "remove 9 from s",
+            "s.remove(9)",
+            "s.remove(9)",
+            "s.erase(9)",
+            "s.delete(9)"
+          ]
+        ],
+        "at": [
+          0,
+          1,
+          2
+        ],
+        "say": [
+          "A set. Adding is add, except C plus plus, which says insert.",
+          "Checking is contains, in, count, or has.",
+          {
+            "say": "Removing is remove, remove, erase, and delete."
+          }
+        ],
+        "compact": true
+      },
+      {
+        "id": "stack",
+        "layout": "table",
+        "label": "STACK",
+        "title": "Last in, first out",
+        "head": [
+          "PSEUDOCODE",
+          "JAVA",
+          "PYTHON",
+          "C++",
+          "JAVASCRIPT"
+        ],
+        "widths": [
+          "auto",
+          "auto",
+          "auto",
+          "auto",
+          "auto"
+        ],
+        "mono": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "rows": [
+          [
+            "push 5 onto st",
+            "st.push(5)",
+            "st.append(5)",
+            "st.push(5)",
+            "st.push(5)"
+          ],
+          [
+            "top of st",
+            "st.peek()",
+            "st[-1]",
+            "st.top()",
+            "st[st.length - 1]"
+          ],
+          [
+            "pop from st",
+            "st.pop()",
+            "st.pop()",
+            "st.pop()",
+            "st.pop()"
+          ]
+        ],
+        "at": [
+          0,
+          1,
+          2
+        ],
+        "say": [
+          {
+            "say": "A stack. In Java, use an ArrayDeque. Python and JavaScript use a plain list, or array.",
+            "tone": "lift"
+          },
+          "Looking at the top: peek, the last index, top, and the last index again.",
+          {
+            "say": "Pop looks the same in all four. But it doesn't behave the same. Hold that thought.",
+            "tone": "reveal"
+          }
+        ],
+        "compact": true
+      },
+      {
+        "id": "queue",
+        "layout": "table",
+        "label": "QUEUE",
+        "title": "First in, first out",
+        "head": [
+          "PSEUDOCODE",
+          "JAVA",
+          "PYTHON",
+          "C++",
+          "JAVASCRIPT"
+        ],
+        "widths": [
+          "auto",
+          "auto",
+          "auto",
+          "auto",
+          "auto"
+        ],
+        "mono": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "rows": [
+          [
+            "add 4 to q",
+            "q.offer(4)",
+            "q.append(4)",
+            "q.push(4)",
+            "q.push(4)"
+          ],
+          [
+            "front of q",
+            "q.peek()",
+            "q[0]",
+            "q.front()",
+            "q[head]"
+          ],
+          [
+            "remove front of q",
+            "q.poll()",
+            "q.popleft()",
+            "q.pop()",
+            "q[head++]"
+          ]
+        ],
+        "at": [
+          0,
+          1,
+          2
+        ],
+        "note": {
+          "text": "Python needs `from collections import deque`.",
+          "at": 2
+        },
+        "say": [
+          {
+            "say": "A queue. Join at the back: offer, append, push, push.",
+            "tone": "lift"
+          },
+          "Look at the front: peek, index 0, front, and index head in JavaScript.",
+          {
+            "say": "Leave from the front: poll, pop left, pop, and head plus plus. In Python, the deque comes from the collections module.",
+            "show": "Leave from the front: poll, popleft, pop, and head++. In Python, deque comes from the collections module."
+          }
+        ],
+        "compact": true
+      },
+      {
+        "id": "trap1",
+        "layout": "compare",
+        "chapter": "The traps",
+        "label": "TRAP 1 · C++",
+        "title": "pop() returns nothing",
+        "wrong": {
+          "head": "WRONG",
+          "code": [
+            "int x = st.pop();"
+          ],
+          "result": "won't compile: void"
+        },
+        "right": {
+          "head": "RIGHT",
+          "code": [
+            "int x = st.top();",
+            "st.pop();"
+          ],
+          "result": "read first, then pop"
+        },
+        "say": [
+          {
+            "say": "Here's that thought. In C plus plus, pop removes the top, but returns nothing. This line won't compile.",
+            "show": "Here's that thought. In C++, pop() removes the top, but returns nothing. This line won't compile.",
+            "tone": "low"
+          },
+          {
+            "say": "Read the top first, then pop. The same goes for a queue's front.",
+            "tone": "warm"
+          }
+        ]
+      },
+      {
+        "id": "trap2",
+        "layout": "compare",
+        "label": "TRAP 2 · JAVASCRIPT",
+        "title": "No built-in queue",
+        "wrong": {
+          "head": "SLOW",
+          "code": [
+            "const x = q.shift();"
+          ],
+          "result": "moves every other item: O(n)"
+        },
+        "right": {
+          "head": "FAST",
+          "code": [
+            "let head = 0;",
+            "const x = q[head++];"
+          ],
+          "result": "one step: O(1)"
+        },
+        "say": [
+          {
+            "say": "Here's a question. Does JavaScript have a queue? No. Shift removes the front, but moves every other item along. That's O of n, per removal.",
+            "show": "Here's a question. Does JavaScript have a queue? No. shift() removes the front, but moves every other item along. That's O(n), per removal.",
+            "tone": "question"
+          },
+          {
+            "say": "Keep a head index instead. Reading the front and moving head forward is O of 1.",
+            "show": "Keep a head index instead. q[head++] reads the front and moves head forward: O(1).",
+            "tone": "lift"
+          }
+        ]
+      },
+      {
+        "id": "end",
+        "layout": "end",
+        "title": "Your turn",
+        "practice": [
+          {
+            "id": 20,
+            "title": "Valid Parentheses",
+            "level": "Easy",
+            "note": "Needs a stack. Write it in your language from the table.",
+            "at": 0
+          },
+          {
+            "id": 49,
+            "title": "Group Anagrams",
+            "level": "Medium",
+            "note": "Needs a hash map whose values are lists.",
+            "at": 0
+          }
+        ],
+        "site": 1,
+        "say": [
+          {
+            "say": "Practise the words on two problems. Valid Parentheses needs a stack. Group Anagrams needs a map of lists."
+          },
+          {
+            "say": "Every line from these tables, as a program you can run, is on one hint away dot com.",
+            "show": "Every line from these tables, as a program you can run, is on onehintaway.com."
+          }
+        ]
+      }
+    ]
+  },
+  "short": {
+    "kind": "hack",
+    "title": "JavaScript has no queue",
+    "scenes": [
+      {
+        "id": "hook",
+        "layout": "code",
+        "label": "CODING HACK · JAVASCRIPT",
+        "title": "This queue is slow",
+        "lines": [
+          "const q = [4, 8, 6];",
+          "const x = q.shift();"
+        ],
+        "say": [
+          {
+            "say": "JavaScript has no queue, so most code does this: shift off the front.",
+            "show": "JavaScript has no queue, so a lot of code does this: shift() off the front.",
+            "upto": 2,
+            "hl": [
+              2
+            ],
+            "tone": "question"
+          },
+          {
+            "say": "But shift moves every other item one place along. That's O of n, every time.",
+            "show": "But shift() moves every other item one place along. That's O(n), every time.",
+            "tone": "reveal"
+          }
+        ]
+      },
+      {
+        "id": "fix",
+        "layout": "code",
+        "label": "THE FIX",
+        "title": "Keep a head index",
+        "lines": [
+          "const q = [4, 8, 6];",
+          "let head = 0;",
+          "const x = q[head++];",
+          "q.push(9);"
+        ],
+        "say": [
+          {
+            "say": "Keep an index for the front, starting at zero.",
+            "upto": 2,
+            "hl": [
+              2
+            ]
+          },
+          {
+            "say": "Read the front with head, then move head forward. Nothing shifts. O of 1.",
+            "show": "Read q[head], then move head forward. Nothing shifts. O(1).",
+            "upto": 3,
+            "hl": [
+              3
+            ],
+            "tone": "lift"
+          },
+          {
+            "say": "Joining the back is still push.",
+            "show": "Joining the back is still push().",
+            "upto": 4,
+            "hl": [
+              4
+            ]
+          }
+        ]
+      },
+      {
+        "id": "end",
+        "layout": "big",
+        "title": "Five structures, four languages",
+        "items": [
+          {
+            "text": "Full video on this channel.\nCode on onehintaway.com",
+            "style": "lead",
+            "at": 0
+          }
+        ],
+        "say": [
+          {
+            "say": "Stack, queue, map, and set, in all four languages, are in the full video. Code on one hint away dot com.",
+            "show": "Stack, queue, map and set, in all four languages, are in the full video. Code on onehintaway.com."
+          }
+        ]
+      }
+    ]
+  },
+  "youtube": {
+    "title": "One pseudocode, 4 languages: Java, Python, C++, JavaScript for DSA",
+    "description": "Learn the idea once in pseudocode, then look up the words in your language. Array, hash map, hash set, stack and queue in Java, Python, C++ and JavaScript, side by side. Plus two traps: C++ pop() returns nothing, and JavaScript's shift() is O(n).\n\n{CHAPTERS}\n\nCode you can run: https://onehintaway.com/posts/three-languages/\nPractice: LeetCode 20, LeetCode 49\n\n#dsa #java #python",
+    "tags": [
+      "dsa",
+      "java",
+      "python",
+      "c++",
+      "javascript",
+      "hash map",
+      "stack",
+      "queue",
+      "coding interview"
+    ]
+  }
+}

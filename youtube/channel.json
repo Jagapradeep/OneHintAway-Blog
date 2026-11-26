@@ -1,0 +1,50 @@
+{
+  "_note": "Channel settings the video tools read. Change any value here; nothing else is hard-coded.",
+  "cadence": {
+    "long_videos_per_week": 2,
+    "long_video_days": [
+      "Tue",
+      "Fri"
+    ],
+    "shorts_per_day": 1,
+    "publish_time": "18:30",
+    "timezone": "Asia/Kolkata"
+  },
+  "order": {
+    "foundations": [
+      "00-start-here",
+      "01-eight-data-structures",
+      "02-big-o",
+      "03-three-languages",
+      "04-attack-any-problem"
+    ],
+    "posts_from": 5
+  },
+  "shorts_per_post": {
+    "foundation": [
+      "trap or hack"
+    ],
+    "concept": [
+      "trap",
+      "hack",
+      "booster"
+    ],
+    "challenge": [
+      "trap",
+      "booster"
+    ]
+  },
+  "voice": {
+    "name": "af_heart",
+    "speed": 1.0,
+    "tone_tags": "about one line in four",
+    "_pending": "replace with the voice Jaga picks"
+  },
+  "outro": {
+    "long": true,
+    "shorts": true,
+    "text": "Hit like and subscribe\nfor more videos like this.",
+    "say": "Hit like, and subscribe for more videos like this."
+  },
+  "next_video_mention": false
+}

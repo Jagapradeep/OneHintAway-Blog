@@ -1,0 +1,321 @@
+{
+ "number": 10,
+ "slug": "prefix-sum",
+ "kind": "concept",
+ "topic": "Prefix Sum",
+ "category": "Prefix sum",
+ "next_post": "Prefix sum + map",
+ "cover": {
+  "title": "Prefix sum",
+  "lead": "Many range-sum questions on an array that never changes: build once, then one subtraction each.",
+  "use_it_when": "You are asked many times for the sum from index left to right, and the array never changes.",
+  "why_it_matters": "Post 11 pairs it with a hash map to count subarrays with a given sum.",
+  "blocks": [
+   {
+    "type": "boxes",
+    "size": "s",
+    "gap": 24,
+    "mt": 18,
+    "values": [
+     3,
+     4,
+     8,
+     9,
+     14
+    ],
+    "gold": [
+     3
+    ],
+    "steel": [
+     0
+    ]
+   }
+  ],
+  "promise": "You'll write prefix sums in {lines} lines.",
+  "promise_slide": "template"
+ },
+ "slides": [
+  {
+   "type": "video",
+   "teaser": "Watch the running sums",
+   "title": "Watch it add up",
+   "lead": "Running sums of 3 1 4 1 5, then one question.",
+   "video": {
+    "values": [
+     3,
+     1,
+     4,
+     1,
+     5
+    ],
+    "stage_label": "NUMS → RUNNING SUMS",
+    "chips_label": "ANSWER",
+    "steps": "video_steps()",
+    "final": {
+     "gold": [
+      3
+     ],
+     "steel": [
+      0
+     ],
+     "eq": [
+      "sum of 1..3 =",
+      "{{Q1}}"
+     ],
+     "caption": "1 + 4 + 1 = {{Q1}}, from one subtraction."
+    }
+   }
+  },
+  {
+   "type": "story",
+   "teaser": "The odometer idea",
+   "title": "An odometer",
+   "scene": "A car's odometer keeps a running total. For the distance between two towns, subtract the two readings. No one re-drives the road.",
+   "blocks": [
+    {
+     "type": "boxes",
+     "label": "READING AT EACH TOWN",
+     "values": [
+      3,
+      4,
+      8,
+      9,
+      14
+     ],
+     "gold": [
+      3
+     ],
+     "steel": [
+      0
+     ]
+    },
+    {
+     "type": "card",
+     "text": "From town 1 to town 3: 9 − 3 = [[{{Q1}}]]."
+    }
+   ]
+  },
+  {
+   "type": "picture",
+   "teaser": "Two questions, two subtractions",
+   "title": "One subtraction each",
+   "lead": "Each box holds the sum so far. A range is the later box minus the box before it starts.",
+   "blocks": [
+    {
+     "type": "steps",
+     "rows": [
+      {
+       "label": "running sums",
+       "values": [
+        3,
+        4,
+        8,
+        9,
+        14
+       ]
+      },
+      {
+       "label": "1..3: 9 − 3 = {{Q1}}",
+       "values": [
+        3,
+        4,
+        8,
+        9,
+        14
+       ],
+       "gold": [
+        3
+       ],
+       "steel": [
+        0
+       ]
+      },
+      {
+       "label": "2..4: 14 − 4 = {{Q2}}",
+       "values": [
+        3,
+        4,
+        8,
+        9,
+        14
+       ],
+       "gold": [
+        4
+       ],
+       "steel": [
+        1
+       ]
+      }
+     ]
+    }
+   ],
+   "quickcheck": {
+    "question": "nums = 2 4 6 8. What is the sum from index 1 to 2?",
+    "answer": "Answer: {{range_sum(build_prefix([2, 4, 6, 8]), 1, 2)}}. Running sums 2 6 12 20, and 12 − 2.",
+    "check": "range_sum(build_prefix([2, 4, 6, 8]), 1, 2)"
+   }
+  },
+  {
+   "type": "extra",
+   "label": "WHY THE EXTRA 0",
+   "board": "Answer + the extra 0",
+   "teaser": "The answer, then the extra 0",
+   "title": "Why n + 1 slots",
+   "blocks": [
+    {
+     "type": "kv",
+     "rows": [
+      [
+       "prefix",
+       "[{{', '.join(map(str, PREFIX))}}]"
+      ],
+      [
+       "sum 0..2",
+       "prefix[3] − prefix[0]",
+       "steel"
+      ]
+     ]
+    },
+    {
+     "type": "text",
+     "text": "A 0 in front lets a range start at index 0 with no special case."
+    }
+   ]
+  },
+  {
+   "type": "template",
+   "teaser": "Prefix sums in 9 lines",
+   "title": "Prefix sum",
+   "code": {
+    "lines": [
+     "function buildPrefix(nums):",
+     "    n = length(nums)",
+     "    prefix = array of n + 1 zeros",
+     "    for i from 0 to n - 1:",
+     "        prefix[i + 1] = prefix[i] + nums[i]",
+     "    return prefix",
+     "",
+     "function rangeSum(prefix, left, right):",
+     "    return prefix[right + 1] - prefix[left]"
+    ],
+    "highlight": [
+     9
+    ]
+   },
+   "explain": "Build once (lines 1 to 6). Then every question is line 9: one subtraction.",
+   "example": {
+    "call": "rangeSum(buildPrefix([3, 1, 4, 1, 5]), 1, 3)",
+    "expr": "Q1",
+    "show": "{{Q1}}"
+   }
+  },
+  {
+   "type": "trap",
+   "teaser": "The bug that returns {{WRONG}}",
+   "title": "Mind the shift",
+   "lead": "prefix[right] stops one short: it drops nums[right].",
+   "trap": {
+    "call": "rangeSum(prefix, 1, 3)",
+    "wrong": {
+     "code": [
+      "prefix[right]",
+      "  - prefix[left]"
+     ],
+     "note": "8 − 3 drops the last 1.",
+     "result": "{{WRONG}}"
+    },
+    "right": {
+     "code": [
+      "prefix[right + 1]",
+      "  - prefix[left]"
+     ],
+     "note": "9 − 3 keeps it.",
+     "result": "{{Q1}}"
+    }
+   },
+   "cost": {
+    "items": [
+     {
+      "label": "Build",
+      "value": "O(n)"
+     },
+     {
+      "label": "Each question",
+      "value": "O(1)",
+      "gold": true
+     },
+     {
+      "label": "Add up each time",
+      "value": "O(n)"
+     }
+    ],
+    "note": "With q questions: O(n + q) instead of O(n · q)."
+   }
+  },
+  {
+   "type": "practice",
+   "teaser": "Last slide: your turn",
+   "learnt": [
+    "Build running sums",
+    "One subtraction each",
+    "prefix[right + 1]"
+   ],
+   "problems": [
+    {
+     "difficulty": "Easy",
+     "id": 303,
+     "title": "Range Sum Query - Immutable",
+     "note": "This exact post: build once, then subtract.",
+     "complexity": "n",
+     "constraints": {
+      "n": 10000
+     },
+     "url": "https://leetcode.com/problems/range-sum-query-immutable/"
+    },
+    {
+     "difficulty": "Medium",
+     "id": 238,
+     "title": "Product of Array Except Self",
+     "note": "The same running idea with products, both ways.",
+     "complexity": "n",
+     "constraints": {
+      "n": 100000
+     },
+     "url": "https://leetcode.com/problems/product-of-array-except-self/"
+    }
+   ]
+  }
+ ],
+ "blog": {
+  "pattern": "Prefix sum",
+  "section": "Arrays and hashing",
+  "summary": "Many \"sum from left to right\" questions on an array that never changes: build once, answer each with one subtraction.",
+  "tags": [
+   "prefix-sum",
+   "arrays"
+  ],
+  "worked": {
+   "name": "LeetCode 303 Range Sum Query - Immutable",
+   "url": "https://leetcode.com/problems/range-sum-query-immutable/"
+  },
+  "tested_what": "buildPrefix and rangeSum",
+  "tested_inputs": "hand-picked cases (one value, negatives, ranges of one value, the whole array) and random arrays of up to 12 values with up to 5 random ranges each, plus one array of 10,000 values",
+  "tested_against": "adding up each range directly",
+  "tested_extra": "The running sums, both answers and the trap result come from running the code."
+ },
+ "caption": {
+  "first": "Prefix sum explained with LeetCode 303: build running sums once, then answer any range with one subtraction.",
+  "lines": [
+   "sum(left..right) = prefix[right + 1] − prefix[left].",
+   "The trap: prefix[right] − prefix[left] drops the last number.",
+   "Practice: LeetCode 303 (easy) and LeetCode 238 (medium)."
+  ],
+  "cta": "Save it for revision.",
+  "tags": [
+   "#dsa",
+   "#leetcode",
+   "#codinginterview",
+   "#prefixsum"
+  ]
+ }
+}

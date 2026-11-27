@@ -139,7 +139,9 @@ jobs:
                   wav = model.generate(text, audio_prompt_path="ref/reference.wav", exaggeration=0.5, cfg_weight=0.5)
                   name = f"out/line{i:02d}-take{seed}.wav"
                   ta.save(name, wav, model.sr); spoken += wav.shape[1] / model.sr
-                  segs, _ = ear.transcribe(name, language="en", word_timestamps=True, beam_size=5)
+                  # hand Whisper the audio itself at 16 kHz (its own file reader clashes with the PyAV version Chatterbox installs)
+                  pcm = ta.functional.resample(wav, model.sr, 16000)[0].numpy().astype("float32")
+                  segs, _ = ear.transcribe(pcm, language="en", word_timestamps=True, beam_size=5)
                   ws = [w for s in segs for w in s.words]
                   heard = " ".join(w.word.strip() for w in ws)
                   low = min(ws, key=lambda w: w.probability) if ws else None

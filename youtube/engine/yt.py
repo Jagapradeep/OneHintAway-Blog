@@ -830,6 +830,27 @@ def summary(spec, vids):
         L += ["", "== YOUTUBE", "Title: " + yt["title"], "", yt["description"].replace("{CHAPTERS}", ch), "", "Tags: " + ", ".join(yt["tags"])]
     return "\n".join(L)
 
+def listen_list(fmt, vid, n=6):
+    """The lines worth one listen: any that needed a note, then the lowest-scoring, with their time in the video."""
+    log = [x for x in getattr(vid, "voice_log", []) if "mos_min" in x]
+    if not log:
+        return ""
+    flagged = [x for x in log if x.get("note")]
+    rest = sorted([x for x in log if not x.get("note")], key=lambda x: (x["mos_min"], x["mos"]))[: max(0, n - len(flagged))]
+    rows = [f"  {mmss(x['t'])}  {x['text'][:70]!r}  (naturalness {x['mos']:.2f}, worst stretch {x['mos_min']:.2f}, "
+            f"likeness {x['likeness']:.2f})" + (f"  NOTE: {x['note']}" if x.get("note") else "")
+            for x in sorted(flagged + rest, key=lambda x: x["t"])]
+    takes = sum(x.get("takes", 1) for x in log)
+    return (f"\n{fmt}: listen to these {len(rows)} lines ({len(log)} lines, {takes} takes made, "
+            f"{sum(1 for x in log if x.get('takes', 1) > 1)} said again):\n" + "\n".join(rows) + "\n")
+
+def voice_report(vid):
+    """Every line with its scores, to tune the bar in engine.CB from real videos."""
+    rows = ["time\ttakes\tseed\tnaturalness\tworst_stretch\tlikeness\twords_per_s\tnote\ttext"]
+    for x in getattr(vid, "voice_log", []):
+        rows.append("\t".join(str(x.get(k, "")) for k in ("t", "takes", "seed", "mos", "mos_min", "likeness", "rate", "note", "text")))
+    return "\n".join(rows) + "\n"
+
 def engine_for(vc, fmt):
     """channel.json voice.engine: "kokoro", "chatterbox", or {"long": ..., "short": ...}. Kokoro when unset."""
     e = vc.get("engine", "kokoro")
@@ -888,10 +909,11 @@ def main():
         for out in outs:
             out.mkdir(parents=True, exist_ok=True)
             mine = {k: v for k, v in vids.items() if (out.name.endswith("-chatterbox")) == (v.engine == "chatterbox")}
-            notes = [f"  {k}: {n}" for k, v in mine.items() for n in getattr(v, "voice_notes", [])]
             (out / "summary.txt").write_text(f"Voice: {', '.join(sorted({v.engine for v in mine.values()}))}\n"
-                                             + ("Listen to these lines once (Whisper heard a word differently every time):\n" + "\n".join(notes) + "\n" if notes else "")
-                                             + "\n" + summary(spec, mine))
+                                             + "".join(listen_list(k, v) for k, v in mine.items()) + "\n" + summary(spec, mine))
+            for k, v in mine.items():
+                if getattr(v, "voice_log", None):
+                    (out / f"voice-{k}.txt").write_text(voice_report(v))
             (out / "FAILED.txt").unlink(missing_ok=True)
         for w in warns:
             print(f"  warn {w}")

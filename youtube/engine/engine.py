@@ -13,42 +13,66 @@ SR = 48000
 if Path("/opt/pw-browsers").exists():
     os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", "/opt/pw-browsers")
 
+# Same pixels on every run and every machine: software drawing on one thread, fixed colour profile and
+# text smoothing, nothing animated by the browser itself (draw(t) sets every frame).
+CHROME_ARGS = ["--disable-gpu", "--disable-gpu-rasterization", "--num-raster-threads=1", "--disable-partial-raster",
+               "--force-color-profile=srgb", "--font-render-hinting=none", "--disable-lcd-text",
+               "--disable-threaded-animation", "--disable-threaded-scrolling", "--disable-skia-runtime-opts"]
+
 # ---------------------------------------------------------------- voice
 _kok = None
-# tone tags, used on about one line in four: (speed, pitch ratio, pause before)
-TONES = {"question": (0.93, 1.03, 0.0), "reveal": (0.9, 0.965, 0.5), "lift": (1.06, 1.04, 0.0), "warm": (0.95, 1.0, 0.15),
-         "low": (0.93, 0.97, 0.1), "pause": (1.0, 1.0, 0.6)}
+# tone tags: (speed, pitch shift in semitones, pause before). Kept small: every change below is native to Kokoro
+# (its own intonation from punctuation, stress marks in its phonemes, its speed) or a pitch nudge of a few percent,
+# never a vocoder rebuild (that distorted the voice on 26 November 2026).
+TONES = {"question": (0.95, 0.35, 0.0), "reveal": (0.9, -0.35, 0.5), "lift": (1.05, 0.45, 0.0),
+         "warm": (0.94, -0.2, 0.15), "low": (0.93, -0.45, 0.1), "pause": (1.0, 0.0, 0.6)}
 _SENT = re.compile(r"(?<=[.?!])\s+")
+_MARK = re.compile(r"\[([^\]]+)\]\(/([^/]+)/\)|\*([^*]+)\*")
 
-def human(text, voice="af_heart", speed=1.0, pitch=1.0):
-    """One narration line, said sentence by sentence like a person: each sentence gets its own small
-    lift or drop in pitch and pace (fixed per sentence, so renders repeat exactly), questions rise,
-    the last sentence of a thought slows a touch, and real pauses sit between sentences.
-    Returns (audio, [(start, end) per sentence in seconds])."""
+def _marks(snt):
+    """'*word*' stresses a word; '[a](/ˈeɪ/)' gives a word its exact sound (letters, names).
+    Returns the plain text and a list of (start, end, phonemes or None for stress)."""
+    plain, marks, pos = "", [], 0
+    for m in _MARK.finditer(snt):
+        plain += snt[pos:m.start()]
+        word = m.group(1) or m.group(3)
+        marks.append((len(plain), len(plain) + len(word), m.group(2)))
+        plain += word; pos = m.end()
+    return plain + snt[pos:], marks
+
+def spoken_text(text):
+    """What captions show for a voice line: the marks removed."""
+    return _MARK.sub(lambda m: m.group(1) or m.group(3), text)
+
+def human(text, voice="af_heart", speed=1.0, tone=None):
+    """One narration line, said sentence by sentence: Kokoro's own intonation from the punctuation, stressed words,
+    exact letter sounds, a per-sentence pace and a pitch nudge of at most a few percent, real pauses between
+    sentences (longer after a question). Returns (audio, [(start, end) per sentence in seconds])."""
+    sp0, st0, _ = TONES.get(tone, (1.0, 0.0, 0.0))
     sents = [x for x in _SENT.split(text.strip()) if x]
     parts, spans, t = [], [], 0.0
     for k, snt in enumerate(sents):
-        h = int(hashlib.sha1(snt.encode()).hexdigest()[:6], 16) / 0xFFFFFF
-        sp = speed * (0.965 + 0.07 * h)
-        pi = pitch * (0.982 + 0.036 * ((h * 7.31) % 1))
-        if snt.endswith("?"):
-            sp *= 0.95; pi *= 1.025
-        elif snt.endswith("!"):
-            sp *= 1.03; pi *= 1.03
-        if len(sents) > 1 and k == len(sents) - 1 and not snt.endswith("?"):
-            sp *= 0.97; pi *= 0.99
-        a = speak(snt, voice, round(sp, 3), round(pi, 3))
+        plain, marks = _marks(snt)
+        h = int(hashlib.sha1(plain.encode()).hexdigest()[:6], 16) / 0xFFFFFF
+        sp, st = speed * sp0 * (0.975 + 0.05 * h), st0 + (h - 0.5) * 0.3
+        if plain.endswith("?"):
+            sp *= 0.96; st += 0.3
+        elif plain.endswith("!"):
+            sp *= 1.04; st += 0.4
+        if len(sents) > 1 and k == len(sents) - 1 and plain.endswith("."):
+            sp *= 0.97
+        a = speak(plain, voice, round(sp, 3), round(2 ** (max(-0.6, min(0.6, st)) / 12), 4), tuple(marks))
         spans.append((t, t + len(a) / SR)); t += len(a) / SR
         parts.append(a)
         if k < len(sents) - 1:
-            gap = 0.42 if snt.endswith("?") else 0.3 + 0.08 * h
+            gap = 0.5 if plain.endswith("?") else (0.42 if plain.endswith("!") else 0.34)
             parts.append(np.zeros(int(gap * SR), np.float32)); t += gap
     return np.concatenate(parts).astype(np.float32), spans
 
-def speak(text, voice="af_heart", speed=1.0, pitch=1.0):
-    """Kokoro speech at 48 kHz, silence trimmed, cached by text."""
+def speak(text, voice="af_heart", speed=1.0, pitch=1.0, marks=()):
+    """Kokoro speech at 48 kHz, silence trimmed, cached. marks: (start, end, phonemes or None) from _marks."""
     global _kok
-    key = hashlib.sha1((f"{voice}|{speed}|{text}" + (f"|p{pitch}" if pitch != 1.0 else "")).encode()).hexdigest()[:16]
+    key = hashlib.sha1(f"{voice}|{speed}|{pitch}|{text}|{marks}|v6".encode()).hexdigest()[:16]
     f = CACHE / f"{key}.wav"
     if not f.exists():
         if _kok is None:
@@ -57,9 +81,25 @@ def speak(text, voice="af_heart", speed=1.0, pitch=1.0):
             if not (m / "kokoro-v1.0.onnx").exists():
                 raise SystemExit("Voice model missing: run the setup step in the yt-video skill (downloads models/ from the kokoro-onnx GitHub release).")
             _kok = Kokoro(str(m / "kokoro-v1.0.onnx"), str(m / "voices-v1.0.bin"))
-        s, sr = _kok.create(text, voice=voice, speed=speed / pitch, lang="en-us")
+        rate = speed / pitch
+        if marks:                       # build the phonemes piece by piece so each mark lands on its own word
+            ph, pos = [], 0
+            for a, b, sound in marks:
+                if text[pos:a].strip():
+                    ph.append(_kok.tokenizer.phonemize(text[pos:a], "en-us"))
+                if sound:
+                    ph.append(sound)
+                else:
+                    w = _kok.tokenizer.phonemize(text[a:b], "en-us").replace("ˌ", "ˈ")
+                    ph.append(w if "ˈ" in w else "ˈ" + w)
+                pos = b
+            if text[pos:].strip():
+                ph.append(_kok.tokenizer.phonemize(text[pos:], "en-us"))
+            s, sr = _kok.create(" ".join(x.strip() for x in ph), voice=voice, speed=rate, lang="en-us", is_phonemes=True)
+        else:
+            s, sr = _kok.create(text, voice=voice, speed=rate, lang="en-us")
         s = resample_poly(np.asarray(s, dtype=np.float64), SR, sr)
-        if pitch != 1.0:                 # replay faster or slower: pitch moves, speed was compensated above
+        if pitch != 1.0:                # replay a few percent faster or slower: pitch moves, speed was compensated above
             s = resample_poly(s, 1000, int(round(1000 * pitch)))
         env = np.abs(s) > 0.01
         idx = np.where(env)[0]
@@ -168,8 +208,8 @@ class Video:
         if isinstance(line, str):
             line = {"say": line}
         say = line["say"]; show = line.get("show", say)
-        sp, pi, _ = TONES.get(line.get("tone"), (1.0, 1.0, 0.0))
-        a, spans = human(say, self.voice, self.speed * sp, pi)
+        a, spans = human(say, self.voice, self.speed, line.get("tone"))
+        show = spoken_text(show)
         d = len(a) / SR
         self.clips.append((at, a))
         shows = [x for x in _SENT.split(show.strip()) if x]
@@ -179,14 +219,12 @@ class Video:
                 words += word_times(txt, at + a0, a1 - a0)
         else:
             words = word_times(show, at, d)
-        # caption chunks
-        chunk, n = [], 0
+        # captions: one whole sentence per caption, never cut inside a sentence
+        chunk = []
         for w in words:
-            if chunk and (n + len(w["w"]) + 1 > self.cap_chars):
-                self.caps.append({"t0": chunk[0]["t"], "words": chunk}); chunk, n = [], 0
-            chunk.append(w); n += len(w["w"]) + 1
-            if w["w"][-1] in ".?!" and n > self.cap_chars * 0.45:
-                self.caps.append({"t0": chunk[0]["t"], "words": chunk}); chunk, n = [], 0
+            chunk.append(w)
+            if w["w"][-1] in ".?!":
+                self.caps.append({"t0": chunk[0]["t"], "words": chunk}); chunk = []
         if chunk:
             self.caps.append({"t0": chunk[0]["t"], "words": chunk})
         self.caps[-1]["end"] = at + d
@@ -200,6 +238,8 @@ class Video:
         for i, ln in enumerate(lines):
             if isinstance(ln, dict) and ln.get("wait"):
                 t += ln["wait"]; continue
+            if isinstance(ln, dict) and ln.get("think"):       # silent thinking time with a visible timer (cue T<i>)
+                cues[f"T{i}"] = round(t - t0, 3); t += ln["think"]; continue
             if isinstance(ln, dict) and ln.get("tone"):
                 t += TONES[ln["tone"]][2]
             cues[f"L{i}"] = round(t - t0, 3)
@@ -219,7 +259,7 @@ class Video:
         """The post's own animation, re-timed so every narrated step holds until its line ends."""
         S = tl["states"]
         clips = {k: (v if isinstance(v, dict) else {"say": v}) for k, v in narr.items()}
-        durs = {k: len(human(c["say"], self.voice, self.speed * TONES.get(c.get("tone"), (1, 1, 0))[0], TONES.get(c.get("tone"), (1, 1, 0))[1])[0]) / SR for k, c in clips.items()}
+        durs = {k: len(human(c["say"], self.voice, self.speed, c.get("tone"))[0]) / SR for k, c in clips.items()}
         t = 0.0
         for k, s in enumerate(S):
             ln = s["len"] * slow
@@ -259,6 +299,7 @@ class Video:
         duck = 1 - 0.55 * np.clip(env / 0.03, 0, 1)
         bed = bed * np.convolve(duck, np.ones(9600) / 9600, mode="same")
         mixd = voice * 0.9 + fx + bed
+        mixd = mixd / (np.abs(mixd).max() + 1e-9) * 0.5          # headroom before loudness is set
         sf.write(str(path), np.stack([mixd, mixd], 1), SR)
 
     # ------------------------------------------------------------ render
@@ -274,25 +315,33 @@ class Video:
         silent = out_dir / f"{self.name}-silent.mp4"
         fps = self.fps
         with sync_playwright() as p:
-            br = p.chromium.launch()
+            br = p.chromium.launch(args=CHROME_ARGS)
             pg = br.new_page(viewport={"width": self.W, "height": self.H})
             pg.set_content(page_html); pg.evaluate("document.fonts.ready"); pg.wait_for_timeout(300)
+            pg.evaluate("window.fitCode && window.fitCode()")
             if frames is not None:           # stills only, for checking
                 for t in frames:
                     pg.evaluate(f"window.draw({t})")
                     pg.screenshot(path=str(out_dir / f"{self.name}-{t:06.2f}.png"))
                 br.close(); return None
             nfr = int(math.ceil(self.t * fps))
-            ff = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "image2pipe", "-framerate", str(fps), "-c:v", "mjpeg", "-i", "-",
+            ff = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "image2pipe", "-framerate", str(fps), "-c:v", "png", "-i", "-",
                                    "-c:v", "libx264", "-preset", "veryfast" if draft else "medium", "-crf", "20" if draft else "16",
-                                   "-pix_fmt", "yuv420p", "-r", str(fps), str(silent)], stdin=subprocess.PIPE)
+                                   "-pix_fmt", "yuv420p", "-threads", "1", "-r", str(fps), str(silent)], stdin=subprocess.PIPE)
             for i in range(nfr):
                 pg.evaluate(f"window.draw({i / fps})")
-                ff.stdin.write(pg.screenshot(type="jpeg", quality=93))
+                ff.stdin.write(pg.screenshot(type="png"))
             ff.stdin.close(); ff.wait(); br.close()
         final = out_dir / f"{self.name}.mp4"
+        # loudness in two measured passes, then a limiter: never louder than -1.6 dBFS, so nothing clips
+        meas = subprocess.run(["ffmpeg", "-nostats", "-i", str(wav), "-af", "loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json",
+                               "-f", "null", "-"], capture_output=True, text=True).stderr
+        mj = json.loads(meas[meas.rindex("{"): meas.rindex("}") + 1])
+        ln = (f"loudnorm=I=-14:TP=-1.5:LRA=11:measured_I={mj['input_i']}:measured_TP={mj['input_tp']}:"
+              f"measured_LRA={mj['input_lra']}:measured_thresh={mj['input_thresh']}:offset={mj['target_offset']}:linear=true,"
+              "alimiter=limit=0.83:level=disabled:attack=5:release=50")
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(silent), "-i", str(wav), "-map", "0:v", "-map", "1:a",
-                        "-af", "loudnorm=I=-14:TP=-1.5:LRA=11", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
+                        "-af", ln, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
                         "-shortest", "-movflags", "+faststart", str(final)], check=True)
         silent.unlink()
         return final
@@ -316,7 +365,7 @@ const sm = x => { x = cl(x); return x*x*(3-2*x); };
 const back = x => { x = cl(x); const c = 1.6; return 1 + (c+1)*Math.pow(x-1,3) + c*Math.pow(x-1,2); };
 const scenes = D.scenes.map(s => ({...s, el: document.getElementById('sc_' + s.id)}));
 for (const s of scenes) s.items = s.el ? [...s.el.querySelectorAll('[data-at]')] : [];
-const capEl = document.getElementById('caps');
+const capEl = document.getElementById('caps') || document.createElement('div');
 const prog = document.getElementById('prog');
 const kitwrap = document.getElementById('kitwrap');
 let lastCap = -1;

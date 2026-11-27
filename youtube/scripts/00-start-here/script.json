@@ -285,18 +285,6 @@
             "tone": "lift"
           }
         ]
-      },
-      {
-        "id": "end",
-        "layout": "end",
-        "title": "Code for every video",
-        "site": 0,
-        "say": [
-          {
-            "say": "The code for every video, in four languages, is on one hint away dot com.",
-            "show": "The code for every video, in four languages, is on onehintaway.com."
-          }
-        ]
       }
     ]
   },
@@ -369,24 +357,6 @@
           {
             "say": "Still stuck? Ask for the next hint, not the code.",
             "tone": "question"
-          }
-        ]
-      },
-      {
-        "id": "end",
-        "layout": "big",
-        "title": "Learn the pattern first",
-        "items": [
-          {
-            "text": "Full videos on this channel.\nCode on onehintaway.com",
-            "style": "lead",
-            "at": 0
-          }
-        ],
-        "say": [
-          {
-            "say": "The patterns behind the hints are on this channel. Code on one hint away dot com.",
-            "show": "The patterns behind the hints are on this channel. Code on onehintaway.com."
           }
         ]
       }

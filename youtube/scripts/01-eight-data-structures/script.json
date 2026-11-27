@@ -586,13 +586,8 @@
             "at": 0
           }
         ],
-        "site": 1,
         "say": [
-          "Practise two of them. Contains Duplicate needs a hash set. Valid Parentheses needs a stack.",
-          {
-            "say": "The code for all eight structures, in four languages, is on one hint away dot com.",
-            "show": "The code for all eight structures, in four languages, is on onehintaway.com."
-          }
+          "Practise two of them. Contains Duplicate needs a hash set. Valid Parentheses needs a stack."
         ]
       }
     ]
@@ -737,24 +732,6 @@
           {
             "say": "Index 5 doesn't exist. That's the out of bounds error.",
             "show": "Index 5 doesn't exist. That's the index-out-of-bounds error."
-          }
-        ]
-      },
-      {
-        "id": "end",
-        "layout": "big",
-        "title": "Eight structures, one video",
-        "items": [
-          {
-            "text": "Full video on this channel.\nCode on onehintaway.com",
-            "style": "lead",
-            "at": 0
-          }
-        ],
-        "say": [
-          {
-            "say": "All eight data structures are in the full video. Code on one hint away dot com.",
-            "show": "All eight data structures are in the full video. Code on onehintaway.com."
           }
         ]
       }

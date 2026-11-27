@@ -43,8 +43,18 @@
   "outro": {
     "long": true,
     "shorts": true,
-    "text": "Hit like and subscribe\nfor more videos like this.",
-    "say": "Hit like, and subscribe for more videos like this."
+    "text": "Thanks for watching.",
+    "say": "Thanks for watching.",
+    "short_text": "Full video on the channel.",
+    "short_say": "The full video is on the channel."
   },
-  "next_video_mention": false
+  "next_video_mention": false,
+  "site_frame": {
+    "say": "Every line of code from this video, in four languages, with notes and practice links, is on one hint away dot com.",
+    "show": "Every line of code from this video, in four languages, with notes and practice links, is on onehintaway.com."
+  },
+  "burned_captions": {
+    "long": true,
+    "short": true
+  }
 }

@@ -1,0 +1,102 @@
+# Renders YouTube videos from youtube/scripts/ on a free GitHub machine. The same engine, voice model,
+# browser build and package versions as the yt-video skill's own renders, so the videos match.
+# Runs when scripts change on main, or by hand (Actions tab > Videos > Run workflow) for chosen posts.
+# The MP4s, captions and YouTube text appear on the run's page under "Artifacts".
+name: Videos
+
+on:
+  push:
+    branches: [main]
+    paths: ["youtube/scripts/**"]
+  workflow_dispatch:
+    inputs:
+      posts:
+        description: "Script folders to render, e.g. 05-hashing 06-two-pointers (blank: the ones changed by the last push)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: videos-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Pick the videos to render
+        id: pick
+        env:
+          POSTS: ${{ inputs.posts }}
+        run: |
+          if [ -n "$POSTS" ]; then
+            names="$POSTS"
+          else
+            names=$(git diff --name-only HEAD~1 HEAD -- youtube/scripts | cut -d/ -f3 | sort -u)
+          fi
+          list=""
+          for n in $names; do
+            case "$n" in *[!A-Za-z0-9-]*) echo "skipping odd name: $n"; continue;; esac
+            if [ -f "youtube/scripts/$n/script.json" ]; then list="$list youtube/scripts/$n"; fi
+          done
+          echo "Rendering:$list"
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-python@v5
+        if: steps.pick.outputs.list != ''
+        with:
+          python-version: "3.13"
+
+      - name: Install ffmpeg, Python packages and the browser
+        if: steps.pick.outputs.list != ''
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ffmpeg
+          ffmpeg -version | head -1
+          pip install -q -r youtube/engine/requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Voice model (cached)
+        if: steps.pick.outputs.list != ''
+        uses: actions/cache@v4
+        with:
+          path: youtube/engine/models
+          key: kokoro-model-files-v1.0
+
+      - name: Download the voice model if not cached
+        if: steps.pick.outputs.list != ''
+        run: |
+          mkdir -p youtube/engine/models && cd youtube/engine/models
+          for f in kokoro-v1.0.onnx voices-v1.0.bin; do
+            [ -f "$f" ] || curl -sSfLO "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/$f"
+          done
+          sha256sum kokoro-v1.0.onnx voices-v1.0.bin
+
+      - name: Check and render
+        if: steps.pick.outputs.list != ''
+        run: python youtube/engine/yt.py ${{ steps.pick.outputs.list }} --video all
+
+      - name: Contact sheets
+        if: always() && steps.pick.outputs.list != ''
+        run: for d in youtube/build/*/; do python youtube/engine/sheet.py "$d" || true; done
+
+      - name: Upload the videos
+        if: always() && steps.pick.outputs.list != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: videos-${{ github.run_number }}
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            youtube/build/*/*.mp4
+            youtube/build/*/*.srt
+            youtube/build/*/summary.txt
+            youtube/build/*/sheet.png
+            youtube/build/*/FAILED.txt

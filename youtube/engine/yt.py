@@ -9,25 +9,27 @@ Pattern posts reuse their post kit folder: "post": "28-binary-search" gives {{..
 "lines_from" pulls code from its slides, and the "kit" layout plays its motion video in sync with the voice.
 """
 import argparse, importlib.util, json, re, sys
+import numpy as np
 from pathlib import Path
 from html import escape
 import engine as E
 import kitload as K
+import viz as Z
 from kitload import U
 
 GOLD, STEEL, RED, MUTED = "#F4CF6E", "#A3CDF2", "#E5736B", "#A2A8B3"
 FMT = {
-    "long": dict(W=1920, H=1080, sc=(150, 110, 1620, 810), title=84, body=46, mono=38, cell=170, caps_top=948, cap_chars=60,
-                 caps="left:210px;width:1500px;top:948px;font-size:44px;line-height:56px", top_safe=96, logo="right:80px;top:44px"),
-    "short": dict(W=1080, H=1920, sc=(80, 200, 920, 1110), title=88, body=48, mono=34, cell=150, caps_top=1340, cap_chars=28,
-                  caps="left:100px;width:880px;top:1340px;font-size:54px;line-height:68px;text-wrap:balance", top_safe=200, logo="left:80px;top:74px"),
+    "long": dict(W=1920, H=1080, sc=(150, 110, 1620, 810), title=84, body=46, mono=38, cell=170, caps_top=948, cap_chars=34,
+                 caps="left:210px;width:1500px;top:944px;font-size:42px;line-height:54px;text-wrap:balance", top_safe=96, logo="right:80px;top:44px"),
+    "short": dict(W=1080, H=1920, sc=(80, 200, 920, 1110), title=88, body=48, mono=34, cell=150, caps_top=1340, cap_chars=20,
+                  caps="left:100px;width:880px;top:1340px;font-size:48px;line-height:62px;text-wrap:balance", top_safe=200, logo="left:80px;top:74px"),
 }
 LIMITS = {"long": (90, 480), "short": (20, 58)}
 HYPE = re.compile(r"\b(easy|easily|simple|simply|just|everyone|everybody|most people|almost every|every beginner|always works|guarantee\w*|crack|faang|secret|insane|never forget)\b", re.I)
 SPOKEN_BAD = re.compile(r"[()\[\]²³=→<>_`{}]|\.com|\bO\(|\bn\^")
 KEYS = {"id", "layout", "label", "title", "say", "chapter", "kicker", "sub", "items", "head", "rows", "lines", "values", "under",
-        "states", "wrong", "right", "text", "next", "practice", "cols", "mono", "note", "post", "widths", "site", "at", "checks", "compact", "lines_from", "steps", "from_post", "slow"}
-LAYOUTS = {"kit", "outro", "title", "big", "list", "table", "code", "boxes", "compare", "pause", "end"}
+        "states", "wrong", "right", "text", "next", "practice", "cols", "mono", "note", "post", "widths", "site", "at", "checks", "compact", "lines_from", "steps", "from_post", "slow", "tag", "cell", "panels", "covered"}
+LAYOUTS = {"viz", "site", "kit", "outro", "title", "big", "list", "table", "code", "boxes", "compare", "pause", "end"}
 
 
 # ------------------------------------------------------------------ loading
@@ -77,7 +79,8 @@ def load(folder):
                 try:
                     post = K.load(lf.get("post", spec.get("post")))[0]
                     slides = [x for x in post["slides"] if x["type"] == lf["slide"]]
-                    lines = list(slides[lf.get("n", 0)]["code"]["lines"])
+                    sl = slides[lf.get("n", 0)]
+                    lines = list(sl["code"]["lines"] if sl.get("code") else next(b["lines"] for b in sl.get("blocks", []) if b.get("type") == "code"))
                     for k, txt in lf.get("edit", {}).items():   # {"4": "    while low < high:"}: show the trap's wrong line
                         lines[int(k) - 1] = txt
                     sc["lines"] = lines
@@ -109,6 +112,9 @@ def at(i, until=None, fx="rise"):
 def lines_of(sc):
     src = [sc["steps"][k] for k in sorted(sc["steps"], key=int)] if "steps" in sc else sc.get("say", [])
     return [l if isinstance(l, dict) else {"say": l} for l in src]
+
+def spoken(sc):
+    return [l for l in lines_of(sc) if "say" in l]
 
 def formats(spec):
     """'long', 'short' and, for several Shorts, 'short2', 'short3'... (from a 'shorts' list)."""
@@ -174,9 +180,9 @@ def lay_code(sc, F, fmt, say):
     rows = "".join(f'<div class="cl" data-n="{k + 1}"{at(appear[k], fx="none")}><i>{k + 1}</i><span>{escape(t) or "&nbsp;"}</span></div>'
                    for k, t in enumerate(sc["lines"]))
     note = f'<div class="lead"{at(sc["note"]["at"])} style="margin-top:24px">{rich(sc["note"]["text"])}</div>' if sc.get("note") else ""
-    longest = max(len(t) for t in sc["lines"]) + 4
+    longest = max(len(t) for t in sc["lines"]) + 3
     tall = F["sc"][3] - (250 if sc.get("title") else 150) - (80 if sc.get("note") else 0)
-    fs = int(min(F["mono"] * (1.3 if fmt == "short" else 1), (F["sc"][2] - 90) / (0.6 * longest), tall / (n * 1.45 + 1.2)))
+    fs = int(min(F["mono"] * (1.3 if fmt == "short" else 1), (F["sc"][2] - (20 if fmt == "short" else 90)) / (0.6 * longest), tall / (n * 1.45 + 1.2)))
     return head(sc, F) + f'<div class="code" style="font-size:{fs}px">{rows}</div>{note}'
 
 def lay_boxes(sc, F, fmt):
@@ -226,41 +232,130 @@ def lay_pause(sc, F, fmt):
             '<div style="font-family:Sora;font-weight:700;font-size:44px;color:#F5F6F8">Pause. Try it.</div></div></div>')
 
 def lay_end(sc, F, fmt):
-    pr = ""
-    for i, p in enumerate(sc.get("practice", [])):
-        pr += (f'<div class="card"{at(p.get("at", 0))}><div class="chead" style="color:{GOLD if p["level"] == "Medium" else STEEL}">'
-               f'{escape(p["level"].upper())} · LEETCODE {p["id"]}</div><div class="ctext" style="font-family:Sora;font-weight:700;font-size:{F["body"] + 4}px">{escape(p["title"])}</div>'
-               + (f'<div class="ctext" style="margin-top:8px;color:{MUTED}">{rich(p["note"])}</div>' if p.get("note") else "") + '</div>')
-    nx = sc.get("next")
-    nxt = (f'<div class="card acc"{at(nx.get("at", 1))} style="border-color:{GOLD}"><div class="chead" style="color:{GOLD}">NEXT VIDEO</div>'
-           f'<div class="ctext" style="font-family:Sora;font-weight:800;font-size:{F["body"] + 10}px">{escape(nx["title"])}</div></div>') if nx else ""
-    site = (f'<div class="card"{at(sc.get("site", 2))}><div class="chead">CODE · JAVA · PYTHON · C++ · JAVASCRIPT</div>'
-            f'<div style="font-family:Sora;font-weight:800;font-size:{F["body"] + 18}px;letter-spacing:-1px;{U.GOLDTXT}">onehintaway.com</div></div>')
-    cols = 1 if fmt == "short" else 2
-    return head(sc, F) + f'<div class="grid" style="grid-template-columns:repeat({cols},1fr)">{pr}{nxt}{site}</div>'
+    def prob(p, solved=False):
+        lvl = GOLD if p["level"] == "Medium" else (RED if p["level"] == "Hard" else STEEL)
+        site = p.get("site", "LeetCode")
+        return (f'<div class="prob{" solved" if solved else ""}"{at(p.get("at", 0))}><div class="pmeta" style="color:{lvl}">{escape(p["level"].upper())}</div>'
+                f'<div class="pnum">{escape(site)} {p["id"]}</div><div class="ptitle">{escape(p["title"])}</div>'
+                + (f'<div class="pnote">{rich(p["note"])}</div>' if p.get("note") else "") + '</div>')
+    cov = "".join(prob(p, True) for p in sc.get("covered", []))
+    pr = "".join(prob(p) for p in sc.get("practice", []))
+    col = " col" if fmt == "short" else ""
+    out = head(sc, F)
+    if cov:
+        out += f'<div class="mono-label" style="margin-top:34px">SOLVED IN THIS VIDEO</div><div class="probs{col}" style="margin-top:18px">{cov}</div>'
+        out += f'<div class="mono-label" style="margin-top:44px">YOUR TURN</div>'
+    return out + f'<div class="probs{col}" style="margin-top:18px">{pr}</div>'
 
-THUMB = ('<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#CBE6FB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
-         '<path d="M7 10v11H4V10z"/><path d="M7 10l4-7c1.5 0 2.5 1 2.5 2.5V9h5.2a2 2 0 0 1 2 2.3l-1.3 8A2 2 0 0 1 17.4 21H7"/></svg>')
-BELL = ('<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1A1406" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
-        '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>')
+def lay_site(sc, F, fmt):
+    return (f'<div class="center">'
+            f'<div class="mono-label" data-at="0">EVERY LINE OF CODE, AND MORE</div>'
+            f'<div data-at="0.15" data-fx="pop" style="margin-top:28px;font-family:Sora;font-weight:800;font-size:{120 if fmt == "long" else 104}px;letter-spacing:-3px;{U.GOLDTXT}">onehintaway.com</div>'
+            f'<div data-at="L0" style="margin-top:34px;display:flex;gap:16px;flex-wrap:wrap;justify-content:center">'
+            + "".join(f'<span class="chip">{c}</span>' for c in sc.get("items", ["Java", "Python", "C++", "JavaScript", "Notes", "Practice links"]))
+            + '</div></div>')
 
 def lay_outro(sc, F, fmt):
-    big = 230 if fmt == "long" else 260
-    logo = U.LOGO.replace('width="30" height="30"', f'width="{big}" height="{big}"')
-    btn = "display:inline-flex;align-items:center;gap:16px;padding:22px 40px;border-radius:999px;font-family:Sora;font-weight:800;font-size:44px"
+    logo = U.LOGO.replace('width="30" height="30"', 'width="76" height="76"')
+    lines = "".join(f'<div class="o-line" data-at="L0{"+0.6" if k else ""}">{escape(t)}</div>' for k, t in enumerate(sc["text"].split("\n")))
     return (f'<div class="center">'
-            f'<div data-at="0" data-fx="pop" style="filter:drop-shadow(0 0 60px rgba(244,207,110,.28))">{logo}</div>'
-            f'<div data-at="0.25" style="margin-top:34px;font-family:Sora;font-weight:800;font-size:{F["title"] + 10}px;letter-spacing:-2px;{U.GOLDTXT}">One Hint Away</div>'
-            f'<div class="lead" data-at="L0" style="margin-top:26px;font-size:{F["body"] + 4}px;text-align:center">{rich(sc["text"])}</div>'
-            f'<div style="margin-top:44px;display:flex;gap:26px;flex-wrap:wrap;justify-content:center">'
-            f'<div data-at="L0+0.5" data-fx="pop" style="{btn};background:#1C3044;border:2px solid #7FB0DA;color:#CBE6FB">{THUMB}Like</div>'
-            f'<div data-at="L0+1.3" data-fx="pop" style="{btn};background:{U.GOLDGRAD};color:#1A1406">{BELL}Subscribe</div></div></div>')
+            f'<div data-at="0" data-fx="pop" style="display:flex;align-items:center;gap:22px">{logo}'
+            f'<div style="font-family:Sora;font-weight:800;font-size:{F["title"] - 8}px;letter-spacing:-2px;color:#F5F6F8">One Hint Away</div></div>'
+            f'<div data-at="0.3" data-fx="none" style="margin:44px 0 36px;width:120px;height:2px;background:{GOLD};opacity:.55"></div>'
+            f'{lines}</div>')
 
-BUILD = {"outro": lay_outro, "title": lay_title, "big": lay_big, "list": lay_list, "table": lay_table, "boxes": lay_boxes, "compare": lay_compare,
+def lay_viz(sc, F, fmt):
+    """The problem as a picture: an array whose cells change colour, gain arcs and pointers as the voice speaks."""
+    w, h = F["sc"][2], F["sc"][3]
+    panels = sc.get("panels", [])
+    side = bool(panels) and fmt == "long"                 # long videos: code cards on the left, the picture on the right
+    rx0, rw = (700, w - 700) if side else (0, w)
+    vals = sc["values"]; n = len(vals)
+    cell = sc.get("cell") or int(min(F["cell"] if not side else 150, (rw - 16 * (n - 1)) / n)); gap = 16
+    tot = n * cell + (n - 1) * gap; x0 = rx0 + (rw - tot) / 2
+    # arcs (and pair sweeps) rise above the cells: give them room, and keep them clear of the tag and title
+    pairs = [tuple(a[:2]) for st in sc["states"] for a in st.get("arcs", [])] + [tuple(p) for st in sc["states"] for p in st.get("sweep", {}).get("pairs", [])]
+    peak = max([min(cell * 2.2, 40 + abs(b - a) * (cell + gap) * 0.32) for a, b in pairs], default=0)
+    top_used = (215 if sc.get("title") else 0) + (100 if sc.get("tag") else 0)
+    cy = max(h * (0.5 if not sc.get("title") else 0.56), top_used + (min(peak, 220) + 40 if peak else 40) + cell / 2)
+    room = cy - cell / 2 - 10 - top_used - 30
+    ah = round(min(1.0, room / peak), 3) if peak else 1.0
+    if panels and not side:                                   # Shorts: cards go under the picture
+        cy = min(cy, h * 0.42)
+    sc["_viz"] = {"cell": cell, "gap": gap, "x": rx0 + rw / 2, "y": round(cy - cell / 2), "ah": ah}
+    out = head(sc, F) if sc.get("title") else ""
+    if sc.get("tag"):
+        out += (f'<div class="vtag" data-at="0" style="position:absolute;left:{rx0}px;width:{rw}px;top:{(215 if sc.get("title") else 0) + 15}px;text-align:center;'
+                f'font-family:{U.MONO};font-weight:600;font-size:{56 if fmt == "long" else 52}px;color:#F5F6F8">{rich(sc["tag"])}</div>')
+    if sc.get("under"):
+        for k, u in enumerate(sc["under"]):
+            out += (f'<div data-at="0" data-fx="none" style="position:absolute;left:{round(x0 + k * (cell + gap))}px;width:{cell}px;top:{round(cy + cell / 2 + 16)}px;'
+                    f'text-align:center;font-family:{U.MONO};font-size:26px;color:#6B717C">{escape(str(u))}</div>')
+    if panels:
+        cards = ""
+        for pn in panels:
+            col = {"red": RED, "gold": GOLD}.get(pn.get("accent"), STEEL)
+            lines = "".join(f'<div style="color:{RED if k in pn.get("bad", []) else (GOLD if k in pn.get("good", []) else "#E3E6EA")}">{escape(c)}</div>'
+                            for k, c in enumerate(pn["code"]))
+            veil = (f'<div data-at="L{pn["dim_at"]}" data-fx="none" style="position:absolute;inset:0;border-radius:28px;background:rgba(8,9,11,.62)"></div>'
+                    if "dim_at" in pn else "")
+            cards += (f'<div class="card" data-at="L{pn.get("at", 0)}" data-fx="rise" style="position:relative;border-color:{col};padding:20px 28px">'
+                      f'<div class="chead" style="color:{col}">{escape(pn["head"])}</div><div class="cmono" style="font-size:.78em">{lines}</div>'
+                      + (f'<div class="res" style="color:{col};font-size:.78em">{rich(pn["result"])}</div>' if pn.get("result") else "")
+                      + veil + '</div>')
+        top = (235 if sc.get("title") else 40) if side else round(cy + cell / 2 + 170)
+        out += (f'<div style="position:absolute;left:0;width:{620 if side else w}px;top:{top}px;display:flex;flex-direction:column;gap:18px">{cards}</div>')
+    notes = [st for st in sc["states"] if st.get("note")]
+    for j, st in enumerate(notes):
+        nxt = notes[j + 1]["at"] if j + 1 < len(notes) else None
+        a = st["at"] if isinstance(st["at"], str) else f"L{st['at']}"
+        u = (f' data-until="{nxt if isinstance(nxt, str) else "L" + str(nxt)}"' if nxt is not None else "")
+        out += (f'<div data-at="{a}"{u} data-fx="none" style="position:absolute;left:{rx0}px;width:{rw}px;top:{round(cy + cell / 2 + 90)}px;text-align:center;'
+                f'font-weight:700;font-size:{F["body"] + 2}px;color:#D3D7DE">{rich(st["note"])}</div>')
+    return out
+
+def viz_states(sc, scene):
+    """Turn the script's states (and sweeps over pairs) into timed viz states."""
+    out = []
+    for st in sc["states"]:
+        cue = st["at"] if isinstance(st["at"], str) else f"L{st['at']}"
+        look = {}
+        for name in ("steel", "gold", "dim", "red"):
+            for k in st.get(name, []):
+                look[k] = name
+        if st.get("sweep"):
+            sw = st["sweep"]; step = max(0.4, sw.get("step", 0.45))   # each pair stays long enough to be seen whole
+            for j, (a, b) in enumerate(sw["pairs"]):
+                out.append((f"{cue}+{round(j * step, 3)}" if j else cue,
+                            {"st": {**look, a: "steel", b: "steel"}, "arcs": [[a, b, sw.get("color", "steel"), 4, "full"]], "sw": True, "dur": 0.08}))
+            continue
+        d = {"st": look}
+        if st.get("arcs"):
+            d["arcs"] = [list(a) + ([] if len(a) > 2 else ["gold"]) + [5] for a in st["arcs"]]
+        if st.get("ptr"):
+            d["ptr"] = st["ptr"]
+        out.append((cue, d))
+    v = sc["_viz"]
+    Z.arr(scene, "v_" + sc["id"], sc["values"], v["x"], v["y"], cell=v["cell"], gap=v["gap"], states=out, arc_h=v["ah"])
+    S = scene["viz"][-1]["states"]
+    sw = [d["t"] for d in S if d.get("sw")]
+    if sw:   # a sweep stops at the next real state
+        nxt = min([d["t"] for d in S if not d.get("sw") and d["t"] > min(sw)], default=1e9)
+        S[:] = [d for d in S if not d.get("sw") or d["t"] < nxt]
+    S.sort(key=lambda d: d["t"])
+
+BUILD = {"viz": lay_viz, "site": lay_site, "outro": lay_outro, "title": lay_title, "big": lay_big, "list": lay_list, "table": lay_table, "boxes": lay_boxes, "compare": lay_compare,
          "pause": lay_pause, "end": lay_end}
 
 
 # ------------------------------------------------------------------ checks
+def check_draft(spec, errors):
+    if spec.get("_draft_notes"):
+        errors.append("still a draft: work through _draft_notes, then delete it")
+    left = json.dumps({k: v for k, v in spec.items() if not k.startswith("_")}).count("TODO")
+    if left:
+        errors.append(f"{left} TODO lines still to write")
+
 def check(spec, fmt, errors, warns):
     part = spec[fmt]
     if fmt != "long" and not part.get("kind"):
@@ -278,31 +373,39 @@ def check(spec, fmt, errors, warns):
         for k in sc:
             if k not in KEYS:
                 errors.append(f"{where}: unknown field {k}")
-        say = lines_of(sc)
+        say = spoken(sc)
         if not say and sc["layout"] != "pause":
             errors.append(f"{where}: no narration")
-        for i, l in enumerate(say):
+        for i, l in enumerate(lines_of(sc)):
+            if "say" not in l:
+                if "think" in l and not 1.5 <= l["think"] <= 5:
+                    errors.append(f"{where} line {i}: think for 1.5 to 5 seconds (wait time research: about 3)")
+                continue
             total += 1; tagged += bool(l.get("tone"))
             if l.get("tone") and l["tone"] not in E.TONES:
                 errors.append(f"{where} line {i}: unknown tone {l['tone']}")
-            if SPOKEN_BAD.search(l["say"]):
+            if SPOKEN_BAD.search(E.spoken_text(l["say"])):
                 errors.append(f"{where} line {i}: write symbols out for the voice and put the written form in 'show': {l['say']!r}")
             if len(l["say"].split()) > 32:
                 errors.append(f"{where} line {i}: {len(l['say'].split())} words; split it (32 at most)")
+            cap = 88 if fmt == "long" else 58        # one caption = one whole sentence, at most two lines
+            for sn in re.split(r"(?<=[.?!])\s+", E.spoken_text(l.get("show", l["say"])).strip()):
+                if len(sn) > cap:
+                    errors.append(f"{where} line {i}: sentence of {len(sn)} characters is too long for one caption ({cap} max): {sn[:60]!r}")
             texts.append(l.get("show", l["say"]))
             heard = l["say"] + " | " + l.get("show", "")
             if si == 0 and HYPE.search(heard):
                 errors.append(f"{where}: hook uses {HYPE.search(heard).group(0)!r}")
             elif HYPE.search(heard):
                 warns.append(f"{where} line {i}: {HYPE.search(heard).group(0)!r}")
-        n = len(say)
+        n = len(lines_of(sc))
         def ref(i, what):
             if isinstance(i, int) and not 0 <= i < max(n, 1):
                 errors.append(f"{where}: {what} points at line {i}, the scene has {n}")
         for it in sc.get("items", []):
             ref(it.get("at", 0), "item")
         for st in sc.get("states", []):
-            ref(st["at"], "state")
+            ref(st["at"], "state") if isinstance(st["at"], int) else None
         for r in sc.get("at", []) if isinstance(sc.get("at"), list) else []:
             ref(r, "row")
         if sc["layout"] == "table" and isinstance(sc.get("rows"), list):
@@ -316,8 +419,8 @@ def check(spec, fmt, errors, warns):
             for t in sc["lines"]:
                 if len(t) > cap:
                     errors.append(f"{where}: code line over {cap} characters: {t!r}")
-            for l in say:
-                for h in l.get("hl", []):
+            for l in lines_of(sc):
+                for h in l.get("hl", []) + l.get("bad", []):
                     if not 1 <= h <= len(sc["lines"]):
                         errors.append(f"{where}: hl {h} is not a line")
         if "`" in sc.get("title", ""):
@@ -330,10 +433,11 @@ def check(spec, fmt, errors, warns):
         for sc in scenes:
             if sc.get("next"):
                 errors.append(f"{fmt}/{sc['id']}: no next-video card (channel.json: next_video_mention is false)")
-            for l in lines_of(sc):
+            for l in spoken(sc):
                 if re.search(r"\bnext (video|up)\b|\bin the next\b", l["say"], re.I):
                     errors.append(f"{fmt}/{sc['id']}: mentions the next video: {l['say']!r}")
-    if total and tagged / total > 0.55:
+    cap = 0.55 if fmt == "long" else 0.67      # Shorts have 3 to 5 lines: a hook question plus one reveal is normal
+    if total and tagged / total > cap:
         errors.append(f"{fmt}: {tagged} of {total} lines carry a tone tag; keep it to about half at most, never every line")
     if total >= 6 and tagged / total < 0.2:
         errors.append(f"{fmt}: only {tagged} of {total} lines carry a tone tag; aim for about one in three so the voice rises and falls")
@@ -375,7 +479,7 @@ b.g{color:#FFE3A0;font-weight:800} code{font-family:'Geist Mono',monospace;font-
 .th{font-family:'Geist Mono',monospace;font-size:26px;font-weight:600;letter-spacing:2px;color:#A2A8B3;padding:16px 24px;background:#1A1D23;border-bottom:1.5px solid #2B2F37}
 .td{font-weight:600;color:#E3E6EA;padding:13px 28px;border-bottom:1px solid #22252C;line-height:1.3}
 .tbl.compact .td{padding:14px 16px;font-size:.7em;white-space:nowrap} .tbl.compact .th{padding:14px 16px;font-size:22px} .td.m{font-family:'Geist Mono',monospace;font-weight:500;color:#CBE6FB}
-.code{margin-top:30px;background:#0F1115;border:1.5px solid #2B2F37;border-radius:22px;padding:20px 0;font-family:'Geist Mono',monospace;font-weight:500}
+.code{overflow:hidden;margin-top:30px;background:#0F1115;border:1.5px solid #2B2F37;border-radius:22px;padding:20px 0;font-family:'Geist Mono',monospace;font-weight:500}
 .cl{display:flex;gap:26px;padding:3px 30px;white-space:pre;line-height:1.45;color:#E3E6EA}
 .cl i{font-style:normal;color:#4A4F59;width:1.4em;text-align:right;flex:none}
 .cl.on{background:rgba(244,207,110,0.10);box-shadow:inset 4px 0 0 #F4CF6E} .cl.on span{color:#FFE3A0}
@@ -387,16 +491,42 @@ b.g{color:#FFE3A0;font-weight:800} code{font-family:'Geist Mono',monospace;font-
 .bx.plain{background:#16181D;border-color:#3D424C;color:#E6E8EC} .bx.gold{background:#3A2E15;border-color:#DDB25A;color:#FFE3A0}
 .bx.steel{background:#1C3044;border-color:#7FB0DA;color:#CBE6FB} .bx.dim{background:#111215;border-color:#23262C;color:#4A4F59}
 .bx.arrow{background:none;border-color:transparent;box-shadow:none;color:#6B717C} .bx.red{background:#3A1A18;border-color:#E5736B;color:#FFC2BC}
+.probs{display:grid;grid-template-columns:repeat(2,1fr);gap:28px;margin-top:48px} .probs.col{grid-template-columns:1fr}
+.prob{border-top:2px solid #2B2F37;padding-top:26px}
+.pmeta{font-family:'Geist Mono',monospace;font-size:24px;font-weight:600;letter-spacing:3px}
+.pnum{font-family:'Geist Mono',monospace;font-size:28px;color:#A2A8B3;margin-top:14px}
+.ptitle{font-family:Sora;font-weight:800;font-size:1.3em;letter-spacing:-1px;margin-top:6px;color:#F5F6F8}
+.prob.solved .ptitle{color:#CBE6FB}
+.pnote{font-weight:600;font-size:.72em;line-height:1.4;color:#A2A8B3;margin-top:14px}
+.mono-label{font-family:'Geist Mono',monospace;font-size:26px;letter-spacing:4px;color:#A2A8B3}
+.chip{font-family:'Geist Mono',monospace;font-size:26px;color:#CBE6FB;border:1.5px solid #2B2F37;border-radius:999px;padding:10px 22px}
+.o-line{font-weight:600;font-size:40px;color:#A2A8B3;line-height:1.5}
+.think{position:absolute;left:0;right:0;bottom:24px;display:flex;align-items:center;justify-content:center;gap:16px;font-family:Sora;font-weight:700;font-size:34px;color:#A2A8B3}
 #caps{position:absolute;text-align:center;font-family:Manrope,sans-serif;font-weight:800;text-shadow:0 4px 18px rgba(0,0,0,.7)}
-#caps .w{color:rgba(245,246,248,.40)} #caps .said{color:#F5F6F8} #caps .now{color:#F4CF6E} #caps .code{font-family:'Geist Mono',monospace;font-weight:600}
+#caps .w{color:rgba(245,246,248,.42)} #caps .said{color:#F5F6F8} #caps .now{color:#FFFFFF} #caps .code{font-family:'Geist Mono',monospace;font-weight:600}
 """
 
 EXTRA_JS = r"""
-window.codeHL = function(local, s){ let on = [], bad = [];
-  for (const h of (s.hl || [])) if (local >= h.t) { on = h.n; bad = h.bad; }
+window.codeHL = function(local, s){
+  const H = s.hl || []; let k = -1;
+  for (let i = 0; i < H.length; i++) if (local >= H[i].t) k = i;
+  const cur = k >= 0 ? H[k] : {n: [], bad: []}, prev = k >= 1 ? H[k - 1] : {n: [], bad: []};
+  const e = k < 0 ? 1 : Math.min(1, Math.max(0, (local - cur.t) / 0.45)), E = e * e * (3 - 2 * e);
+  const look = (h, n) => h.bad.includes(n) ? [229,115,107,0.16,255,194,188] : (h.n.includes(n) ? [244,207,110,0.10,255,227,160] : [244,207,110,0,227,230,234]);
   document.querySelectorAll('#sc_' + s.id + ' .cl').forEach(el => { const n = Number(el.dataset.n);
-    el.classList.toggle('on', on.includes(n) && !bad.includes(n)); el.classList.toggle('bad', bad.includes(n)); }); };
+    const a = look(prev, n), b = look(cur, n), m = a.map((v, i) => v + (b[i] - v) * E);
+    el.classList.remove('on', 'bad');
+    el.style.background = `rgba(${m[0]},${m[1]},${m[2]},${m[3]})`;
+    el.style.boxShadow = m[3] > 0.005 ? `inset 4px 0 0 rgba(${m[0]},${m[1]},${m[2]},${Math.min(1, m[3] * 8)})` : 'none';
+    el.querySelector('span').style.color = `rgb(${m[4]},${m[5]},${m[6]})`; }); };
+window.fitCode = function(){
+  document.querySelectorAll('.code').forEach(c => { let fs = parseFloat(getComputedStyle(c).fontSize);
+    while (c.scrollWidth > c.clientWidth + 1 && fs > 14) { fs -= 1; c.style.fontSize = fs + 'px'; } }); };
 window.drawExtra = function(t){
+  for (const s of window.__D.scenes) { const host = document.getElementById('sc_' + s.id); if (!host) continue;
+    host.querySelectorAll('.think').forEach(th => { const c = s.cues[th.dataset.cue]; if (c === undefined) return;
+      const u = Math.min(1, Math.max(0, (t - s.t0 - c) / Number(th.dataset.dur)));
+      th.querySelector('.ring').setAttribute('stroke-dashoffset', String(176 * u)); }); }
   for (const s of window.__D.scenes) { if (s.cues.count === undefined) continue;
     const el = document.getElementById('sc_' + s.id); const cd = el && el.querySelector('.cd'); if (!cd) continue;
     const u = t - s.t0 - s.cues.count, n = Math.max(1, 2 - Math.floor(Math.max(0, u)));
@@ -413,8 +543,12 @@ def build(spec, fmt, voice, speed=1.0):
     html = []
     scenes = list(part["scenes"])
     out = spec.get("_channel", {}).get("outro", {})
+    site = spec.get("_channel", {}).get("site_frame", {})
+    if fk == "long" and site.get("say"):
+        scenes.append({"id": "site", "layout": "site", "say": [{"say": site["say"], "show": site.get("show", site["say"])}], "post": 1.0})
     if out.get("long" if fk == "long" else "shorts"):
-        scenes.append({"id": "outro", "layout": "outro", "text": out["text"], "say": [{"say": out["say"], "tone": "warm"}], "post": 1.6})
+        txt, say = (out["text"], out["say"]) if fk == "long" else (out.get("short_text", out["text"]), out.get("short_say", out["say"]))
+        scenes.append({"id": "outro", "layout": "outro", "text": txt, "say": [{"say": say, "tone": "warm"}], "post": 1.6})
     part["_scenes"] = scenes
     for sc in scenes:
         say = lines_of(sc)
@@ -429,20 +563,30 @@ def build(spec, fmt, voice, speed=1.0):
             html.append(f'<div class="sc" id="sc_{sc["id"]}" style="left:{x}px;top:{y}px;width:{w}px;height:{h}px;font-size:{F["body"]}px;justify-content:flex-start">{head(sc, F)}</div>')
             s = vid.kit_scene(sc["id"], kit_tl, {int(k): v for k, v in sc["steps"].items()}, pre=0.6, post=sc.get("post", 0.9), slow=sc.get("slow", 1.0))
             sh = kit_tl["layout"]["height"]
-            top, avail = (330, 560) if fk == "long" else (500, 800)
+            top, avail = (300, 630) if fk == "long" else (480, 820)
             sc_ = min(1.55 if fk == "long" else 1.05, avail / sh, (w + 40) / 920)
             s["kit"].update(x=round((F["W"] - 920 * sc_) / 2), y=round(top + (avail - sh * sc_) / 2), scale=round(sc_, 3))
             if sc.get("chapter"):
                 s["chapter"] = sc["chapter"]
             continue
         inner = lay_code(sc, F, fk, say) if sc["layout"] == "code" else BUILD[sc["layout"]](sc, F, fk)
-        html.append(f'<div class="sc" id="sc_{sc["id"]}" style="left:{x}px;top:{y}px;width:{w}px;height:{h}px;font-size:{F["body"]}px">{inner}</div>')
+        for i, l in enumerate(say):
+            if l.get("think"):
+                until = f' data-until="L{i + 1}"' if i + 1 < len(say) else ""
+                inner += (f'<div class="think" data-at="T{i}"{until} data-fx="pop" data-cue="T{i}" data-dur="{l["think"]}">'
+                          '<svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="#2B2F37" stroke-width="5"/>'
+                          f'<circle class="ring" cx="32" cy="32" r="28" fill="none" stroke="{GOLD}" stroke-width="5" stroke-linecap="round" stroke-dasharray="176" transform="rotate(-90 32 32)"/></svg>'
+                          'Think</div>')
+        top = ";justify-content:flex-start" if sc["layout"] == "viz" else ""
+        html.append(f'<div class="sc" id="sc_{sc["id"]}" style="left:{x}px;top:{y}px;width:{w}px;height:{h}px;font-size:{F["body"]}px{top}">{inner}</div>')
         kw = {}
         if sc["layout"] == "pause":
             kw = dict(countdown=2, cd_step=1.0)
         s = vid.scene(sc["id"], say, post=sc.get("post", 0.6), **kw)
         if sc.get("chapter"):
             s["chapter"] = sc["chapter"]
+        if sc["layout"] == "viz":
+            viz_states(sc, s)
         if sc["layout"] == "code":
             s["hl"] = [{"t": s["cues"][f"L{i}"], "n": l.get("hl", []), "bad": l.get("bad", [])} for i, l in enumerate(say) if "hl" in l or "bad" in l]
             s["onDraw"] = "codeHL"
@@ -452,8 +596,8 @@ def build(spec, fmt, voice, speed=1.0):
             f'<div style="font-family:{U.MONO};font-size:22px;font-weight:600;letter-spacing:4px;color:#A2A8B3">ONE HINT AWAY</div></div>'
             + "".join(html)
             + (f'<div id="kitwrap" style="position:absolute;left:0;top:0;transform-origin:0 0;opacity:0">{K.stage_div(kit_v)[0]}</div>' if kit_tl else "")
-            + f'<div id="caps" style="{F["caps"]}"></div>')
-    return vid, E.page(F["W"], F["H"], body, CSS, vid.data(), kit_v=kit_v, kit_tl=kit_tl, extra_js=EXTRA_JS)
+            + (f'<div id="caps" style="{F["caps"]}"></div>' if spec.get("_channel", {}).get("burned_captions", {}).get(fk, True) else ""))
+    return vid, E.page(F["W"], F["H"], body, CSS, vid.data(), kit_v=kit_v, kit_tl=kit_tl, extra_js=EXTRA_JS + Z.VIZ_JS)
 
 CHECK_JS = r"""
 ([W, H, capTop, topSafe]) => {
@@ -472,6 +616,26 @@ CHECK_JS = r"""
       if (e.scrollWidth > e.clientWidth + 2 && getComputedStyle(e).overflow !== 'visible') bad.push(`${s.id}: text cut off ${txt}`);
     }
   }
+  for (const s of window.__D.scenes) { const host = document.getElementById('sc_' + s.id);
+    if (!host || getComputedStyle(host).visibility === 'hidden' || !s.viz) continue;
+    const ttl = host.querySelector('.ttl'); if (!ttl) continue; const tb = ttl.getBoundingClientRect().bottom;
+    for (const c of host.querySelectorAll('div[style*="border-radius"]')) { const r = c.getBoundingClientRect();
+      if (r.width > 40 && r.width === r.height && r.top < tb + 12) { bad.push(`${s.id}: the array overlaps the title`); break; } } }
+  for (const s of window.__D.scenes) { const host = document.getElementById('sc_' + s.id);
+    if (!host || getComputedStyle(host).visibility === 'hidden' || !s.viz) continue;
+    const marks = [...host.querySelectorAll('.vtag, .ttl')].map(e => e.getBoundingClientRect());
+    for (const p of host.querySelectorAll('svg path')) { if (Number(p.style.opacity || 1) < 0.05) continue;
+      const r = p.getBoundingClientRect(); if (!r.width) continue;
+      if (marks.some(m => r.top < m.bottom + 6 && r.bottom > m.top && r.left < m.right && r.right > m.left)) { bad.push(`${s.id}: an arc touches the tag or title`); break; } } }
+  const kw = document.getElementById('kitwrap');
+  if (kw && Number(getComputedStyle(kw).opacity) > 0.05) {
+    const r = kw.querySelector('#stage').getBoundingClientRect();
+    const s = window.__D.scenes.find(x => x.kit && getComputedStyle(document.getElementById('sc_' + x.id)).visibility !== 'hidden');
+    const ttl = s && document.querySelector('#sc_' + s.id + ' .ttl');
+    if (ttl && r.top < ttl.getBoundingClientRect().bottom + 12) bad.push(`${s.id}: the animation overlaps the title`);
+    if (r.bottom > capTop - 12) bad.push(`${s ? s.id : 'kit'}: the animation runs into the captions`);
+    if (r.left < 40 || r.right > W - 40) bad.push(`${s ? s.id : 'kit'}: the animation is off the side`);
+  }
   return [...new Set(bad)].slice(0, 12);
 }
 """
@@ -479,17 +643,55 @@ CHECK_JS = r"""
 def stills(vid, html, out, F):
     from playwright.sync_api import sync_playwright
     out.mkdir(parents=True, exist_ok=True)
+    for old in out.glob("scene-*.png"):       # stills from an earlier version of the script
+        old.unlink()
     bad = []
     with sync_playwright() as p:
-        br = p.chromium.launch(); pg = br.new_page(viewport={"width": F["W"], "height": F["H"]})
+        br = p.chromium.launch(args=E.CHROME_ARGS); pg = br.new_page(viewport={"width": F["W"], "height": F["H"]})
         pg.set_content(html); pg.evaluate("document.fonts.ready"); pg.wait_for_timeout(300)
+        pg.evaluate("window.fitCode && window.fitCode()")
         for k, s in enumerate(vid.scenes):
             t = s["t1"] - 0.32
+            for v in s.get("viz", []):                     # every picture state, not only the last one
+                for st in v["states"]:
+                    pg.evaluate(f"window.draw({s['t0'] + st['t'] + 0.45})")
+                    bad += pg.evaluate(CHECK_JS, [F["W"], F["H"], F["caps_top"], F["top_safe"]])
             pg.evaluate(f"window.draw({t})")
             pg.screenshot(path=str(out / f"scene-{k + 1:02d}-{s['id']}.png"))
             bad += pg.evaluate(CHECK_JS, [F["W"], F["H"], F["caps_top"], F["top_safe"]])
         br.close()
     return bad
+
+def F_of(fmt):
+    return FMT[kind(fmt)]
+
+def verify(path, F, expected):
+    """The finished file must be what the timeline says: size, length, frame rate, a voice track at the right loudness."""
+    import subprocess
+    probs = []
+    pr = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json", str(path)],
+                                   capture_output=True, text=True).stdout)
+    v = next((x for x in pr["streams"] if x["codec_type"] == "video"), None)
+    au = next((x for x in pr["streams"] if x["codec_type"] == "audio"), None)
+    if not v or (v["width"], v["height"]) != (F["W"], F["H"]):
+        probs.append(f"picture is not {F['W']}x{F['H']}")
+    if v and v.get("r_frame_rate") != "30/1":
+        probs.append(f"frame rate {v.get('r_frame_rate')}, expected 30")
+    if not au or int(au.get("sample_rate", 0)) != 48000:
+        probs.append("no 48 kHz audio track")
+    dur = float(pr["format"]["duration"])
+    if abs(dur - expected) > 0.25:
+        probs.append(f"length {dur:.2f}s, timeline says {expected:.2f}s")
+    ln = subprocess.run(["ffmpeg", "-nostats", "-i", str(path), "-af", "ebur128", "-f", "null", "-"], capture_output=True, text=True).stderr
+    import re as _re
+    m = _re.findall(r"I:\s+(-?[0-9.]+) LUFS", ln)
+    if not m or not -16.5 <= float(m[-1]) <= -12.5:
+        probs.append(f"loudness {m[-1] if m else '?'} LUFS, expected about -14")
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-f", "f32le", "-"], capture_output=True).stdout   # every channel as is
+    x = np.frombuffer(raw, np.float32)
+    if len(x) and (np.abs(x).max() > 0.97 or (np.abs(x) > 0.95).sum() > 10):
+        probs.append(f"audio clips (peak {np.abs(x).max():.2f}): distortion")
+    return probs
 
 def mmss(t):
     return f"{int(t // 60)}:{int(t % 60):02d}"
@@ -502,7 +704,7 @@ def summary(spec, vids):
         for sc, s in zip(part.get("_scenes", part["scenes"]), vid.scenes):
             L.append(f"-- {mmss(s['t0'])} {sc['id']}" + (f"  [chapter: {sc['chapter']}]" if sc.get("chapter") else ""))
             for l in lines_of(sc):
-                L.append(("   (" + l["tone"] + ") " if l.get("tone") else "   ") + l.get("show", l["say"]))
+                L.append(f"   [{l['think']} s to think]" if "think" in l else ("   (" + l["tone"] + ") " if l.get("tone") else "   ") + l.get("show", l["say"]))
     yt = spec["youtube"]
     if "long" in vids:
         ch = "\n".join(f"{mmss(s['t0'])} {s['chapter']}" for s in vids["long"].scenes if s.get("chapter"))
@@ -519,11 +721,15 @@ def main():
     for folder in a.folders:
         spec, errors = load(folder); warns = []
         fmts = formats(spec)
+        check_draft(spec, errors)
         for fmt in fmts:
             check(spec, fmt, errors, warns)
         name = f"{spec['number']:02d}-{spec['slug']}"
         if errors:
-            print(f"{name}: SCRIPT FAILED"); [print("  ", e) for e in errors]; failed = True; continue
+            print(f"{name}: SCRIPT FAILED"); [print("  ", e) for e in errors]; failed = True
+            bad_dir = Path(a.out) / name; bad_dir.mkdir(parents=True, exist_ok=True)
+            (bad_dir / "FAILED.txt").write_text("Script check failed, nothing rendered:\n" + "\n".join(errors) + "\n")
+            continue
         out = Path(a.out) / name; vids = {}
         vc = spec.get("_channel", {}).get("voice", {})
         for fmt in fmts:
@@ -540,12 +746,20 @@ def main():
             errors += [f"{fmt} LAYOUT {b}" for b in bad]
             want = a.video in (fmt, "all") or (a.video == "both" and fmt in ("long", "short"))
             if want and not bad:
-                f = vid.render(html, out, draft=a.draft); vid.srt(out / f"{vid.name}.srt"); print("  video", f)
+                f = vid.render(html, out, draft=a.draft); vid.srt(out / f"{vid.name}.srt")
+                problems = verify(f, F_of(fmt), vid.t)
+                errors += [f"{fmt} VIDEO {x}" for x in problems]
+                if problems:                     # a file that fails its check is never handed over
+                    f.unlink(); (out / f"{vid.name}.srt").unlink(missing_ok=True)
+                print("  video", f, "checked" if not problems else "FAILED CHECK")
         (out / "summary.txt").write_text(summary(spec, vids))
         for w in warns:
             print(f"  warn {w}")
+        (out / "FAILED.txt").unlink(missing_ok=True)
         if errors:
             failed = True; print(f"{name}: FAILED"); [print("  ", e) for e in errors]
+            out.mkdir(parents=True, exist_ok=True)
+            (out / "FAILED.txt").write_text("Not handed over. Fix these, then render again:\n" + "\n".join(errors) + "\n")
         else:
             print(f"{name}: OK " + ", ".join(f"{k} {mmss(v.t)}" for k, v in vids.items()) + f" -> {out}")
     sys.exit(1 if failed else 0)

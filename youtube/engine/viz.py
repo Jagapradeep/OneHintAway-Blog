@@ -32,7 +32,7 @@ for (const s of window.__D.scenes) for (const z of (s.viz || [])) {
   const host = document.getElementById('sc_' + s.id); if (!host) continue;
   const n = z.values.length, el = document.createElement('div');
   el.style.cssText = `position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none`;
-  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('width', 2000); svg.setAttribute('height', 2000);
+  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('width', '100%'); svg.setAttribute('height', '100%');
   svg.style.cssText = 'position:absolute;left:0;top:0;overflow:visible'; el.appendChild(svg);
   const cells = z.values.map(v => { const c = document.createElement('div');
     c.style.cssText = `position:absolute;width:${z.cell}px;height:${z.cell}px;border-radius:${Math.round(z.cell*0.16)}px;box-sizing:border-box;border:${z.cell>90?3:2}px solid;display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',monospace;font-weight:600;font-size:${Math.round(z.cell*0.42)}px;box-shadow:0 10px 24px rgba(0,0,0,.35)`;
@@ -47,7 +47,7 @@ window.drawViz = function(t){
   for (const v of V) {
     const local = t - v.s.t0, S = v.z.states; let k = -1;
     for (let i = 0; i < S.length; i++) if (local >= S[i].t) k = i;
-    const cur = S[Math.max(k, 0)], prev = S[Math.max(k-1, 0)], e = k < 0 ? 1 : sm((local - cur.t) / 0.45), z = v.z;
+    const cur = S[Math.max(k, 0)], prev = S[Math.max(k-1, 0)], e = k < 0 ? 1 : sm((local - cur.t) / (cur.dur || 0.45)), z = v.z;
     v.el.style.opacity = k < 0 ? 0 : 1;
     v.cells.forEach((c, id) => {
       const x = prev === cur ? pos(z, cur, id) : pos(z, prev, id) + (pos(z, cur, id) - pos(z, prev, id)) * e;
@@ -85,7 +85,7 @@ window.drawViz = function(t){
       p.setAttribute('d', `M ${x1} ${y0} Q ${(x1+x2)/2} ${y0 - h*2} ${x2} ${y0}`);
       p.setAttribute('stroke', ARC[a[2] || 'gold']); p.setAttribute('stroke-width', a[3] || 5);
       const L = p.getTotalLength(); p.setAttribute('stroke-dasharray', L);
-      const fresh = !A0.has(key); p.setAttribute('stroke-dashoffset', fresh ? L * (1 - e) : 0);
+      const fresh = !A0.has(key) && a[4] !== 'full'; p.setAttribute('stroke-dashoffset', fresh ? L * (1 - e) : 0);
       p.style.opacity = 1;
     }
     for (const key in v.arcs) if (!keep.has(key)) v.arcs[key].style.opacity = 0;

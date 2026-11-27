@@ -1,0 +1,18 @@
+# Exact versions the videos were made and checked with (26 November 2026). Change them only together with
+# a re-check: a different voice or browser build can change how a video sounds or looks.
+kokoro-onnx==0.6.1
+onnxruntime==1.29.0
+espeakng-loader==0.2.4
+phonemizer==3.6.0
+attrs==26.1.0
+dlinfo==2.0.0
+joblib==1.6.0
+typing_extensions==4.16.0
+flatbuffers==25.12.19
+protobuf==7.36.1
+packaging==26.3
+numpy==2.5.3
+scipy==1.18.1
+soundfile==0.14.0
+pillow==12.3.0
+playwright==1.63.0

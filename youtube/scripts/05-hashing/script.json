@@ -1,0 +1,851 @@
+{
+  "number": 5,
+  "slug": "hashing",
+  "post": "05-hashing",
+  "kind": "concept",
+  "checks": [
+    [
+      "ANSWER",
+      [
+        2,
+        3
+      ]
+    ],
+    [
+      "LOOKS",
+      4
+    ],
+    [
+      "PAIRS",
+      10
+    ],
+    [
+      "wrong_two_sum([3, 2, 4], 6)",
+      [
+        0,
+        0
+      ]
+    ],
+    [
+      "two_sum([3, 2, 4], 6)",
+      [
+        1,
+        2
+      ]
+    ]
+  ],
+  "long": {
+    "scenes": [
+      {
+        "id": "hook",
+        "layout": "viz",
+        "chapter": "The problem",
+        "values": [
+          3,
+          8,
+          4,
+          6,
+          1
+        ],
+        "under": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "tag": "target = 10",
+        "states": [
+          {
+            "at": 0
+          },
+          {
+            "at": 2,
+            "sweep": {
+              "pairs": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  0,
+                  2
+                ],
+                [
+                  0,
+                  3
+                ],
+                [
+                  0,
+                  4
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  1,
+                  3
+                ],
+                [
+                  1,
+                  4
+                ],
+                [
+                  2,
+                  3
+                ],
+                [
+                  2,
+                  4
+                ],
+                [
+                  3,
+                  4
+                ]
+              ],
+              "step": 0.3
+            }
+          },
+          {
+            "at": 3,
+            "dim": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "note": "{{PAIRS}} pairs to check"
+          },
+          {
+            "at": 4,
+            "gold": [
+              2,
+              3
+            ],
+            "dim": [
+              0,
+              1,
+              4
+            ],
+            "arcs": [
+              [
+                2,
+                3
+              ]
+            ],
+            "note": "one pass"
+          }
+        ],
+        "say": [
+          {
+            "say": "Five numbers. Which two add up to ten?",
+            "tone": "question"
+          },
+          {
+            "think": 3
+          },
+          "The obvious way: check every pair.",
+          {
+            "say": "That's ten pairs here, and the checks grow with n squared.",
+            "tone": "low"
+          },
+          {
+            "say": "There's a way to find four and six while looking at each number only *once*.",
+            "tone": "reveal"
+          },
+          "By the end, you'll write it in eight lines."
+        ]
+      },
+      {
+        "id": "story",
+        "layout": "viz",
+        "chapter": "The idea",
+        "label": "THE STORY",
+        "title": "A guest list",
+        "values": [
+          3,
+          8,
+          4,
+          6,
+          1
+        ],
+        "states": [
+          {
+            "at": 0
+          },
+          {
+            "at": 1,
+            "steel": [
+              0,
+              1,
+              2
+            ],
+            "note": "remembered so far"
+          },
+          {
+            "at": 2,
+            "steel": [
+              0,
+              1,
+              2
+            ],
+            "gold": [
+              3
+            ],
+            "note": "6 needs 4"
+          },
+          {
+            "at": 3,
+            "steel": [
+              0,
+              1
+            ],
+            "gold": [
+              2,
+              3
+            ],
+            "arcs": [
+              [
+                2,
+                3
+              ]
+            ],
+            "note": "4 is on the list"
+          }
+        ],
+        "say": [
+          "Think of a party. At the door, you write down every guest who walks in.",
+          "Here, that's every number we've walked past: three, eight, four.",
+          {
+            "say": "Now six arrives and asks: is four here? You don't search the room. You read the list.",
+            "tone": "question"
+          },
+          {
+            "say": "Four is on it. One look. That list is a hash map.",
+            "tone": "reveal"
+          }
+        ]
+      },
+      {
+        "id": "need",
+        "layout": "big",
+        "label": "THE KEY IDEA",
+        "title": "Ask for the **partner**",
+        "items": [
+          {
+            "text": "need = target - number",
+            "style": "mono",
+            "at": 0
+          }
+        ],
+        "say": [
+          {
+            "say": "Each number knows exactly which partner it needs: the target minus itself.",
+            "show": "Each number knows exactly which partner it needs: target - number."
+          },
+          "So walk once. Ask the map for your partner *first*. If it isn't there, remember yourself, and move on."
+        ]
+      },
+      {
+        "id": "walk",
+        "layout": "kit",
+        "chapter": "Watch it work",
+        "label": "WATCH IT WORK",
+        "title": "Watch it remember",
+        "steps": {
+          "0": "Target ten. We walk once, and remember every number we pass.",
+          "1": "Three needs seven. Not seen yet, so remember three, at index zero.",
+          "3": "Eight needs two. Not seen yet. Remember eight.",
+          "5": "Four needs six. Still no. Remember four, at index two.",
+          "7": {
+            "say": "Six needs four. And four is in the map, at index two.",
+            "tone": "reveal"
+          },
+          "9": {
+            "say": "So the answer is index two and three. Found in four looks, not ten pairs.",
+            "show": "So the answer is {{ANSWER}}. Found in {{LOOKS}} looks, not {{PAIRS}} pairs.",
+            "tone": "lift"
+          }
+        }
+      },
+      {
+        "id": "code",
+        "layout": "code",
+        "chapter": "The code",
+        "label": "THE CODE",
+        "title": "Two Sum",
+        "lines_from": {
+          "slide": "template"
+        },
+        "say": [
+          {
+            "say": "Let's write it. The function takes the numbers and the target.",
+            "upto": 1,
+            "hl": [
+              1
+            ]
+          },
+          {
+            "say": "An empty map called seen. It will map each value to its index.",
+            "upto": 2,
+            "hl": [
+              2
+            ]
+          },
+          {
+            "say": "Walk every index once, and work out the partner this number needs.",
+            "upto": 4,
+            "hl": [
+              3,
+              4
+            ]
+          },
+          {
+            "say": "Ask the map first. If the partner is there, return its index and ours.",
+            "upto": 6,
+            "hl": [
+              5,
+              6
+            ],
+            "tone": "lift"
+          },
+          {
+            "say": "Only then remember this number, with its index.",
+            "upto": 7,
+            "hl": [
+              7
+            ]
+          },
+          {
+            "say": "And if the loop ends with no pair, return none.",
+            "upto": 8,
+            "hl": [
+              8
+            ]
+          }
+        ]
+      },
+      {
+        "id": "count",
+        "layout": "code",
+        "label": "THE SAME MAP, A SECOND JOB",
+        "title": "Count things",
+        "lines_from": {
+          "slide": "extra"
+        },
+        "note": {
+          "text": "\"banana\" → b: 1 · a: 3 · n: 2",
+          "at": 2
+        },
+        "say": [
+          {
+            "say": "The same map has a second job: counting. Start with an empty map of counts.",
+            "upto": 2,
+            "hl": [
+              2
+            ]
+          },
+          {
+            "say": "For each letter, add one if it's there already, or start it at one.",
+            "upto": 8,
+            "hl": [
+              4,
+              5,
+              6,
+              7
+            ]
+          },
+          {
+            "say": "In banana, [a](/ˈeɪ/) comes three times, [n](/ˈɛn/) comes twice, and [b](/bˈiː/) comes once. Have I seen it, and how many times? Those two questions are this whole pattern.",
+            "show": "In banana, \"a\" comes three times, \"n\" comes twice, and \"b\" comes once. Have I seen it, and how many times? Those two questions are this whole pattern.",
+            "tone": "warm"
+          }
+        ]
+      },
+      {
+        "id": "trap",
+        "layout": "viz",
+        "chapter": "The trap",
+        "label": "THE TRAP",
+        "title": "Check, then store",
+        "values": [
+          3,
+          2,
+          4
+        ],
+        "under": [
+          0,
+          1,
+          2
+        ],
+        "tag": "target = 6",
+        "panels": [
+          {
+            "head": "WRONG: STORE FIRST",
+            "accent": "red",
+            "code": [
+              "seen[nums[i]] = i",
+              "if need in seen:"
+            ],
+            "bad": [
+              0
+            ],
+            "result": "{{wrong_two_sum([3, 2, 4], 6)}}",
+            "at": 0,
+            "dim_at": 2
+          },
+          {
+            "head": "RIGHT: CHECK FIRST",
+            "accent": "gold",
+            "code": [
+              "if need in seen:",
+              "seen[nums[i]] = i"
+            ],
+            "good": [
+              0
+            ],
+            "result": "{{two_sum([3, 2, 4], 6)}}",
+            "at": 2
+          }
+        ],
+        "states": [
+          {
+            "at": 0,
+            "gold": [
+              0
+            ],
+            "note": "seen = {3: 0}"
+          },
+          {
+            "at": 1,
+            "red": [
+              0
+            ],
+            "note": "3 needs 3, finds itself"
+          },
+          {
+            "at": 2,
+            "steel": [
+              0
+            ],
+            "note": "3 needs 3, not there yet"
+          },
+          {
+            "at": 3,
+            "steel": [
+              0
+            ],
+            "gold": [
+              1,
+              2
+            ],
+            "arcs": [
+              [
+                1,
+                2
+              ]
+            ],
+            "note": "4 needs 2, found"
+          }
+        ],
+        "say": [
+          "Here's the trap: store the number *before* you check. Take three, two, four, with target six. Three goes straight into the map.",
+          {
+            "say": "Then three asks for its partner, which is three. It finds itself. The answer comes out as zero, zero. Wrong!",
+            "tone": "low"
+          },
+          "The fix: check first, then store. Three needs three, but the map is still empty. So we store it, and move on.",
+          {
+            "say": "Two needs four, not there yet. Four needs two, and two is in the map. One and two. Right.",
+            "tone": "reveal"
+          }
+        ]
+      },
+      {
+        "id": "cost",
+        "layout": "table",
+        "label": "THE COST",
+        "title": "What it costs",
+        "head": [
+          "",
+          "COST"
+        ],
+        "widths": [
+          "1.4fr",
+          "1fr"
+        ],
+        "mono": [
+          1
+        ],
+        "rows": [
+          [
+            "Time",
+            "**O(n)**"
+          ],
+          [
+            "Extra space",
+            "O(n)"
+          ],
+          [
+            "Checking every pair",
+            "O(n²)"
+          ]
+        ],
+        "at": [
+          0,
+          0,
+          1
+        ],
+        "say": [
+          {
+            "say": "One pass, and one map lookup per number: O of n time. The map can hold every number, so O of n space too.",
+            "show": "One pass, and one map lookup per number: O(n) time. The map can hold every number, so O(n) space too."
+          },
+          {
+            "say": "We traded memory for time. Checking every pair needs no memory, but it's O of n squared.",
+            "show": "We traded memory for time. Checking every pair needs no memory, but it's O(n²)."
+          }
+        ]
+      },
+      {
+        "id": "recap",
+        "layout": "viz",
+        "chapter": "Your turn",
+        "label": "WORKED EXAMPLE",
+        "values": [
+          3,
+          8,
+          4,
+          6,
+          1
+        ],
+        "under": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "tag": "target = 10",
+        "states": [
+          {
+            "at": 0,
+            "steel": [
+              0,
+              1
+            ],
+            "gold": [
+              2,
+              3
+            ],
+            "arcs": [
+              [
+                2,
+                3
+              ]
+            ],
+            "note": "answer {{ANSWER}} · one pass · O(n)"
+          }
+        ],
+        "say": [
+          {
+            "say": "So, to recap. Each number asks the map for its partner, and four meets six, at index two and three. One pass. O of n.",
+            "show": "So, to recap. Each number asks the map for its partner, and four meets six, at index 2 and 3. One pass. O(n)."
+          }
+        ]
+      },
+      {
+        "id": "end",
+        "layout": "end",
+        "title": "Your turn",
+        "practice": [
+          {
+            "id": 242,
+            "title": "Valid Anagram",
+            "level": "Easy",
+            "note": "Count each word's letters in one map, then compare.",
+            "at": 1
+          },
+          {
+            "id": 49,
+            "title": "Group Anagrams",
+            "level": "Medium",
+            "note": "Sorted letters are the key; the value is a list of words.",
+            "at": 2
+          }
+        ],
+        "say": [
+          "In this video, we solved LeetCode 1, Two Sum, with one pass and one map.",
+          {
+            "say": "Now it's your turn. First, Valid Anagram. Two words are anagrams when every letter comes the same number of times. Count them with one map, the way we counted banana.",
+            "tone": "lift"
+          },
+          {
+            "say": "Then Group Anagrams. Sort each word's letters to make a key. Words with the same key go into the same list.",
+            "tone": "warm"
+          }
+        ],
+        "covered": [
+          {
+            "site": "LeetCode",
+            "id": 1,
+            "title": "Two Sum",
+            "level": "Easy",
+            "at": 0
+          }
+        ]
+      }
+    ]
+  },
+  "shorts": [
+    {
+      "kind": "trap",
+      "title": "Two Sum's swapped-lines bug",
+      "scenes": [
+        {
+          "id": "bug",
+          "layout": "code",
+          "label": "THE TRAP",
+          "title": "Spot the bug",
+          "lines_from": {
+            "slide": "template",
+            "edit": {
+              "5": "        seen[nums[i]] = i",
+              "6": "        if need in seen:",
+              "7": "            return [seen[need], i]"
+            }
+          },
+          "say": [
+            {
+              "say": "This Two Sum looks right. Can you spot the bug?",
+              "tone": "question",
+              "upto": 8
+            },
+            {
+              "think": 3
+            },
+            {
+              "say": "Here it is. Try three, two, four, with target six. Three needs three, and it is already in the map. It pairs with itself: zero, zero.",
+              "show": "Here it is. Try [3, 2, 4], target 6. The 3 needs 3, and it is already in the map. It pairs with itself: [0, 0].",
+              "upto": 8,
+              "bad": [
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "id": "fix",
+          "layout": "code",
+          "label": "THE FIX",
+          "title": "Check, then store",
+          "lines_from": {
+            "slide": "template"
+          },
+          "say": [
+            {
+              "say": "Ask the map first, then store. Now two and four pair up, at index one and two.",
+              "show": "Ask the map first, then store. Now 2 and 4 pair up: [1, 2].",
+              "upto": 8,
+              "hl": [
+                5,
+                7
+              ],
+              "tone": "reveal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "hack",
+      "title": "Count with a map in one line",
+      "scenes": [
+        {
+          "id": "long",
+          "layout": "code",
+          "label": "CODING HACK",
+          "title": "Four lines to add one?",
+          "lines_from": {
+            "slide": "extra"
+          },
+          "say": [
+            {
+              "say": "Counting with a map? Don't write four lines to add one.",
+              "tone": "lift",
+              "upto": 8,
+              "hl": [
+                4,
+                5,
+                6,
+                7
+              ]
+            }
+          ]
+        },
+        {
+          "id": "short",
+          "layout": "code",
+          "label": "ONE LINE, FOUR LANGUAGES",
+          "title": "Missing key? Start at 0.",
+          "lines": [
+            "// Java",
+            "counts.merge(ch, 1, Integer::sum);",
+            "// Python",
+            "counts[ch] = counts.get(ch, 0) + 1",
+            "// C++: a missing key starts at 0",
+            "counts[ch]++;",
+            "// JavaScript",
+            "counts.set(ch, (counts.get(ch) ?? 0) + 1);"
+          ],
+          "say": [
+            {
+              "say": "In Java, merge adds one, or starts the count at one.",
+              "upto": 2,
+              "hl": [
+                2
+              ]
+            },
+            {
+              "say": "In Python, get with a default of zero.",
+              "upto": 4,
+              "hl": [
+                4
+              ]
+            },
+            {
+              "say": "In C plus plus, a missing key already starts at zero.",
+              "upto": 6,
+              "hl": [
+                6
+              ],
+              "tone": "reveal"
+            },
+            {
+              "say": "In JavaScript, fall back to zero with two question marks.",
+              "upto": 8,
+              "hl": [
+                8
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "booster",
+      "title": "Two Sum in one pass",
+      "scenes": [
+        {
+          "id": "hook",
+          "layout": "viz",
+          "values": [
+            3,
+            8,
+            4,
+            6,
+            1
+          ],
+          "tag": "target = 10",
+          "states": [
+            {
+              "at": 0
+            },
+            {
+              "at": 2,
+              "sweep": {
+                "pairs": [
+                  [
+                    0,
+                    1
+                  ],
+                  [
+                    0,
+                    2
+                  ],
+                  [
+                    0,
+                    3
+                  ],
+                  [
+                    0,
+                    4
+                  ],
+                  [
+                    1,
+                    2
+                  ],
+                  [
+                    1,
+                    3
+                  ],
+                  [
+                    1,
+                    4
+                  ],
+                  [
+                    2,
+                    3
+                  ],
+                  [
+                    2,
+                    4
+                  ],
+                  [
+                    3,
+                    4
+                  ]
+                ],
+                "step": 0.22
+              }
+            }
+          ],
+          "say": [
+            {
+              "say": "Which two add up to ten?",
+              "tone": "question"
+            },
+            {
+              "think": 2
+            },
+            "Don't check every pair. Watch this."
+          ]
+        },
+        {
+          "id": "walk",
+          "layout": "kit",
+          "label": "WATCH",
+          "title": "One pass, one map",
+          "steps": {
+            "0": "Walk once. Each number asks the map for its partner.",
+            "1": "Three needs seven. Not seen, so remember three.",
+            "7": {
+              "say": "Six needs four, and four is already in the map.",
+              "tone": "reveal"
+            },
+            "9": {
+              "say": "Found in four looks, not ten pairs.",
+              "show": "Found in {{LOOKS}} looks, not {{PAIRS}} pairs.",
+              "tone": "lift"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "youtube": {
+    "title": "Hashing: Two Sum in one pass with a hash map (LeetCode 1)",
+    "description": "A hash map answers \"have I seen this?\" in one step, so Two Sum takes one pass instead of checking every pair. We walk [3, 8, 4, 6, 1] with target 10, write the code line by line, and show the bug that pairs a number with itself.\n\n{CHAPTERS}\n\nCode in Java, Python, C++ and JavaScript: https://onehintaway.com/posts/hashing/\nPractice: LeetCode 242, LeetCode 49\n\n#dsa #leetcode #hashmap",
+    "tags": [
+      "hashing",
+      "hash map",
+      "two sum",
+      "leetcode 1",
+      "dsa",
+      "coding interview",
+      "data structures"
+    ]
+  }
+}

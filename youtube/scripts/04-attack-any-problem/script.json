@@ -451,15 +451,10 @@
             "at": 0
           }
         ],
-        "site": 1,
         "say": [
           {
             "say": "Run the four steps on these two. Two Sum, and Product of Array Except Self.",
             "tone": "warm"
-          },
-          {
-            "say": "Both versions of today's code, in four languages, are on one hint away dot com.",
-            "show": "Both versions of today's code, in four languages, are on onehintaway.com."
           }
         ]
       }
@@ -537,24 +532,6 @@
           {
             "say": "At a billion, even one pass is too slow. That means log n.",
             "show": "At 1,000,000,000, even one pass is too slow. That means O(log n)."
-          }
-        ]
-      },
-      {
-        "id": "end",
-        "layout": "big",
-        "title": "Four steps for any problem",
-        "items": [
-          {
-            "text": "Full video on this channel.\nCode on onehintaway.com",
-            "style": "lead",
-            "at": 0
-          }
-        ],
-        "say": [
-          {
-            "say": "That's step one of four. The full plan is on this channel. Code on one hint away dot com.",
-            "show": "That's step one of four. The full plan is on this channel. Code on onehintaway.com."
           }
         ]
       }

@@ -66,7 +66,7 @@
           },
           "If they're in no order, you flip through them one by one. On a bad day, you look at all one thousand.",
           {
-            "say": "If they're sorted by roll number, open the middle and drop the half that can't hold yours. Ten looks, at most.",
+            "say": "If they're sorted by roll number, open the middle. Drop the half that can't hold yours. Ten looks, at most.",
             "tone": "reveal"
           }
         ]
@@ -366,14 +366,9 @@
             "at": 0
           }
         ],
-        "site": 1,
         "say": [
           {
             "say": "For practice, write the brute force for these two, and name its Big-O before you run it."
-          },
-          {
-            "say": "Every function from this video, tested in four languages, is on one hint away dot com.",
-            "show": "Every function from this video, tested in four languages, is on onehintaway.com."
           }
         ]
       }
@@ -475,24 +470,6 @@
             "say": "Only loops inside each other multiply.",
             "show": "Only loops inside each other multiply: O(n²).",
             "tone": "low"
-          }
-        ]
-      },
-      {
-        "id": "end",
-        "layout": "big",
-        "title": "Big-O in one video",
-        "items": [
-          {
-            "text": "Full video on this channel.\nCode on onehintaway.com",
-            "style": "lead",
-            "at": 0
-          }
-        ],
-        "say": [
-          {
-            "say": "The three shapes of Big-O are in the full video. Code on one hint away dot com.",
-            "show": "The three shapes of Big-O are in the full video. Code on onehintaway.com."
           }
         ]
       }

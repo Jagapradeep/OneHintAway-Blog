@@ -108,11 +108,8 @@
           2
         ],
         "say": [
-          {
-            "say": "Arrays first. Appending 7 is add in Java, append in Python, push back in C plus plus, and push in JavaScript.",
-            "tone": "warm"
-          },
-          "Reading the first item is a bracket with index 0 everywhere, except a Java list, which uses get.",
+          "Arrays first. Appending 7 is add in Java, and append in Python. It's push back in C plus plus, and push in JavaScript.",
+          "Reading the first item is a bracket with index 0. The one exception is a Java list, which uses get.",
           "And the length: size, len, size, and length."
         ],
         "compact": true
@@ -477,14 +474,9 @@
             "at": 0
           }
         ],
-        "site": 1,
         "say": [
           {
             "say": "Practise the words on two problems. Valid Parentheses needs a stack. Group Anagrams needs a map of lists."
-          },
-          {
-            "say": "Every line from these tables, as a program you can run, is on one hint away dot com.",
-            "show": "Every line from these tables, as a program you can run, is on onehintaway.com."
           }
         ]
       }
@@ -505,8 +497,8 @@
         ],
         "say": [
           {
-            "say": "JavaScript has no queue, so most code does this: shift off the front.",
-            "show": "JavaScript has no queue, so a lot of code does this: shift() off the front.",
+            "say": "JavaScript has no queue. So a lot of code does this: shift off the front.",
+            "show": "JavaScript has no queue. So a lot of code does this: shift() off the front.",
             "upto": 2,
             "hl": [
               2
@@ -555,24 +547,6 @@
             "hl": [
               4
             ]
-          }
-        ]
-      },
-      {
-        "id": "end",
-        "layout": "big",
-        "title": "Five structures, four languages",
-        "items": [
-          {
-            "text": "Full video on this channel.\nCode on onehintaway.com",
-            "style": "lead",
-            "at": 0
-          }
-        ],
-        "say": [
-          {
-            "say": "Stack, queue, map, and set, in all four languages, are in the full video. Code on one hint away dot com.",
-            "show": "Stack, queue, map and set, in all four languages, are in the full video. Code on onehintaway.com."
           }
         ]
       }

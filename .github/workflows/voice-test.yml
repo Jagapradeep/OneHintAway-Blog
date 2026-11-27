@@ -1,5 +1,5 @@
-# Voice test: says the same six lines with Kokoro (today's voice) and with Chatterbox (MIT licence) in a few
-# settings, so the voices can be compared by ear. Manual only: Actions tab > Voice test > Run workflow.
+# Voice test: says the same six lines with Kokoro (today's voice) and with Chatterbox (MIT licence), five takes
+# per line, each checked by Whisper, so the voices and the automatic check can be compared by ear. Manual only: Actions tab > Voice test > Run workflow.
 # Nothing here touches the videos. The WAV files and a timing note appear on the run's page under "Artifacts".
 name: Voice test
 
@@ -87,81 +87,77 @@ jobs:
           retention-days: 1
           path: out/
 
-  # Chatterbox, run on the processor only (no graphics card), like the video machines.
-  #   original: the 0.5B model with the emotion control (exaggeration) - its own voice, and a copy of af_heart at two strengths
-  #   turbo:    the 350M model (no emotion control) - its own voice, and a copy of af_heart
-  #   nano:     the 110M model (no emotion control) - its own voice, and a copy of af_heart
+  # Chatterbox (MIT), the main 0.5B model copying af_heart at exaggeration 0.5 / cfg 0.5 - the pick from the first test.
+  # Every line is said with 5 different seeds ("takes"), and each take is heard back by Whisper (MIT), which writes
+  # down what it hears and how sure it is of every word. Comparing that with your ears shows whether a bad take
+  # (like the rough "Is" in "Is four on the list?") can be caught and redone automatically.
   chatterbox:
     needs: kokoro
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
-    strategy:
-      fail-fast: false
-      matrix:
-        model: [original, turbo, nano]
-    name: chatterbox ${{ matrix.model }}
+    timeout-minutes: 120
     steps:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
-      - name: Python packages (processor-only PyTorch, Chatterbox pinned to one commit)
+      - name: Python packages (processor-only PyTorch, Chatterbox pinned to one commit, Whisper)
         run: |
           pip install -q torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
-          pip install -q "chatterbox-tts @ git+https://github.com/resemble-ai/chatterbox@ab55923c27757c90cfcc407baa57dc25a7d25217"
+          pip install -q "chatterbox-tts @ git+https://github.com/resemble-ai/chatterbox@ab55923c27757c90cfcc407baa57dc25a7d25217" faster-whisper==1.2.1
 
       - name: Model files (cached)
         uses: actions/cache@v6
         with:
           path: ~/.cache/huggingface
-          key: chatterbox-${{ matrix.model }}-ab55923
+          key: chatterbox-original-whisper-base-ab55923
 
       - uses: actions/download-artifact@v8
         with:
           name: reference
           path: ref
 
-      - name: Say the lines
-        env:
-          MODEL: ${{ matrix.model }}
+      - name: Say every line five times and hear each take back
         run: |
           mkdir -p out
           python - <<'EOF'
-          import json, os, time
+          import json, re, time
           import torch, torchaudio as ta
+          from chatterbox.tts import ChatterboxTTS
+          from faster_whisper import WhisperModel
 
-          kind = os.environ["MODEL"]
           lines = json.load(open("ref/lines.json"))
-          if kind == "original":
-              from chatterbox.tts import ChatterboxTTS
-              model = ChatterboxTTS.from_pretrained(device="cpu")
-              variants = [("chatterbox-own-voice-ex0.5", None, dict(exaggeration=0.5, cfg_weight=0.5)),
-                          ("chatterbox-af_heart-ex0.5", "ref/reference.wav", dict(exaggeration=0.5, cfg_weight=0.5)),
-                          ("chatterbox-af_heart-ex0.7", "ref/reference.wav", dict(exaggeration=0.7, cfg_weight=0.3))]
-          else:
-              from chatterbox.tts_turbo import ChatterboxTurboTTS
-              model = ChatterboxTurboTTS.from_pretrained(device="cpu", nano=(kind == "nano"))
-              variants = [(f"{kind}-own-voice", None, {}), (f"{kind}-af_heart", "ref/reference.wav", {})]
+          model = ChatterboxTTS.from_pretrained(device="cpu")
+          ear = WhisperModel("base.en", device="cpu", compute_type="int8")
+          NUM = {"4": "four", "3": "three", "10": "ten", "5": "five", "2": "two", "1": "one"}
+          def norm(t):
+              return [NUM.get(w, w) for w in re.findall(r"[a-z0-9]+", t.lower())]
 
-          notes = []
-          for name, prompt, opts in variants:            # own voice first: a copied voice replaces it for later lines
-              gap = torch.zeros(1, int(0.8 * model.sr)); parts = []; t0 = time.time()
-              for i, text in enumerate(lines, 1):
-                  torch.manual_seed(i)
-                  wav = model.generate(text, audio_prompt_path=prompt, **opts)
-                  ta.save(f"out/{name}-{i:02d}.wav", wav, model.sr); parts += [wav, gap]
-              audio = torch.cat(parts, dim=1)
-              ta.save(f"out/{name}-all-lines.wav", audio, model.sr)
-              took = time.time() - t0; secs = audio.shape[1] / model.sr
-              notes.append(f"{name}: {secs:.1f} s of speech in {took:.1f} s ({took / secs:.2f}x real time)")
-              print(notes[-1], flush=True)
-          open(f"out/timing-{kind}.txt", "w").write("\n".join(notes) + "\n")
+          report, spoken, t0 = [], 0.0, time.time()
+          for i, text in enumerate(lines, 1):
+              for seed in range(1, 6):
+                  torch.manual_seed(seed)
+                  wav = model.generate(text, audio_prompt_path="ref/reference.wav", exaggeration=0.5, cfg_weight=0.5)
+                  name = f"out/line{i:02d}-take{seed}.wav"
+                  ta.save(name, wav, model.sr); spoken += wav.shape[1] / model.sr
+                  segs, _ = ear.transcribe(name, language="en", word_timestamps=True, beam_size=5)
+                  ws = [w for s in segs for w in s.words]
+                  heard = " ".join(w.word.strip() for w in ws)
+                  low = min(ws, key=lambda w: w.probability) if ws else None
+                  report.append(f"line {i} take {seed}: {'MATCH' if norm(heard) == norm(text) else 'DIFFERENT'} | "
+                                f"first word {ws[0].word.strip()!r} {ws[0].probability:.2f} | " if ws else f"line {i} take {seed}: heard nothing | ")
+                  if ws:
+                      report[-1] += f"least sure {low.word.strip()!r} {low.probability:.2f} | heard: {heard}"
+                  print(report[-1], flush=True)
+              report.append("")
+          took = time.time() - t0
+          report.append(f"{spoken:.1f} s of speech made and checked in {took:.1f} s ({took / spoken:.2f}x real time)")
+          open("out/report.txt", "w").write("\n".join(report) + "\n")
           EOF
 
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: part-${{ matrix.model }}
+          name: part-chatterbox
           retention-days: 1
           if-no-files-found: warn
           path: out/

@@ -1,0 +1,180 @@
+# Voice test: says the same six lines with Kokoro (today's voice) and with Chatterbox (MIT licence) in a few
+# settings, so the voices can be compared by ear. Manual only: Actions tab > Voice test > Run workflow.
+# Nothing here touches the videos. The WAV files and a timing note appear on the run's page under "Artifacts".
+name: Voice test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Kokoro af_heart: the baseline, said exactly as the video engine says it, plus a 12-second reference clip
+  # of the same voice for Chatterbox to copy (af_heart is Kokoro's own voice, Apache 2.0).
+  kokoro:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: youtube/engine/requirements.txt
+
+      - name: Python packages
+        run: pip install -q -r youtube/engine/requirements.txt
+
+      - name: Voice model (cached)
+        uses: actions/cache@v6
+        with:
+          path: youtube/engine/models
+          key: kokoro-model-files-v1.0
+
+      - name: Download the voice model if not cached
+        run: |
+          mkdir -p youtube/engine/models && cd youtube/engine/models
+          for f in kokoro-v1.0.onnx voices-v1.0.bin; do
+            [ -f "$f" ] || curl -sSfLO "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/$f"
+          done
+
+      - name: Say the lines
+        run: |
+          mkdir -p out ref
+          python - <<'EOF'
+          import json, sys, time
+          import numpy as np, soundfile as sf
+          sys.path.insert(0, "youtube/engine")
+          import engine as E
+
+          lines = [
+              "Five numbers. Which two add up to ten?",
+              "Is four on the list?",
+              "Four is on it. One look. That list is a hash map.",
+              "Then three asks for its partner, which is three. It finds itself. Wrong!",
+              'In banana, "a" comes three times, "n" comes twice, and "b" comes once.',
+              "Remember: ask the map first, then store the number.",
+          ]
+          kokoro_lines = list(lines)   # the engine's letter marks, as in the post 05 script
+          kokoro_lines[4] = "In banana, [a](/ˈeɪ/) comes three times, [n](/ˈɛn/) comes twice, and [b](/bˈiː/) comes once."
+          json.dump(lines, open("ref/lines.json", "w"), ensure_ascii=False, indent=1)
+
+          ref, _ = E.human("Here is the idea in one line. We keep a small notebook of the numbers we have already seen. "
+                           "For each new number, we check the notebook first. That one habit turns a slow search into a fast one.")
+          sf.write("ref/reference.wav", ref, E.SR)
+
+          gap = np.zeros(int(0.8 * E.SR), np.float32); parts = []; t0 = time.time()
+          for i, text in enumerate(kokoro_lines, 1):
+              a, _ = E.human(text)
+              sf.write(f"out/kokoro-{i:02d}.wav", a, E.SR); parts += [a, gap]
+          audio = np.concatenate(parts)
+          sf.write("out/kokoro-all-lines.wav", audio, E.SR)
+          took = time.time() - t0; secs = len(audio) / E.SR
+          open("out/timing-kokoro.txt", "w").write(f"kokoro af_heart: {secs:.1f} s of speech in {took:.1f} s ({took / secs:.2f}x real time)\n")
+          EOF
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: reference
+          retention-days: 1
+          path: ref/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: part-kokoro
+          retention-days: 1
+          path: out/
+
+  # Chatterbox, run on the processor only (no graphics card), like the video machines.
+  #   original: the 0.5B model with the emotion control (exaggeration) - its own voice, and a copy of af_heart at two strengths
+  #   turbo:    the 350M model (no emotion control) - its own voice, and a copy of af_heart
+  #   nano:     the 110M model (no emotion control) - its own voice, and a copy of af_heart
+  chatterbox:
+    needs: kokoro
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [original, turbo, nano]
+    name: chatterbox ${{ matrix.model }}
+    steps:
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Python packages (processor-only PyTorch, Chatterbox pinned to one commit)
+        run: |
+          pip install -q torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install -q "chatterbox-tts @ git+https://github.com/resemble-ai/chatterbox@ab55923c27757c90cfcc407baa57dc25a7d25217"
+
+      - name: Model files (cached)
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/huggingface
+          key: chatterbox-${{ matrix.model }}-ab55923
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: reference
+          path: ref
+
+      - name: Say the lines
+        env:
+          MODEL: ${{ matrix.model }}
+        run: |
+          mkdir -p out
+          python - <<'EOF'
+          import json, os, time
+          import torch, torchaudio as ta
+
+          kind = os.environ["MODEL"]
+          lines = json.load(open("ref/lines.json"))
+          if kind == "original":
+              from chatterbox.tts import ChatterboxTTS
+              model = ChatterboxTTS.from_pretrained(device="cpu")
+              variants = [("chatterbox-own-voice-ex0.5", None, dict(exaggeration=0.5, cfg_weight=0.5)),
+                          ("chatterbox-af_heart-ex0.5", "ref/reference.wav", dict(exaggeration=0.5, cfg_weight=0.5)),
+                          ("chatterbox-af_heart-ex0.7", "ref/reference.wav", dict(exaggeration=0.7, cfg_weight=0.3))]
+          else:
+              from chatterbox.tts_turbo import ChatterboxTurboTTS
+              model = ChatterboxTurboTTS.from_pretrained(device="cpu", nano=(kind == "nano"))
+              variants = [(f"{kind}-own-voice", None, {}), (f"{kind}-af_heart", "ref/reference.wav", {})]
+
+          notes = []
+          for name, prompt, opts in variants:            # own voice first: a copied voice replaces it for later lines
+              gap = torch.zeros(1, int(0.8 * model.sr)); parts = []; t0 = time.time()
+              for i, text in enumerate(lines, 1):
+                  torch.manual_seed(i)
+                  wav = model.generate(text, audio_prompt_path=prompt, **opts)
+                  ta.save(f"out/{name}-{i:02d}.wav", wav, model.sr); parts += [wav, gap]
+              audio = torch.cat(parts, dim=1)
+              ta.save(f"out/{name}-all-lines.wav", audio, model.sr)
+              took = time.time() - t0; secs = audio.shape[1] / model.sr
+              notes.append(f"{name}: {secs:.1f} s of speech in {took:.1f} s ({took / secs:.2f}x real time)")
+              print(notes[-1], flush=True)
+          open(f"out/timing-{kind}.txt", "w").write("\n".join(notes) + "\n")
+          EOF
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: part-${{ matrix.model }}
+          retention-days: 1
+          if-no-files-found: warn
+          path: out/
+
+  collect:
+    needs: [kokoro, chatterbox]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Put every voice in one download
+        uses: actions/upload-artifact/merge@v7
+        with:
+          name: voice-test-${{ github.run_number }}
+          pattern: part-*
+          retention-days: 3
+          delete-merged: true

@@ -149,7 +149,7 @@ def draft(slug, force=False):
     if cost:
         L.append({"id": "cost", "layout": "table", "label": "THE COST", "title": "What it costs", "head": ["", "COST"],
                   "widths": ["1.4fr", "1fr"], "mono": [1], "rows": [[c["label"], c["value"]] for c in cost["items"]],
-                  "at": [0] * len(cost["items"]), "say": [f"TODO: the cost aloud ({cost.get('note', '')})"]})
+                  "together": True, "say": [f"TODO: the cost aloud ({cost.get('note', '')})"]})
     prac = (by.get("practice") or by.get("closing"))[0]["problems"]
     if vals:
         L.append({"id": "recap", "layout": "viz", "chapter": "Your turn", "label": "WORKED EXAMPLE", "values": vals, "under": list(range(len(vals))),

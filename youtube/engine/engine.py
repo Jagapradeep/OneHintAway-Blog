@@ -230,7 +230,10 @@ class Video:
         self.caps[-1]["end"] = at + d
         return d
 
-    def scene(self, sid, lines=(), pre=0.35, gap=0.22, post=0.45, countdown=0, min_dur=0, fx_in="turn", cd_step=1.0, **data):
+    def scene(self, sid, lines=(), pre=0.35, gap=0.22, post=0.45, countdown=0, min_dur=0, fx_in="turn", cd_step=1.0, holds=None, **data):
+        """holds: {line index: seconds} - an animation that starts on that line runs this long,
+        so the next line waits for it instead of cutting it off."""
+        holds = holds or {}
         t0 = self.t
         cues, t = {}, t0 + pre
         if fx_in:
@@ -242,8 +245,10 @@ class Video:
                 cues[f"T{i}"] = round(t - t0, 3); t += ln["think"]; continue
             if isinstance(ln, dict) and ln.get("tone"):
                 t += TONES[ln["tone"]][2]
-            cues[f"L{i}"] = round(t - t0, 3)
+            cues[f"L{i}"] = round(t - t0, 3); start = t
             t += self._line(ln, t) + (ln.get("gap", gap) if isinstance(ln, dict) else gap)
+            if i in holds:
+                t = max(t, start + holds[i])
         if countdown:
             cues["count"] = round(t - t0, 3)
             for k in range(countdown):

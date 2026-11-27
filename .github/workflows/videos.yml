@@ -1,7 +1,8 @@
-# Renders YouTube videos from youtube/scripts/ on a free GitHub machine. The same engine, voice model,
+# Renders YouTube videos from youtube/scripts/ on free GitHub machines. The same engine, voice model,
 # browser build and package versions as the yt-video skill's own renders, so the videos match.
 # Runs when scripts change on main, or by hand (Actions tab > Videos > Run workflow) for chosen posts.
-# The MP4s, captions and YouTube text appear on the run's page under "Artifacts".
+# Every video (a post's long video and each of its Shorts) renders on its own machine at the same time,
+# so a batch takes about as long as its longest video. All videos land in one artifact on the run's page.
 name: Videos
 
 on:
@@ -23,9 +24,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  render:
+  plan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 300
+    outputs:
+      matrix: ${{ steps.pick.outputs.matrix }}
+      count: ${{ steps.pick.outputs.count }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,21 +44,44 @@ jobs:
           else
             names=$(git diff --name-only HEAD~1 HEAD -- youtube/scripts | cut -d/ -f3 | sort -u)
           fi
-          list=""
-          for n in $names; do
-            case "$n" in *[!A-Za-z0-9-]*) echo "skipping odd name: $n"; continue;; esac
-            if [ -f "youtube/scripts/$n/script.json" ]; then list="$list youtube/scripts/$n"; fi
-          done
-          echo "Rendering:$list"
-          echo "list=$list" >> "$GITHUB_OUTPUT"
+          python3 - $names <<'EOF'
+          import json, os, re, sys
+          jobs = []
+          for n in sys.argv[1:]:
+              if not re.fullmatch(r"[A-Za-z0-9-]+", n):
+                  print("skipping odd name:", n); continue
+              f = f"youtube/scripts/{n}/script.json"
+              if not os.path.isfile(f):
+                  continue
+              spec = json.load(open(f))
+              vids = ["long"] if "long" in spec else []
+              shorts = spec["shorts"] if "shorts" in spec else ([spec["short"]] if "short" in spec else [])
+              vids += ["short" if i == 0 else f"short{i + 1}" for i in range(len(shorts))]
+              jobs += [{"post": n, "video": v} for v in vids]
+          print("Rendering:", ", ".join(f"{j['post']} {j['video']}" for j in jobs) or "nothing")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as o:
+              o.write(f"matrix={json.dumps({'include': jobs})}\ncount={len(jobs)}\n")
+          EOF
+
+  render:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    name: ${{ matrix.post }} ${{ matrix.video }}
+    steps:
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
-        if: steps.pick.outputs.list != ''
         with:
           python-version: "3.13"
+          cache: pip
+          cache-dependency-path: youtube/engine/requirements.txt
 
       - name: Install ffmpeg, Python packages and the browser
-        if: steps.pick.outputs.list != ''
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q ffmpeg
@@ -64,14 +90,12 @@ jobs:
           python -m playwright install --with-deps chromium
 
       - name: Voice model (cached)
-        if: steps.pick.outputs.list != ''
         uses: actions/cache@v4
         with:
           path: youtube/engine/models
           key: kokoro-model-files-v1.0
 
       - name: Download the voice model if not cached
-        if: steps.pick.outputs.list != ''
         run: |
           mkdir -p youtube/engine/models && cd youtube/engine/models
           for f in kokoro-v1.0.onnx voices-v1.0.bin; do
@@ -79,24 +103,41 @@ jobs:
           done
           sha256sum kokoro-v1.0.onnx voices-v1.0.bin
 
+      # Every job checks the whole script (all its videos), then renders only its own video.
       - name: Check and render
-        if: steps.pick.outputs.list != ''
-        run: python youtube/engine/yt.py ${{ steps.pick.outputs.list }} --video all
+        run: python youtube/engine/yt.py "youtube/scripts/${{ matrix.post }}" --video "${{ matrix.video }}"
 
-      - name: Contact sheets
-        if: always() && steps.pick.outputs.list != ''
-        run: for d in youtube/build/*/; do python youtube/engine/sheet.py "$d" || true; done
+      - name: Contact sheet and failure note
+        if: always()
+        run: |
+          d="youtube/build/${{ matrix.post }}"
+          if [ "${{ matrix.video }}" = "long" ] || [ "${{ matrix.video }}" = "short" ]; then python youtube/engine/sheet.py "$d" || true; fi
+          # name the failure note by video, so notes from different machines don't overwrite each other
+          if [ -f "$d/FAILED.txt" ]; then mv "$d/FAILED.txt" "$d/FAILED-${{ matrix.video }}.txt"; fi
 
-      - name: Upload the videos
-        if: always() && steps.pick.outputs.list != ''
+      - name: Upload this video
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: videos-${{ github.run_number }}
-          retention-days: 30
+          name: part-${{ matrix.post }}-${{ matrix.video }}
+          retention-days: 1
           if-no-files-found: warn
           path: |
             youtube/build/*/*.mp4
             youtube/build/*/*.srt
             youtube/build/*/summary.txt
             youtube/build/*/sheet.png
-            youtube/build/*/FAILED.txt
+            youtube/build/*/FAILED-*.txt
+
+  collect:
+    needs: [plan, render]
+    if: always() && needs.plan.outputs.count != '0'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Put every video in one download
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: videos-${{ github.run_number }}
+          pattern: part-*
+          retention-days: 3
+          delete-merged: true

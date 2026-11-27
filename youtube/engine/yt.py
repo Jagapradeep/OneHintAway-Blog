@@ -12,6 +12,7 @@ import argparse, importlib.util, json, re, sys
 import numpy as np
 from pathlib import Path
 from html import escape
+from html.parser import HTMLParser
 import engine as E
 import kitload as K
 import viz as Z
@@ -27,7 +28,7 @@ FMT = {
 LIMITS = {"long": (90, 480), "short": (20, 58)}
 HYPE = re.compile(r"\b(easy|easily|simple|simply|just|everyone|everybody|most people|almost every|every beginner|always works|guarantee\w*|crack|faang|secret|insane|never forget)\b", re.I)
 SPOKEN_BAD = re.compile(r"[()\[\]²³=→<>_`{}]|\.com|\bO\(|\bn\^")
-KEYS = {"id", "layout", "label", "title", "say", "chapter", "kicker", "sub", "items", "head", "rows", "lines", "values", "under",
+KEYS = {"together", "id", "layout", "label", "title", "say", "chapter", "kicker", "sub", "items", "head", "rows", "lines", "values", "under",
         "states", "wrong", "right", "text", "next", "practice", "cols", "mono", "note", "post", "widths", "site", "at", "checks", "compact", "lines_from", "steps", "from_post", "slow", "tag", "cell", "panels", "covered"}
 LAYOUTS = {"viz", "site", "kit", "outro", "title", "big", "list", "table", "code", "boxes", "compare", "pause", "end"}
 
@@ -116,6 +117,92 @@ def lines_of(sc):
 def spoken(sc):
     return [l for l in lines_of(sc) if "say" in l]
 
+# ------------------------------------------------------------------ sync: what is on screen must match what is being said
+_NUMW = "zero one two three four five six seven eight nine ten eleven twelve".split()
+_STOPW = set("a an the and or but of to in on at is are was be been it its this that these those with for as by from "
+             "not no you your we our me my they them their then there here so if into than also just can will has have do does".split())
+
+def words(text):
+    """Content words of a text, crudely stemmed (first five letters), with small numbers as words."""
+    out = set()
+    for w in re.findall(r"[a-z]+", E.spoken_text(re.sub(r"<[^>]+>", " ", str(text))).lower()):
+        if len(w) > 2 and w not in _STOPW and w not in _NUMW:
+            out.add(w[:5])
+    return out
+
+def line_words(sc):
+    """Words of each narration line by its cue index (None for think/wait entries)."""
+    return [words(l["say"] + " " + l.get("show", "")) if "say" in l else None for l in lines_of(sc)]
+
+def align(texts, sc):
+    """Tie each on-screen item to the line that talks about it: items keep their order, lines never go back,
+    and the total word overlap is as large as possible. On a tie, items spread over separate lines, then go earlier."""
+    L = [(i, w) for i, w in enumerate(line_words(sc)) if w is not None]
+    if not L or not texts:
+        return [0] * len(texts)
+    m, n = len(L), len(texts)
+    ov = [[len(words(t) & w) for _, w in L] for t in texts]
+    dp = [[(10 * ov[0][k], -k) for k in range(m)]]; back = []
+    for j in range(1, n):
+        row, bk = [], []
+        for k in range(m):
+            cand = max(((dp[-1][q][0] + (1 if q < k else 0), dp[-1][q][1]), q) for q in range(k + 1))
+            row.append((cand[0][0] + 10 * ov[j][k], cand[0][1] - k)); bk.append(cand[1])
+        dp.append(row); back.append(bk)
+    k = max(range(m), key=lambda k: dp[-1][k]); res = []
+    for j in range(n - 1, -1, -1):
+        res.append(L[k][0])
+        if j:
+            k = back[j - 1][k]
+    return res[::-1]
+
+def cues_for(sc, texts, explicit):
+    """Cue of each item: its own 'at' if set, all on the first line if the scene says 'together',
+    otherwise the line that talks about it."""
+    if sc.get("together"):
+        first = next((i for i, w in enumerate(line_words(sc)) if w is not None), 0)
+        return [e if e is not None else first for e in explicit]
+    auto = align(texts, sc)
+    return [e if e is not None else a for e, a in zip(explicit, auto)]
+
+class _Cued(HTMLParser):
+    """Text of every element that appears on a narration line (data-at="L<i>")."""
+    def __init__(self):
+        super().__init__(); self.stack, self.out = [], []
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs); m = re.fullmatch(r"L(\d+)", a.get("data-at") or "")
+        if "cl" in (a.get("class") or "").split():      # code lines: the whole function may stay on screen
+            m = None
+        rec = [int(m.group(1)), ""] if m else None
+        if rec:
+            self.out.append(rec)
+        if tag not in ("br", "img", "input", "circle", "path", "rect", "line"):
+            self.stack.append(rec)
+    def handle_endtag(self, tag):
+        if self.stack and tag not in ("br", "img", "input", "circle", "path", "rect", "line"):
+            self.stack.pop()
+    def handle_data(self, d):
+        for rec in self.stack:
+            if rec:
+                rec[1] += " " + d
+
+def sync_errors(sc, inner, where):
+    """An item must not show up before the line that talks about it, nor on a line that says nothing about it."""
+    if sc.get("together"):
+        return []
+    lw = line_words(sc); errs = []
+    p = _Cued(); p.feed(inner)
+    for i, text in p.out:
+        w = words(text)
+        if not w or i >= len(lw) or lw[i] is None:
+            continue
+        ov = [len(w & x) if x is not None else -1 for x in lw]
+        best = max(ov); kb = ov.index(best)
+        if kb > i and best >= 2 and ov[i] == 0:      # on screen before the narration gets to it
+            errs.append(f"{where}: {' '.join(text.split())[:50]!r} appears on line {i} ({(lines_of(sc)[i]['say'])[:40]!r}) "
+                        f"but line {kb} talks about it; set its 'at' or reorder")
+    return errs
+
 def formats(spec):
     """'long', 'short' and, for several Shorts, 'short2', 'short3'... (from a 'shorts' list)."""
     if "shorts" in spec and "short" not in spec:
@@ -139,7 +226,7 @@ def head(sc, F):
 def lay_title(sc, F, fmt):
     k = f'<div class="pill">{escape(sc["kicker"])}</div>' if sc.get("kicker") else ""
     size = 124 if fmt == "long" else 112
-    sub = f'<div class="lead" {at(sc.get("sub_at", 1))} style="margin-top:34px;font-size:{F["body"] + 6}px;max-width:1300px">{rich(sc["sub"])}</div>' if sc.get("sub") else ""
+    sub = f'<div class="lead" {at(sc["sub_at"] if "sub_at" in sc else cues_for(sc, [sc["sub"]], [None])[0])} style="margin-top:34px;font-size:{F["body"] + 6}px;max-width:1300px">{rich(sc["sub"])}</div>' if sc.get("sub") else ""
     return (f'<div class="center">{k}<div class="ttl" style="font-size:{size}px;line-height:1.02;margin-top:26px">{U.title_html(sc["title"])}</div>{sub}</div>')
 
 def lay_big(sc, F, fmt):
@@ -153,10 +240,11 @@ def lay_big(sc, F, fmt):
 def lay_list(sc, F, fmt):
     cols = 1 if fmt == "short" else sc.get("cols", 2)
     cards = []
+    cue = cues_for(sc, [it.get("head", "") + " " + it["text"] for it in sc["items"]], [it.get("at") for it in sc["items"]])
     for i, it in enumerate(sc["items"]):
         acc = {"gold": GOLD, "red": RED, "steel": STEEL}.get(it.get("accent"), None)
         hd = f'<div class="chead" style="color:{acc or STEEL}">{escape(it["head"])}</div>' if it.get("head") else ""
-        cards.append(f'<div class="card{" acc" if acc else ""}"{at(it.get("at", i))} style="{"border-color:" + acc if acc else ""}">'
+        cards.append(f'<div class="card{" acc" if acc else ""}"{at(cue[i])} style="{"border-color:" + acc if acc else ""}">'
                      f'{hd}<div class="ctext">{rich(it["text"])}</div></div>')
     return head(sc, F) + f'<div class="grid" style="grid-template-columns:repeat({cols},1fr)">{"".join(cards)}</div>'
 
@@ -165,8 +253,10 @@ def lay_table(sc, F, fmt):
     w = sc.get("widths")
     gt = " ".join(w) if w else f"repeat({len(sc['head'])}, auto)"
     cells = "".join(f'<div class="th">{escape(h)}</div>' for h in sc["head"])
+    ex = sc.get("at") if isinstance(sc.get("at"), list) else [sc.get("at")] * len(sc["rows"])
+    cue = cues_for(sc, [" ".join(map(str, row)) for row in sc["rows"]], ex)
     for r, row in enumerate(sc["rows"]):
-        a = at(sc.get("at", list(range(len(sc["rows"]))))[r])
+        a = at(cue[r])
         for c, v in enumerate(row):
             cells += f'<div class="td{" m" if c in mono else ""}"{a}>{rich(v)}</div>'
     note = f'<div class="lead"{at(sc["note"]["at"])} style="margin-top:26px">{rich(sc["note"]["text"])}</div>' if sc.get("note") else ""
@@ -210,10 +300,12 @@ def lay_boxes(sc, F, fmt):
 
 def lay_compare(sc, F, fmt):
     out = []
+    cue = cues_for(sc, [" ".join([sc[k].get("head", ""), sc[k].get("text", ""), str(sc[k].get("result", ""))] + sc[k].get("code", [])) for k in ("wrong", "right")],
+                   [sc[k].get("at") for k in ("wrong", "right")])
     for key, col, word in (("wrong", RED, "WRONG"), ("right", GOLD, "RIGHT")):
         c = sc[key]
         code = "".join(f'<div>{escape(t)}</div>' for t in c.get("code", []))
-        out.append(f'<div class="card"{at(c.get("at", 0 if key == "wrong" else 1))} style="border-color:{col}">'
+        out.append(f'<div class="card"{at(cue[0 if key == "wrong" else 1])} style="border-color:{col}">'
                    f'<div class="chead" style="color:{col}">{escape(c.get("head", word))}</div>'
                    + (f'<div class="cmono">{code}</div>' if code else "")
                    + (f'<div class="ctext" style="margin-top:14px">{rich(c["text"])}</div>' if c.get("text") else "")
@@ -314,6 +406,20 @@ def lay_viz(sc, F, fmt):
                 f'font-weight:700;font-size:{F["body"] + 2}px;color:#D3D7DE">{rich(st["note"])}</div>')
     return out
 
+SWEEP_STEP, SWEEP_END = 0.4, 0.6     # each pair of a sweep shows at least 0.4 s; the last one rests 0.6 s
+
+def sweep_step(sw):
+    return max(SWEEP_STEP, sw.get("step", 0.45))
+
+def anim_holds(sc):
+    """How long each line must wait for an animation it starts (a sweep over pairs), so nothing is cut off."""
+    holds = {}
+    for st in sc.get("states", []) if sc.get("layout") == "viz" else []:
+        if st.get("sweep") and isinstance(st["at"], int):
+            sw = st["sweep"]
+            holds[st["at"]] = max(holds.get(st["at"], 0), len(sw["pairs"]) * sweep_step(sw) + SWEEP_END)
+    return holds
+
 def viz_states(sc, scene):
     """Turn the script's states (and sweeps over pairs) into timed viz states."""
     out = []
@@ -324,7 +430,7 @@ def viz_states(sc, scene):
             for k in st.get(name, []):
                 look[k] = name
         if st.get("sweep"):
-            sw = st["sweep"]; step = max(0.4, sw.get("step", 0.45))   # each pair stays long enough to be seen whole
+            sw = st["sweep"]; step = sweep_step(sw)   # each pair stays long enough to be seen whole
             for j, (a, b) in enumerate(sw["pairs"]):
                 out.append((f"{cue}+{round(j * step, 3)}" if j else cue,
                             {"st": {**look, a: "steel", b: "steel"}, "arcs": [[a, b, sw.get("color", "steel"), 4, "full"]], "sw": True, "dur": 0.08}))
@@ -339,10 +445,15 @@ def viz_states(sc, scene):
     Z.arr(scene, "v_" + sc["id"], sc["values"], v["x"], v["y"], cell=v["cell"], gap=v["gap"], states=out, arc_h=v["ah"])
     S = scene["viz"][-1]["states"]
     sw = [d["t"] for d in S if d.get("sw")]
-    if sw:   # a sweep stops at the next real state
+    errs = []
+    if sw:   # a sweep must finish before the next real state; anim_holds makes the narration wait for it
         nxt = min([d["t"] for d in S if not d.get("sw") and d["t"] > min(sw)], default=1e9)
-        S[:] = [d for d in S if not d.get("sw") or d["t"] < nxt]
+        cut = [d for d in S if d.get("sw") and d["t"] > nxt - SWEEP_STEP]
+        if cut:
+            errs.append(f"{sc['id']}: the sweep is cut off after {len(sw) - len(cut)} of {len(sw)} pairs; start it on a line of its own (a plain line number in 'at')")
+        S[:] = [d for d in S if d not in cut]
     S.sort(key=lambda d: d["t"])
+    return errs
 
 BUILD = {"viz": lay_viz, "site": lay_site, "outro": lay_outro, "title": lay_title, "big": lay_big, "list": lay_list, "table": lay_table, "boxes": lay_boxes, "compare": lay_compare,
          "pause": lay_pause, "end": lay_end}
@@ -470,7 +581,7 @@ CSS = """
 b.g{color:#FFE3A0;font-weight:800} code{font-family:'Geist Mono',monospace;font-weight:600;color:#CBE6FB;font-size:.92em}
 .grid{display:grid;gap:26px;margin-top:40px;align-content:start}
 .card{background:linear-gradient(180deg,#1C1F25 0%,#15171C 100%);border:2px solid #2B2F37;border-radius:28px;padding:30px 36px;box-shadow:0 18px 40px rgba(0,0,0,.35)}
-.card.acc{box-shadow:inset 5px 0 0 0 currentColor,0 18px 40px rgba(0,0,0,.35)}
+.card.acc{border-width:3px}
 .chead{font-family:'Geist Mono',monospace;font-size:26px;font-weight:600;letter-spacing:2.5px;color:#A3CDF2;margin-bottom:12px}
 .ctext{font-weight:600;color:#E3E6EA;line-height:1.35}
 .cmono{font-family:'Geist Mono',monospace;font-weight:500;color:#E3E6EA;white-space:pre;line-height:1.45}
@@ -538,6 +649,7 @@ window.drawExtra = function(t){
 def build(spec, fmt, voice, speed=1.0):
     F = FMT[kind(fmt)]; part = spec[fmt]; fk = kind(fmt)
     vid = E.Video(f"{spec['number']:02d}-{spec['slug']}-{fmt}", F["W"], F["H"], voice=voice, speed=speed, cap_chars=F["cap_chars"])
+    vid.sync = []
     kit_v = kit_tl = None
     x, y, w, h = F["sc"]
     html = []
@@ -570,6 +682,7 @@ def build(spec, fmt, voice, speed=1.0):
                 s["chapter"] = sc["chapter"]
             continue
         inner = lay_code(sc, F, fk, say) if sc["layout"] == "code" else BUILD[sc["layout"]](sc, F, fk)
+        vid.sync += sync_errors(sc, inner, f"{fmt}/{sc['id']}")
         for i, l in enumerate(say):
             if l.get("think"):
                 until = f' data-until="L{i + 1}"' if i + 1 < len(say) else ""
@@ -579,14 +692,14 @@ def build(spec, fmt, voice, speed=1.0):
                           'Think</div>')
         top = ";justify-content:flex-start" if sc["layout"] == "viz" else ""
         html.append(f'<div class="sc" id="sc_{sc["id"]}" style="left:{x}px;top:{y}px;width:{w}px;height:{h}px;font-size:{F["body"]}px{top}">{inner}</div>')
-        kw = {}
+        kw = {"holds": anim_holds(sc)}
         if sc["layout"] == "pause":
             kw = dict(countdown=2, cd_step=1.0)
         s = vid.scene(sc["id"], say, post=sc.get("post", 0.6), **kw)
         if sc.get("chapter"):
             s["chapter"] = sc["chapter"]
         if sc["layout"] == "viz":
-            viz_states(sc, s)
+            vid.sync += viz_states(sc, s)
         if sc["layout"] == "code":
             s["hl"] = [{"t": s["cues"][f"L{i}"], "n": l.get("hl", []), "bad": l.get("bad", [])} for i, l in enumerate(say) if "hl" in l or "bad" in l]
             s["onDraw"] = "codeHL"
@@ -614,6 +727,12 @@ CHECK_JS = r"""
       if (r.bottom > capTop - 12) bad.push(`${s.id}: runs into the captions by ${Math.round(r.bottom - capTop + 12)}px ${txt}`);
       if (r.top < topSafe) bad.push(`${s.id}: too high (${Math.round(r.top)}) ${txt}`);
       if (e.scrollWidth > e.clientWidth + 2 && getComputedStyle(e).overflow !== 'visible') bad.push(`${s.id}: text cut off ${txt}`);
+      const cs = getComputedStyle(e);   // a box's border is one colour all round: no stripe on one side
+      const sides = ['Top', 'Right', 'Bottom', 'Left'].filter(k => parseFloat(cs['border' + k + 'Width']) > 0 && cs['border' + k + 'Style'] !== 'none')
+                                                    .map(k => cs['border' + k + 'Color']);
+      if (new Set(sides).size > 1)
+        bad.push(`${s.id}: a box border changes colour on one side ${txt}`);
+      if (/inset/.test(cs.boxShadow) && !e.classList.contains('cl')) bad.push(`${s.id}: a box has a stripe on one side ${txt}`);
     }
   }
   for (const s of window.__D.scenes) { const host = document.getElementById('sc_' + s.id);
@@ -742,7 +861,8 @@ def main():
                 for c0, c1 in zip(chs, chs[1:] + [{"t0": vid.t}]):
                     if c1["t0"] - c0["t0"] < 10:
                         errors.append(f"chapter {c0['chapter']!r} is under 10 s (YouTube ignores chapters that short)")
-            bad = stills(vid, html, out / fmt, FMT[kind(fmt)])
+            errors += [f"{fmt} SYNC {e}" for e in vid.sync]
+            bad = stills(vid, html, out / fmt, FMT[kind(fmt)]) + vid.sync
             errors += [f"{fmt} LAYOUT {b}" for b in bad]
             want = a.video in (fmt, "all") or (a.video == "both" and fmt in ("long", "short"))
             if want and not bad:

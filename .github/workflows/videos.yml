@@ -30,7 +30,7 @@ jobs:
       matrix: ${{ steps.pick.outputs.matrix }}
       count: ${{ steps.pick.outputs.count }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 2
 
@@ -73,9 +73,9 @@ jobs:
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     name: ${{ matrix.post }} ${{ matrix.video }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
           cache: pip
@@ -90,7 +90,7 @@ jobs:
           python -m playwright install --with-deps chromium
 
       - name: Voice model (cached)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: youtube/engine/models
           key: kokoro-model-files-v1.0
@@ -117,7 +117,7 @@ jobs:
 
       - name: Upload this video
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: part-${{ matrix.post }}-${{ matrix.video }}
           retention-days: 1
@@ -135,7 +135,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Put every video in one download
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: videos-${{ github.run_number }}
           pattern: part-*

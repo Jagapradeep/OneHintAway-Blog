@@ -62,42 +62,50 @@ COMBOS = combos(CANDS, TARGET)
 
 
 def video_steps(nums=NUMS):
+    """Every choose and every undo of the walk, for all six orders: nothing skipped."""
     events = []
     permute(nums, [False] * len(nums), [], [], events)
+    while events and events[-1][0] == "undo":   # after the last order the walk only unwinds
+        events.pop()
     n = len(nums)
     path = []
-    steps = [{"dash": list(range(n)), "eq": ["seats:", "empty"], "caption": "Fill seat 1, then 2, then 3."}]
-    saves = 0
+    steps = [{"dash": list(range(n)), "eq": ["seats:", "empty"],
+              "caption": "Fill seats 1 to 3 with numbers not used yet."}]
+    caption = steps[0]["caption"]
     k = 0
-    while k < len(events) and saves < 2:
+    while k < len(events):
         kind, v = events[k]
-        if kind == "save":
-            k += 1
+        if kind == "undo":                      # one step per run of undos, each value named
+            gone = []
+            while k < len(events) and events[k][0] == "undo":
+                gone.append(str(events[k][1]))
+                path.pop()
+                k += 1
+            vals = path + [""] * (n - len(path))
+            steps.append({"set": {s: vals[s] for s in range(n)},
+                          "dash": [s for s in range(n) if vals[s] == ""],
+                          "steel": list(range(len(path))),
+                          "eq": ["undo " + ", ".join(gone) + " →", f"back to seat {len(path) + 1}"],
+                          "caption": caption, "quick": True})
             continue
-        if kind == "choose":
-            path.append(v)
-            eq = [f"choose {v} →", " ".join(map(str, path))]
-        else:
-            path.pop()
-            eq = [f"undo {v} →", " ".join(map(str, path)) or "empty"]
+        path.append(v)
+        if len(path) == 1:
+            rest = [x for x in nums if x != v]
+            caption = f"Seat 1 holds {v}: every order of {rest[0]} and {rest[1]}."
         vals = path + [""] * (n - len(path))
-        st = {"set": {s: vals[s] for s in range(n)}, "dash": [s for s in range(n) if vals[s] == ""],
-              "gold": [len(path) - 1] if kind == "choose" else [], "eq": eq,
-              "caption": "Choose, go deeper, then undo to try again." if saves else "Choose a value for each seat."}
+        st = {"set": {s: vals[s] for s in range(n)},
+              "dash": [s for s in range(n) if vals[s] == ""],
+              "gold": [len(path) - 1], "steel": list(range(len(path) - 1)),
+              "eq": [f"{v} is free →", f"seat {len(path)}"],
+              "caption": caption, "quick": True}
         if k + 1 < len(events) and events[k + 1][0] == "save":
-            saves += 1
-            st["chip"] = "".join(map(str, events[k + 1][1]))
+            saved = events[k + 1][1]
+            st["eq"] = ["seats full →", "save " + " ".join(map(str, saved))]
+            st["chip"] = "".join(map(str, saved))
             st["chip_hl"] = True
             k += 1
-        else:
-            st["quick"] = True
         steps.append(st)
         k += 1
-    rest = PERMS[2:]
-    for p in rest:
-        steps.append({"set": {s: p[s] for s in range(n)}, "gold": [0], "eq": ["seat 1 =", str(p[0])],
-                      "caption": "Same moves with 2 first, then 3 first.", "chip": "".join(map(str, p)), "chip_hl": True,
-                      "hold": 0.6})
     return steps
 
 

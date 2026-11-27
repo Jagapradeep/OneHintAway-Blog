@@ -213,11 +213,15 @@
     },
     {
       "type": "extra",
-      "label": "PERMUTATIONS",
-      "board": "Permutations",
-      "teaser": "The moves as permutations",
-      "title": "Every order",
+      "label": "USE 1 · LEETCODE 46",
+      "board": "Use 1: permutations",
+      "teaser": "Use 1: permutations (LC 46)",
+      "title": "Permutations",
       "blocks": [
+        {
+          "type": "text",
+          "text": "Return every order of nums. The video ran this code."
+        },
         {
           "type": "code",
           "lines": [
@@ -241,13 +245,13 @@
         {
           "type": "text",
           "style": "muted",
-          "text": "Start with used all false and path and out empty."
+          "text": "path = the seats filled so far. used[i] = nums[i] is seated. Start: used all false, path and out empty."
         }
       ]
     },
     {
       "type": "template",
-      "teaser": "Same moves, a new rule",
+      "teaser": "Use 2: combination sum (LC 39)",
       "title": "Combination sum",
       "code": {
         "start": 13,
@@ -268,12 +272,14 @@
           21
         ]
       },
-      "explain": "Pick numbers that add up to the target, reusing any. Line 21 passes j: the same number again, never an earlier one.",
+      "explain": "left = sum still needed. Passing j lets a number repeat.",
       "example": {
         "call": "find([2, 3, 6, 7], 0, 7, [], [])",
         "expr": "show(COMBOS)",
         "show": "{{show(COMBOS)}}"
-      }
+      },
+      "label": "USE 2 · LEETCODE 39",
+      "lead": "Every list of nums that adds up to target."
     },
     {
       "type": "trap",

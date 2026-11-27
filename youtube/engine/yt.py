@@ -830,11 +830,18 @@ def summary(spec, vids):
         L += ["", "== YOUTUBE", "Title: " + yt["title"], "", yt["description"].replace("{CHAPTERS}", ch), "", "Tags: " + ", ".join(yt["tags"])]
     return "\n".join(L)
 
+def engine_for(vc, fmt):
+    """channel.json voice.engine: "kokoro", "chatterbox", or {"long": ..., "short": ...}. Kokoro when unset."""
+    e = vc.get("engine", "kokoro")
+    return e.get(kind(fmt), "kokoro") if isinstance(e, dict) else e
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("folders", nargs="+"); ap.add_argument("--out", default=str(Path(__file__).resolve().parents[1] / "build"))
     ap.add_argument("--video", help="long, short, short2..., both (long + first Short) or all"); ap.add_argument("--draft", action="store_true")
     ap.add_argument("--voice", default=None)
+    ap.add_argument("--voice-engine", choices=["kokoro", "chatterbox"], default=None,
+                    help="override channel.json voice.engine; Chatterbox videos go to build/NN-slug-chatterbox/")
     a = ap.parse_args()
     failed = False
     for folder in a.folders:
@@ -849,10 +856,16 @@ def main():
             bad_dir = Path(a.out) / name; bad_dir.mkdir(parents=True, exist_ok=True)
             (bad_dir / "FAILED.txt").write_text("Script check failed, nothing rendered:\n" + "\n".join(errors) + "\n")
             continue
-        out = Path(a.out) / name; vids = {}
+        vids, outs = {}, set()
         vc = spec.get("_channel", {}).get("voice", {})
-        for fmt in fmts:
+        only = [f for f in fmts if a.video == f or (a.video == "both" and f in ("long", "short"))]
+        for fmt in (only or fmts):           # a machine that renders one video voices only that one
+            eng = a.voice_engine or engine_for(vc, fmt)
+            E.set_voice_engine(eng); E.VOICE_ERRORS.clear(); E.VOICE_NOTES.clear()
+            out = Path(a.out) / (name + ("-chatterbox" if eng == "chatterbox" else "")); outs.add(out)
             vid, html = build(spec, fmt, a.voice or vc.get("name", "af_heart"), vc.get("speed", 1.0)); vids[fmt] = vid
+            vid.engine = eng; vid.voice_notes = list(E.VOICE_NOTES)
+            errors += [f"{fmt} VOICE {e}" for e in E.VOICE_ERRORS]
             lo, hi = LIMITS[kind(fmt)]
             if not lo <= vid.t <= hi:
                 errors.append(f"{fmt}: {vid.t:.0f}s, aim for {lo} to {hi}s")
@@ -862,7 +875,7 @@ def main():
                     if c1["t0"] - c0["t0"] < 10:
                         errors.append(f"chapter {c0['chapter']!r} is under 10 s (YouTube ignores chapters that short)")
             errors += [f"{fmt} SYNC {e}" for e in vid.sync]
-            bad = stills(vid, html, out / fmt, FMT[kind(fmt)]) + vid.sync
+            bad = stills(vid, html, out / fmt, FMT[kind(fmt)]) + vid.sync + list(E.VOICE_ERRORS)
             errors += [f"{fmt} LAYOUT {b}" for b in bad]
             want = a.video in (fmt, "all") or (a.video == "both" and fmt in ("long", "short"))
             if want and not bad:
@@ -872,16 +885,22 @@ def main():
                 if problems:                     # a file that fails its check is never handed over
                     f.unlink(); (out / f"{vid.name}.srt").unlink(missing_ok=True)
                 print("  video", f, "checked" if not problems else "FAILED CHECK")
-        (out / "summary.txt").write_text(summary(spec, vids))
+        for out in outs:
+            out.mkdir(parents=True, exist_ok=True)
+            mine = {k: v for k, v in vids.items() if (out.name.endswith("-chatterbox")) == (v.engine == "chatterbox")}
+            notes = [f"  {k}: {n}" for k, v in mine.items() for n in getattr(v, "voice_notes", [])]
+            (out / "summary.txt").write_text(f"Voice: {', '.join(sorted({v.engine for v in mine.values()}))}\n"
+                                             + ("Listen to these lines once (Whisper heard a word differently every time):\n" + "\n".join(notes) + "\n" if notes else "")
+                                             + "\n" + summary(spec, mine))
+            (out / "FAILED.txt").unlink(missing_ok=True)
         for w in warns:
             print(f"  warn {w}")
-        (out / "FAILED.txt").unlink(missing_ok=True)
         if errors:
             failed = True; print(f"{name}: FAILED"); [print("  ", e) for e in errors]
-            out.mkdir(parents=True, exist_ok=True)
-            (out / "FAILED.txt").write_text("Not handed over. Fix these, then render again:\n" + "\n".join(errors) + "\n")
+            for out in outs:
+                (out / "FAILED.txt").write_text("Not handed over. Fix these, then render again:\n" + "\n".join(errors) + "\n")
         else:
-            print(f"{name}: OK " + ", ".join(f"{k} {mmss(v.t)}" for k, v in vids.items()) + f" -> {out}")
+            print(f"{name}: OK " + ", ".join(f"{k} {mmss(v.t)} ({v.engine})" for k, v in vids.items()) + " -> " + ", ".join(map(str, sorted(outs))))
     sys.exit(1 if failed else 0)
 
 if __name__ == "__main__":

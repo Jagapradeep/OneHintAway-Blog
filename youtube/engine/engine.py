@@ -45,6 +45,12 @@ def spoken_text(text):
     return _MARK.sub(lambda m: m.group(1) or m.group(3), text)
 
 def human(text, voice="af_heart", speed=1.0, tone=None):
+    """One narration line as (audio at 48 kHz, [(start, end) per sentence]), from the voice engine in use."""
+    if VOICE_ENGINE == "chatterbox":
+        return _cb_human(text)
+    return _kokoro_human(text, voice, speed, tone)
+
+def _kokoro_human(text, voice="af_heart", speed=1.0, tone=None):
     """One narration line, said sentence by sentence: Kokoro's own intonation from the punctuation, stressed words,
     exact letter sounds, a per-sentence pace and a pitch nudge of at most a few percent, real pauses between
     sentences (longer after a question). Returns (audio, [(start, end) per sentence in seconds])."""
@@ -108,6 +114,144 @@ def speak(text, voice="af_heart", speed=1.0, pitch=1.0, marks=()):
         sf.write(f, s.astype(np.float32), SR)
     a, _ = sf.read(f, dtype="float32")
     return a
+
+# ---------------------------------------------------------------- voice: Chatterbox (an optional engine)
+# Chatterbox (MIT) copies af_heart from a short Kokoro clip and adds expression. Each take is partly random, so every
+# line is heard back by Whisper (MIT) and said again with the next seed until Whisper hears exactly the script's
+# words. A line that never comes out clean fails the render (VOICE_ERRORS) instead of reaching a video.
+VOICE_ENGINE = "kokoro"
+VOICE_ERRORS = []
+VOICE_NOTES = []       # lines accepted although Whisper heard a word differently: worth one listen
+CB = {"exaggeration": 0.5, "cfg_weight": 0.5, "tries": 8, "chatterbox": "ab55923", "whisper": "small.en"}
+CB_REF_TEXT = ("Here is the idea in one line. We keep a small notebook of the numbers we have already seen. "
+               "For each new number, we check the notebook first. That one habit turns a slow search into a fast one.")
+_cb = None
+
+def set_voice_engine(name):
+    global VOICE_ENGINE
+    if name not in ("kokoro", "chatterbox"):
+        raise SystemExit(f"unknown voice engine {name!r}: use kokoro or chatterbox")
+    VOICE_ENGINE = name
+
+_ONES = ("zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen "
+         "seventeen eighteen nineteen").split()
+_TENS = "_ _ twenty thirty forty fifty sixty seventy eighty ninety".split()
+
+def _num(n):
+    if n < 20:
+        return _ONES[n]
+    if n < 100:
+        return _TENS[n // 10] + ("" if n % 10 == 0 else " " + _ONES[n % 10])
+    if n < 1000:
+        return _ONES[n // 100] + " hundred" + ("" if n % 100 == 0 else " " + _num(n % 100))
+    if n < 1_000_000:
+        return _num(n // 1000) + " thousand" + ("" if n % 1000 == 0 else " " + _num(n % 1000))
+    return " ".join(_ONES[int(d)] for d in str(n))
+
+def norm_words(text):
+    """Words to compare what was meant with what Whisper heard: lower case, numbers as words, no punctuation, no 'and'."""
+    t = re.sub(r"(?<=\d),(?=\d{3})", "", text.lower().replace("’", "'"))
+    t = re.sub(r"\d+", lambda m: " " + _num(int(m.group())) + " ", t)
+    return [w for w in re.findall(r"[a-z]+", t.replace("'", "")) if w != "and"]
+
+def _cb_text(text):
+    """What Chatterbox reads: marks removed, a marked single letter in quotes so it is said as a letter."""
+    return _MARK.sub(lambda m: f'"{m.group(1)}"' if m.group(1) and len(m.group(1)) == 1 else (m.group(1) or m.group(3)), text)
+
+def _cb_ref():
+    f = CACHE / "cb-reference-af_heart.wav"
+    if not f.exists():
+        a, _ = _kokoro_human(CB_REF_TEXT)
+        sf.write(f, a, SR)
+    return f
+
+def _cb_ask(req):
+    global _cb
+    if _cb is None:
+        py = os.environ.get("CB_PYTHON")
+        if not py:
+            raise SystemExit("The Chatterbox voice needs CB_PYTHON: the python of the Chatterbox environment (the videos workflow sets it up).")
+        _cb = subprocess.Popen([py, "-u", str(ROOT / "cb_worker.py")], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
+                               env={**os.environ, "CB_WHISPER": CB["whisper"]})
+        if not json.loads(_cb.stdout.readline() or "{}").get("ready"):
+            raise SystemExit("The Chatterbox worker did not start (see the log above).")
+    _cb.stdin.write(json.dumps(req) + "\n"); _cb.stdin.flush()
+    line = _cb.stdout.readline()
+    if not line:
+        raise SystemExit("The Chatterbox worker stopped (see the log above).")
+    return json.loads(line)
+
+def _cb_junk(a, sr, words):
+    """Sound well after the last word or well before the first (a breath is fine, a mumble is not)."""
+    if not words:
+        return True
+    hop = int(0.02 * sr); n = len(a) // hop
+    loud = np.sqrt(np.mean(a[: n * hop].reshape(n, hop) ** 2, axis=1)) > 0.02 * max(1e-6, np.abs(a).max()) * 2
+    head = loud[: max(0, int((words[0][1] - 0.35) / 0.02))].sum() * 0.02
+    tail = loud[int((words[-1][2] + 0.35) / 0.02):].sum() * 0.02
+    return head > 0.4 or tail > 0.4
+
+def _cb_human(text):
+    """One line from Chatterbox: the first take Whisper hears word for word, cached. Returns (audio, sentence spans)."""
+    said = _cb_text(text); exp = norm_words(spoken_text(text))
+    key = hashlib.sha1(f"cb|{said}|{sorted(CB.items())}|v1".encode()).hexdigest()[:16]
+    fa, fj = CACHE / f"cb-{key}.wav", CACHE / f"cb-{key}.json"
+    if fa.exists() and fj.exists():
+        a, _ = sf.read(fa, dtype="float32"); meta = json.loads(fj.read_text())
+        if meta.get("note"):
+            VOICE_NOTES.append(f"{spoken_text(text)!r}: {meta['note']}")
+        return a, [tuple(x) for x in meta["spans"]]
+    from difflib import SequenceMatcher
+    ref, takes, pick, note = _cb_ref(), [], None, ""
+    for seed in range(1, CB["tries"] + 1):
+        tmp = CACHE / f"cb-{key}-take{seed}.wav"
+        ans = _cb_ask({"text": said, "seed": seed, "out": str(tmp), "ref": str(ref),
+                       "exaggeration": CB["exaggeration"], "cfg_weight": CB["cfg_weight"]})
+        if "error" in ans:
+            print(f"   chatterbox take {seed} failed: {ans['error']}", flush=True); continue
+        a, sr = sf.read(tmp, dtype="float32"); tmp.unlink(missing_ok=True)
+        if a.ndim > 1:
+            a = a.mean(axis=1)
+        heard = []
+        for w, s0, s1 in ans["words"]:
+            heard += [(x, s0, s1) for x in norm_words(w)]
+        hw = [h[0] for h in heard]
+        t = {"seed": seed, "a": a, "sr": sr, "heard": heard, "junk": _cb_junk(a, sr, ans["words"]),
+             "sim": SequenceMatcher(None, exp, hw).ratio(), "text": " ".join(w[0] for w in ans["words"])}
+        takes.append(t)
+        if hw == exp and not t["junk"]:
+            pick = t; break
+        same = [x for x in takes if [h[0] for h in x["heard"]] == hw and not x["junk"]]
+        if len(same) >= 3 and t["sim"] >= 0.85:     # Whisper mishears a word the same way every time: the take is fine
+            pick = t; note = f"accepted after three identical hearings: {t['text']!r}"; break
+    accepted = pick is not None
+    if pick is None:
+        best = max(takes, key=lambda x: (not x["junk"], x["sim"])) if takes else None
+        VOICE_ERRORS.append(f"Chatterbox could not say this line cleanly in {CB['tries']} takes, reword it: {spoken_text(text)!r}"
+                            + (f" (closest take heard: {best['text']!r})" if best else ""))
+        if not best:
+            return np.zeros(int(SR), np.float32), [(0.0, 1.0)]
+        pick = best
+    a, sr, heard = pick["a"], pick["sr"], pick["heard"]
+    s0 = max(0.0, heard[0][1] - 0.12) if heard else 0.0
+    s1 = min(len(a) / sr, heard[-1][2] + 0.3) if heard else len(a) / sr
+    a = resample_poly(a[int(s0 * sr): int(s1 * sr)].astype(np.float64), SR, sr).astype(np.float32)
+    fade = min(len(a), int(0.03 * SR))
+    a[-fade:] *= np.linspace(1, 0, fade, dtype=np.float32)
+    # sentence spans from Whisper's word times: sentence k owns its share of the script's words
+    sents = [x for x in _SENT.split(spoken_text(text).strip()) if x]
+    counts = [len(norm_words(x)) for x in sents]; spans, i = [], 0
+    scale = len(heard) / max(1, len(exp))
+    for c in counts:
+        j0 = min(len(heard) - 1, int(round(i * scale))); j1 = min(len(heard) - 1, max(j0, int(round((i + c) * scale)) - 1))
+        spans.append((round(max(0.0, heard[j0][1] - s0), 3), round(min(len(a) / SR, heard[j1][2] - s0), 3)) if heard else (0.0, len(a) / SR))
+        i += c
+    if note:
+        VOICE_NOTES.append(f"{spoken_text(text)!r}: {note}")
+    if accepted:                                  # only clean takes are kept; a failed line is tried again next run
+        sf.write(fa, a, SR); fj.write_text(json.dumps({"spans": spans, "seed": pick["seed"], "heard": pick["text"], "note": note}))
+    print(f"   chatterbox: take {pick['seed']} of {len(takes)} for {spoken_text(text)[:50]!r}" + (f" ({note})" if note else ""), flush=True)
+    return a, spans
 
 def _syl(w):
     w = re.sub(r"[^a-z0-9]", "", w.lower())

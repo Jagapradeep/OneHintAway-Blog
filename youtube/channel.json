@@ -38,7 +38,8 @@
     "name": "af_heart",
     "speed": 1.0,
     "tone_tags": "about one line in four",
-    "_pending": "replace with the voice Jaga picks"
+    "engine": "kokoro",
+    "_engine_note": "kokoro or chatterbox, or per format: {\"long\": \"kokoro\", \"short\": \"chatterbox\"}. Chatterbox copies af_heart with expression; every line is checked by Whisper and redone until clean. Run the Videos workflow with voice = both to compare."
   },
   "outro": {
     "long": true,

@@ -1,6 +1,8 @@
 # Renders YouTube videos from youtube/scripts/ on free GitHub machines. The same engine, voice model,
 # browser build and package versions as the yt-video skill's own renders, so the videos match.
 # Runs when scripts change on main, or by hand (Actions tab > Videos > Run workflow) for chosen posts.
+# The voice is Kokoro or Chatterbox (channel.json voice.engine, or the "voice" box when run by hand; "both" renders
+# every video twice, Chatterbox copies going to NN-slug-chatterbox/).
 # Every video (a post's long video and each of its Shorts) renders on its own machine at the same time,
 # so a batch takes about as long as its longest video. All videos land in one artifact on the run's page.
 name: Videos
@@ -13,6 +15,10 @@ on:
     inputs:
       posts:
         description: "Script folders to render, e.g. 05-hashing 06-two-pointers (blank: the ones changed by the last push)"
+        required: false
+        default: ""
+      voice:
+        description: "Voice: kokoro, chatterbox or both (blank: channel.json voice.engine)"
         required: false
         default: ""
 
@@ -38,6 +44,7 @@ jobs:
         id: pick
         env:
           POSTS: ${{ inputs.posts }}
+          VOICE: ${{ inputs.voice }}
         run: |
           if [ -n "$POSTS" ]; then
             names="$POSTS"
@@ -46,6 +53,17 @@ jobs:
           fi
           python3 - $names <<'EOF'
           import json, os, re, sys
+          vc = json.load(open("youtube/channel.json")).get("voice", {})
+          want = (os.environ.get("VOICE") or "").strip().lower()
+          if want not in ("", "kokoro", "chatterbox", "both"):
+              sys.exit(f"voice must be kokoro, chatterbox or both, not {want!r}")
+          def engines(video):
+              if want == "both":
+                  return ["kokoro", "chatterbox"]
+              if want:
+                  return [want]
+              e = vc.get("engine", "kokoro")
+              return [e.get("long" if video == "long" else "short", "kokoro") if isinstance(e, dict) else e]
           jobs = []
           for n in sys.argv[1:]:
               if not re.fullmatch(r"[A-Za-z0-9-]+", n):
@@ -57,8 +75,8 @@ jobs:
               vids = ["long"] if "long" in spec else []
               shorts = spec["shorts"] if "shorts" in spec else ([spec["short"]] if "short" in spec else [])
               vids += ["short" if i == 0 else f"short{i + 1}" for i in range(len(shorts))]
-              jobs += [{"post": n, "video": v} for v in vids]
-          print("Rendering:", ", ".join(f"{j['post']} {j['video']}" for j in jobs) or "nothing")
+              jobs += [{"post": n, "video": v, "engine": e} for v in vids for e in engines(v)]
+          print("Rendering:", ", ".join(f"{j['post']} {j['video']} ({j['engine']})" for j in jobs) or "nothing")
           with open(os.environ["GITHUB_OUTPUT"], "a") as o:
               o.write(f"matrix={json.dumps({'include': jobs})}\ncount={len(jobs)}\n")
           EOF
@@ -71,9 +89,32 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
-    name: ${{ matrix.post }} ${{ matrix.video }}
+    name: ${{ matrix.post }} ${{ matrix.video }} ${{ matrix.engine }}
     steps:
       - uses: actions/checkout@v7
+
+      # Chatterbox runs in its own Python 3.12 environment (PyTorch for the processor only, Chatterbox pinned to one
+      # commit, Whisper), because its packages clash with the video engine's. The engine talks to it as a helper.
+      - name: Python 3.12 for the Chatterbox voice
+        if: matrix.engine == 'chatterbox'
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Chatterbox environment
+        if: matrix.engine == 'chatterbox'
+        run: |
+          python -m venv "$RUNNER_TEMP/cbenv"
+          "$RUNNER_TEMP/cbenv/bin/pip" install -q torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          "$RUNNER_TEMP/cbenv/bin/pip" install -q "chatterbox-tts @ git+https://github.com/resemble-ai/chatterbox@ab55923c27757c90cfcc407baa57dc25a7d25217" faster-whisper==1.2.1
+          echo "CB_PYTHON=$RUNNER_TEMP/cbenv/bin/python" >> "$GITHUB_ENV"
+
+      - name: Chatterbox and Whisper model files (cached)
+        if: matrix.engine == 'chatterbox'
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/huggingface
+          key: chatterbox-ab55923-whisper-small-en
 
       - uses: actions/setup-python@v7
         with:
@@ -103,30 +144,41 @@ jobs:
           done
           sha256sum kokoro-v1.0.onnx voices-v1.0.bin
 
-      # Every job checks the whole script (all its videos), then renders only its own video.
+      # Voice lines already made for this post, so a re-render after a visual fix does not voice them again
+      - name: Voice lines (cached)
+        uses: actions/cache@v6
+        with:
+          path: youtube/engine/.cache
+          key: voice-${{ matrix.engine }}-${{ matrix.post }}-${{ matrix.video }}-${{ hashFiles(format('youtube/scripts/{0}/script.json', matrix.post), 'youtube/channel.json') }}
+          restore-keys: |
+            voice-${{ matrix.engine }}-${{ matrix.post }}-${{ matrix.video }}-
+
+      # Every job checks the whole script, then voices and renders only its own video.
       - name: Check and render
-        run: python youtube/engine/yt.py "youtube/scripts/${{ matrix.post }}" --video "${{ matrix.video }}"
+        run: python youtube/engine/yt.py "youtube/scripts/${{ matrix.post }}" --video "${{ matrix.video }}" --voice-engine "${{ matrix.engine }}"
 
       - name: Contact sheet and failure note
         if: always()
         run: |
           d="youtube/build/${{ matrix.post }}"
-          if [ "${{ matrix.video }}" = "long" ] || [ "${{ matrix.video }}" = "short" ]; then python youtube/engine/sheet.py "$d" || true; fi
-          # name the failure note by video, so notes from different machines don't overwrite each other
-          if [ -f "$d/FAILED.txt" ]; then mv "$d/FAILED.txt" "$d/FAILED-${{ matrix.video }}.txt"; fi
+          if [ "${{ matrix.engine }}" = "chatterbox" ]; then d="$d-chatterbox"; fi
+          python youtube/engine/sheet.py "$d" || true
+          # each machine covers one video: name its notes by video, so machines don't overwrite each other's
+          for f in FAILED summary; do [ -f "$d/$f.txt" ] && mv "$d/$f.txt" "$d/$f-${{ matrix.video }}.txt"; done
+          [ -f "$d/sheet.png" ] && mv "$d/sheet.png" "$d/sheet-${{ matrix.video }}.png"; true
 
       - name: Upload this video
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: part-${{ matrix.post }}-${{ matrix.video }}
+          name: part-${{ matrix.post }}-${{ matrix.video }}-${{ matrix.engine }}
           retention-days: 1
           if-no-files-found: warn
           path: |
             youtube/build/*/*.mp4
             youtube/build/*/*.srt
-            youtube/build/*/summary.txt
-            youtube/build/*/sheet.png
+            youtube/build/*/summary-*.txt
+            youtube/build/*/sheet-*.png
             youtube/build/*/FAILED-*.txt
 
   collect:

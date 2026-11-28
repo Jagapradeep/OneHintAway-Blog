@@ -129,12 +129,45 @@ def test_outro_has_no_scene_note():      # the ending stays quiet: no note right
     turns = [t for t, k in vid.fx if k == "turn"]
     assert len(turns) == len([x for x in vid.scenes if x["id"] != "outro"]), (turns, [x["id"] for x in vid.scenes])
 
-def test_breath_before_a_line_is_cut():
-    sr = E.SR; breath = 0.01 * np.random.default_rng(1).standard_normal(int(0.5 * sr))
-    word = 0.3 * np.sin(2 * np.pi * 180 * np.arange(int(0.6 * sr)) / sr)
-    a = np.concatenate([breath, word, breath[: int(0.3 * sr)]]).astype(np.float32)
-    b, spans = E._tight(a, [(0.5, 1.1)])
-    assert len(b) / sr < 0.85 and spans[0][0] <= 0.06, (len(b) / sr, spans)
+def _runs(b, thr=0.05):
+    h = int(0.01 * E.SR); n = len(b) // h; r = np.sqrt((b[: n * h].reshape(n, h) ** 2).mean(axis=1)); L = r > thr; out, i = [], 0
+    while i < n:
+        if L[i]:
+            j = i
+            while j < n and L[j]:
+                j += 1
+            out.append((i * 0.01, j * 0.01)); i = j
+        else:
+            i += 1
+    return out
+
+def _line(rng=np.random.default_rng(0)):
+    sr = E.SR; tone = lambda d, f=200, amp=0.3: (amp * np.sin(2 * np.pi * f * np.arange(int(d * sr)) / sr)).astype(np.float32)
+    z = lambda d: np.zeros(int(d * sr), np.float32)
+    breath = (0.03 * rng.standard_normal(int(0.1 * sr))).astype(np.float32); dip = np.full(int(0.03 * sr), 0.01, np.float32)
+    a = np.concatenate([z(0.5), breath, z(0.1), tone(1.0), z(0.05), breath, z(0.3), tone(0.02, 3000, 0.4), z(0.3), tone(0.8), dip, tone(0.6), z(0.4), breath])
+    return a, [(0.7, 1.7), (2.67, 3.47), (3.5, 4.1)], ["One look.", "Is four here?", "Yes."]
+
+def test_breathing_room_between_sentences():   # 28 Nov 2026: code explanations felt rushed, sentences ran together
+    a, sp, sents = _line()
+    b, spans = E._breathe(a, sp, sents)
+    runs = _runs(b); gaps = [round(y[0] - x[1], 2) for x, y in zip(runs, runs[1:])]
+    assert len(runs) == 3, runs
+    assert gaps[0] >= E.PAUSE["."] - 0.03 and gaps[1] >= E.PAUSE["?"] - 0.03, gaps
+    assert abs((len(b) / E.SR - runs[-1][1]) - E.LINE_TAIL - 0.08) < 0.06, len(b) / E.SR - runs[-1][1]
+
+def test_no_stray_sounds_or_repeats():        # 28 Nov 2026: bits of breath and noise around "Have I seen it…?"
+    a, sp, sents = _line()
+    b, spans = E._breathe(a, sp, sents)
+    runs = _runs(b)
+    assert all(y - x >= 0.3 for x, y in runs), runs                   # no click, breath or fragment survives
+    assert abs(sum(y - x for x, y in runs) - 2.4) < 0.05, runs          # every sentence once: nothing cut, nothing doubled
+
+def test_captions_follow_the_voice():         # spans are exact, not Whisper's estimate
+    a, sp, sents = _line()
+    b, spans = E._breathe(a, sp, sents)
+    for (x, y), (s0, s1) in zip(_runs(b), spans):
+        assert abs(x - s0) <= 0.02 and abs(y - s1) <= 0.02, (x, y, s0, s1)
 
 def test_your_turn_heading_waits_for_its_section():   # 28 Nov 2026: "Your turn" showed during "Solved in this video"
     import yt

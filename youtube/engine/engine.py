@@ -272,10 +272,67 @@ def _cb_junk(a, sr, words):
     tail = loud[int((words[-1][2] + 0.35) / 0.02):].sum() * 0.02
     return head > 0.4 or tail > 0.4
 
+# Breathing room, measured as real silence (voice off to voice on). Kokoro's post 05 measures 0.46 s after a statement,
+# 0.62 s after a question and 0.55 s between lines; these are a little longer, because Chatterbox speaks with more energy.
+PAUSE = {".": 0.5, "?": 0.65, "!": 0.55}
+LINE_TAIL = 0.28          # silence after a line; with the scene's 0.22 s gap that is about 0.55 s between lines
+
 def _gap_after(sentence):
-    """Pause after a sentence, as Kokoro makes it: a question gets the longest, a statement the shortest."""
+    """Silence after a sentence: a question gets the longest, a statement the shortest."""
     p = sentence.rstrip()[-1:] if sentence.strip() else "."
-    return 0.5 if p == "?" else (0.42 if p == "!" else 0.34)
+    return PAUSE.get(p, PAUSE["."])
+
+def _breathe(a, spans, sents):
+    """Rebuild a finished 48 kHz Chatterbox line from its sentences, so the breathing room is exact and clean:
+    every sentence keeps its own speech (found by loudness near its span), everything between sentences (breaths,
+    mouth noise, bits of a cut) becomes true silence of the right length, stray clicks inside a sentence are removed,
+    and the line ends with LINE_TAIL of silence. Returns (audio, exact sentence spans)."""
+    a = np.asarray(a, np.float32).copy()
+    fr = int(0.01 * SR); nf = len(a) // fr
+    if not nf or not spans:
+        return a, spans
+    lvl = np.sqrt((a[: nf * fr].reshape(nf, fr) ** 2).mean(axis=1)); loud = lvl > 0.12 * (lvl.max() + 1e-9)
+    i = 0                                       # stray sounds: under 80 ms of sound with 150 ms of quiet on each side
+    while i < nf:
+        if loud[i]:
+            j = i
+            while j < nf and loud[j]:
+                j += 1
+            quiet_before = next((d for d in range(1, 16) if i - d < 0 or loud[i - d]), 16) - 1
+            quiet_after = next((d for d in range(0, 15) if j + d >= nf or loud[j + d]), 15)
+            if j - i <= 8 and quiet_before >= 15 and quiet_after >= 15:
+                a[i * fr: j * fr] = 0.0; loud[i:j] = False
+            i = j
+        else:
+            i += 1
+    # cut between sentences at the quietest 10 ms near where the next one starts; pieces never overlap
+    cuts = [0]
+    for k in range(1, len(spans)):
+        lo = max(cuts[-1] + 1, int(max(0.0, spans[k][0] - 0.3) / 0.01)); hi = max(lo + 1, min(nf, int((spans[k][0] + 0.1) / 0.01)))
+        cuts.append(lo + int(np.argmin(lvl[lo:hi])))
+    cuts.append(nf)
+    bounds = []
+    for k in range(len(spans)):
+        idx = np.flatnonzero(loud[cuts[k]:cuts[k + 1]]) + cuts[k]
+        bounds.append((int(idx[0]), int(idx[-1]) + 1) if len(idx) else (cuts[k], cuts[k + 1]))
+    out, new, t = [np.zeros(int(0.04 * SR), np.float32)], [], 0.04
+    for k, (b0, b1) in enumerate(bounds):
+        x0 = max(cuts[k] * fr, b0 * fr - int(0.04 * SR)); x1 = min(cuts[k + 1] * fr, b1 * fr + int(0.08 * SR), len(a))
+        piece = a[x0:x1].copy(); fi, fo = min(len(piece) // 2, int(0.015 * SR)), min(len(piece) // 2, int(0.04 * SR))
+        if fi:
+            piece[:fi] *= np.linspace(0, 1, fi, dtype=np.float32)
+        if fo:
+            piece[-fo:] *= np.linspace(1, 0, fo, dtype=np.float32)
+        new.append((round(t + (b0 * fr - x0) / SR, 3), round(t + (b1 * fr - x0) / SR, 3)))
+        out.append(piece); t += len(piece) / SR
+        if k + 1 < len(bounds):
+            natural = (bounds[k + 1][0] - b1) * 0.01
+            want = _gap_after(sents[k]) if k < len(sents) else PAUSE["."]
+            kept = (x1 - b1 * fr) / SR + (bounds[k + 1][0] * fr - max(cuts[k + 1] * fr, bounds[k + 1][0] * fr - int(0.04 * SR))) / SR
+            gap = min(max(natural, want), want + 0.25) - kept              # the kept edges count as part of the silence
+            out.append(np.zeros(int(max(0.0, gap) * SR), np.float32)); t += max(0.0, gap)
+    out.append(np.zeros(int(LINE_TAIL * SR), np.float32))
+    return np.concatenate(out), new
 
 def _cb_shape(a, sr, heard, text, n_exp):
     """Trim the take to its words, cut it between sentences at the quietest point, and make each pause at least
@@ -363,21 +420,6 @@ def _cb_gates(t, exp, sents_end):
         soft.append(f"voice likeness {t['vsim']:.2f}")
     return hard, soft
 
-def _tight(a, spans, keep_in=0.05, keep_out=0.12):
-    """Cut quiet lead-in and tail (breaths, room tone) from a finished 48 kHz line and move its spans to match."""
-    fr = int(0.01 * SR); nf = len(a) // fr
-    if not nf:
-        return a, spans
-    lvl = np.sqrt((a[: nf * fr].reshape(nf, fr) ** 2).mean(axis=1)); loud = np.flatnonzero(lvl > 0.15 * (lvl.max() + 1e-9))
-    if not len(loud):
-        return a, spans
-    s0 = max(0.0, loud[0] * 0.01 - keep_in); s1 = min(len(a) / SR, (loud[-1] + 1) * 0.01 + keep_out)
-    if s0 < 0.02 and len(a) / SR - s1 < 0.02:
-        return a, spans
-    a = a[int(s0 * SR): int(s1 * SR)].copy(); d = len(a) / SR
-    f = min(len(a), int(0.02 * SR)); a[-f:] *= np.linspace(1, 0, f, dtype=np.float32)
-    return a, [(round(max(0.0, x - s0), 3), round(min(d, y - s0), 3)) for x, y in spans]
-
 def _fallback(text, why, cache):
     """Kokoro's af_heart says the line (always the right words), levelled like the rest. Listed in the listen list."""
     global LAST_META
@@ -422,7 +464,9 @@ def _cb_human(text):
         LAST_META = {**meta, "text": spoken}
         if meta.get("note"):
             VOICE_NOTES.append(f"{spoken!r}: {meta['note']}")
-        return _tight(a, [tuple(x) for x in meta["spans"]])       # lines saved before the loudness trim get it too
+        if meta.get("fallback"):
+            return a, [tuple(x) for x in meta["spans"]]
+        return _breathe(a, [tuple(x) for x in meta["spans"]], [x for x in _SENT.split(spoken.strip()) if x])
     from difflib import SequenceMatcher
     ref, takes, pick, note = _cb_ref(), [], None, ""
     for seed in range(1, CB["tries"] + 1):
@@ -467,8 +511,9 @@ def _cb_human(text):
     LAST_META = {**meta, "text": spoken}
     if note:
         VOICE_NOTES.append(f"{spoken!r}: {note}")
-    if accepted:                                  # a failed line is never cached, so the next run tries it again
+    if accepted:                                  # saved as shaped; the breathing room is rebuilt on every use
         sf.write(fa, a, SR); fj.write_text(json.dumps(meta))
+    a, spans = _breathe(a, spans, [x for x in _SENT.split(spoken.strip()) if x])
     print(f"   chatterbox: take {pick['seed']} of {len(takes)} for {spoken[:50]!r}" + (f" ({note})" if note else ""), flush=True)
     return a, spans
 

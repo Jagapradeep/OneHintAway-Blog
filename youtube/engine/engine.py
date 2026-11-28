@@ -163,7 +163,44 @@ def norm_words(text):
     t = re.sub(r"(?<=\d),(?=\d{3})", "", text.lower().replace("’", "'"))
     t = re.sub(r"\d+", lambda m: " " + _num(int(m.group())) + " ", t)
     t = re.sub(r"\b(hundred|thousand) and\b", r"\1", t)
+    t = re.sub(r"(?<=[a-z0-9])\.(?=[a-z])", " dot ", t)          # onehintaway.com is said "one hint away dot com"
     return re.findall(r"[a-z]+", t.replace("'", ""))
+
+_tok = None
+
+def _phones(words):
+    """How words sound (espeak, as Kokoro uses), without stress, spaces or the small vowel differences."""
+    global _tok
+    if _tok is None:
+        from kokoro_onnx.tokenizer import Tokenizer
+        _tok = Tokenizer()
+    p = _tok.phonemize(" ".join(words), "en-us") if words else ""
+    return re.sub(r"[ˈˌ\s]", "", p).replace("ɐ", "ə").replace("ɚ", "əɹ")
+
+def _edits(a, b):
+    row = list(range(len(b) + 1))
+    for i, x in enumerate(a, 1):
+        prev, row[0] = row[0], i
+        for j, y in enumerate(b, 1):
+            prev, row[j] = row[j], min(row[j] + 1, row[j - 1] + 1, prev + (x != y))
+    return row[-1]
+
+def sound_alike(exp, heard):
+    """Whisper wrote the right sounds in other words ("Two Sum" as "twosome", "seen" as "scene")?
+    Every differing stretch must sound the same, give or take one sound in five; an extra or missing word never passes.
+    Returns (True, "how Whisper spelled it") or (False, "")."""
+    from difflib import SequenceMatcher
+    notes = []
+    for op, i0, i1, j0, j1 in SequenceMatcher(None, exp, heard, autojunk=False).get_opcodes():
+        if op == "equal":
+            continue
+        if i0 == i1 or j0 == j1:
+            return False, ""
+        a, b = _phones(exp[i0:i1]), _phones(heard[j0:j1])
+        if _edits(a, b) > max(1, int(0.2 * max(len(a), len(b)))):
+            return False, ""
+        notes.append(f"{' '.join(exp[i0:i1])!r} written as {' '.join(heard[j0:j1])!r}")
+    return True, "; ".join(notes)
 
 def _cb_text(text):
     """What Chatterbox reads: marks removed, a marked single letter in quotes so it is said as a letter."""
@@ -221,7 +258,17 @@ def _cb_shape(a, sr, heard, text, n_exp):
         j0 = min(len(heard) - 1, int(round(i * scale)))
         j1 = min(len(heard) - 1, max(j0, int(round((i + c) * scale)) - 1))
         rng.append((j0, j1)); i += c
-    start = max(0.0, heard[0][1] - 0.12); end = min(len(a) / sr, heard[-1][2] + 0.3)
+    # where the voice really starts and stops: Whisper's first and last word times are approximate (often early),
+    # so find the first and last loud 10 ms around them; breaths and room tone before or after are cut
+    fr = max(1, int(0.01 * sr)); nf = len(a) // fr
+    lvl = np.sqrt((a[: nf * fr].reshape(nf, fr) ** 2).mean(axis=1)) if nf else np.zeros(1)
+    loud = np.flatnonzero(lvl > 0.15 * (lvl.max() + 1e-9))
+    lo = int(max(0.0, heard[0][1] - 0.4) / 0.01); hi = int((heard[-1][2] + 0.6) / 0.01)
+    inside = loud[(loud >= lo) & (loud <= hi)]
+    if len(inside):
+        start = max(0.0, inside[0] * 0.01 - 0.05); end = min(len(a) / sr, (inside[-1] + 1) * 0.01 + 0.12)
+    else:
+        start = max(0.0, heard[0][1] - 0.12); end = min(len(a) / sr, heard[-1][2] + 0.3)
     hop = max(1, int(0.01 * sr))
     def quietest(lo, hi):
         lo, hi = max(start, lo), min(end, max(lo + 0.01, hi))
@@ -264,7 +311,11 @@ def _cb_gates(t, exp, sents_end):
     hard, soft, words = [], [], t["words"]
     hw = [h[0] for h in t["heard"]]
     if hw != exp:
-        hard.append("words differ")
+        same, how = sound_alike(exp, hw)
+        if same:
+            t["spelled"] = how                     # the voice said the words; Whisper spelled them its own way
+        else:
+            hard.append("words differ")
     if t["junk"]:
         hard.append("sound before or after the words")
     if t["peak"] >= 0.999:
@@ -285,6 +336,21 @@ def _cb_gates(t, exp, sents_end):
         soft.append(f"voice likeness {t['vsim']:.2f}")
     return hard, soft
 
+def _tight(a, spans, keep_in=0.05, keep_out=0.12):
+    """Cut quiet lead-in and tail (breaths, room tone) from a finished 48 kHz line and move its spans to match."""
+    fr = int(0.01 * SR); nf = len(a) // fr
+    if not nf:
+        return a, spans
+    lvl = np.sqrt((a[: nf * fr].reshape(nf, fr) ** 2).mean(axis=1)); loud = np.flatnonzero(lvl > 0.15 * (lvl.max() + 1e-9))
+    if not len(loud):
+        return a, spans
+    s0 = max(0.0, loud[0] * 0.01 - keep_in); s1 = min(len(a) / SR, (loud[-1] + 1) * 0.01 + keep_out)
+    if s0 < 0.02 and len(a) / SR - s1 < 0.02:
+        return a, spans
+    a = a[int(s0 * SR): int(s1 * SR)].copy(); d = len(a) / SR
+    f = min(len(a), int(0.02 * SR)); a[-f:] *= np.linspace(1, 0, f, dtype=np.float32)
+    return a, [(round(max(0.0, x - s0), 3), round(min(d, y - s0), 3)) for x, y in spans]
+
 def _cb_human(text):
     """One line from Chatterbox, judged by four checks (words, timing, naturalness, likeness to af_heart), cached.
     Returns (audio, sentence spans). LAST_META describes the take for the video's listen list."""
@@ -297,7 +363,7 @@ def _cb_human(text):
         LAST_META = {**meta, "text": spoken}
         if meta.get("note"):
             VOICE_NOTES.append(f"{spoken!r}: {meta['note']}")
-        return a, [tuple(x) for x in meta["spans"]]
+        return _tight(a, [tuple(x) for x in meta["spans"]])       # lines saved before the loudness trim get it too
     from difflib import SequenceMatcher
     ref, takes, pick, note = _cb_ref(), [], None, ""
     for seed in range(1, CB["tries"] + 1):
@@ -318,10 +384,6 @@ def _cb_human(text):
              "vsim": ans.get("sim", 1.0), "match": SequenceMatcher(None, exp, hw).ratio(),
              "text": " ".join(w[0] for w in ans["words"])}
         t["hard"], t["soft"] = _cb_gates(t, exp, (".", "?", "!", ":", ";"))
-        if t["hard"] == ["words differ"]:            # Whisper mishearing a word the same way every time: the words are fine
-            same = [x for x in takes + [t] if [h[0] for h in x["heard"]] == hw and x["hard"] == ["words differ"]]
-            if len(same) >= 3 and t["match"] >= 0.85:
-                t["hard"] = []; note = f"Whisper heard {t['text']!r} three times"
         takes.append(t)
         print(f"   take {seed}: " + ("ok" if not t["hard"] + t["soft"] else "; ".join(t["hard"] + t["soft"]))
               + f" | mos {t['mos']:.2f}/{t['mos_min']:.2f} likeness {t['vsim']:.2f}", flush=True)
@@ -342,7 +404,8 @@ def _cb_human(text):
         pick = best
     a, spans = _cb_shape(pick["a"], pick["sr"], pick["heard"], spoken, len(exp))
     meta = {"spans": spans, "seed": pick["seed"], "takes": len(takes), "heard": pick["text"], "note": note,
-            "mos": pick["mos"], "mos_min": pick["mos_min"], "likeness": pick["vsim"], "rate": pick.get("rate")}
+            "mos": pick["mos"], "mos_min": pick["mos_min"], "likeness": pick["vsim"], "rate": pick.get("rate"),
+            "spelled": pick.get("spelled", "")}
     LAST_META = {**meta, "text": spoken}
     if note:
         VOICE_NOTES.append(f"{spoken!r}: {note}")
@@ -539,8 +602,13 @@ class Video:
         voice = np.zeros(n, np.float32); fx = np.zeros(n, np.float32)
         for at, a in self.clips:
             i = int(at * SR); voice[i:i + len(a)] += a[: max(0, n - i)]
+        self.fx_dropped = []
         for at, k in self.fx:
             s = sfx(k); i = int(at * SR)
+            # a scene-change note needs the voice right behind it; alone in a quiet stretch it sounds like a click
+            # or a mic being switched off (27 and 28 Nov 2026, before "Thanks for watching.")
+            if k == "turn" and not np.abs(voice[i: i + int(0.8 * SR)]).max(initial=0) > 0.02:
+                self.fx_dropped.append(round(at, 2)); continue
             if i < n: fx[i:i + len(s)] += s[: n - i]
         bed = music(dur, vol=music_vol) if music_vol else np.zeros(n, np.float32)
         # duck the bed under the voice

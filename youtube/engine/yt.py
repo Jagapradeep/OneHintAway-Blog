@@ -186,6 +186,34 @@ class _Cued(HTMLParser):
             if rec:
                 rec[1] += " " + d
 
+class _Sections(HTMLParser):
+    """Section headings (class "section") and the cues of everything under each, in page order."""
+    def __init__(self):
+        super().__init__(); self.out = []
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs); m = re.fullmatch(r"L(\d+)", a.get("data-at") or "")
+        cue = int(m.group(1)) if m else None
+        if "section" in (a.get("class") or "").split():
+            self.out.append({"cue": cue, "items": [], "text": ""}); self._in = True
+        elif self.out and cue is not None:
+            self.out[-1]["items"].append(cue)
+    def handle_data(self, d):
+        if getattr(self, "_in", False) and self.out:
+            self.out[-1]["text"] += d
+    def handle_endtag(self, tag):
+        self._in = False
+
+def heading_errors(sc, inner, where):
+    """A heading must arrive with the first item it introduces, not before (27 Nov 2026: "Your turn" showed
+    while the voice was still on "Solved in this video")."""
+    first = next((i for i, w in enumerate(line_words(sc)) if w is not None), 0)
+    p = _Sections(); p.feed(inner); errs = []
+    for s in p.out:
+        cue = first if s["cue"] is None else s["cue"]
+        if s["items"] and cue < min(s["items"]):
+            errs.append(f"{where}: heading {s['text'].strip()!r} shows on line {cue}, before its first item (line {min(s['items'])})")
+    return errs
+
 def sync_errors(sc, inner, where):
     """An item must not show up before the line that talks about it, nor on a line that says nothing about it."""
     if sc.get("together"):
@@ -333,11 +361,16 @@ def lay_end(sc, F, fmt):
     cov = "".join(prob(p, True) for p in sc.get("covered", []))
     pr = "".join(prob(p) for p in sc.get("practice", []))
     col = " col" if fmt == "short" else ""
-    out = head(sc, F)
-    if cov:
-        out += f'<div class="mono-label" style="margin-top:34px">SOLVED IN THIS VIDEO</div><div class="probs{col}" style="margin-top:18px">{cov}</div>'
-        out += f'<div class="mono-label" style="margin-top:44px">YOUR TURN</div>'
-    return out + f'<div class="probs{col}" style="margin-top:18px">{pr}</div>'
+    if not cov:
+        return head(sc, F) + f'<div class="probs{col}" style="margin-top:18px">{pr}</div>'
+    # two sections, each heading arriving with its first problem: "Your turn" waits until the solved part is done
+    first = lambda ps: min((p.get("at", 0) for p in ps), default=0)
+    out = head({k: v for k, v in sc.items() if k != "title"}, F)       # the section headings replace the title
+    out += (f'<div class="mono-label section"{at(first(sc["covered"]))} style="margin-top:34px">SOLVED IN THIS VIDEO</div>'
+            f'<div class="probs{col}" style="margin-top:18px">{cov}</div>')
+    out += (f'<div class="mono-label section"{at(first(sc.get("practice", [])))} style="margin-top:44px">YOUR TURN</div>'
+            f'<div class="probs{col}" style="margin-top:18px">{pr}</div>')
+    return out
 
 def lay_site(sc, F, fmt):
     return (f'<div class="center">'
@@ -682,7 +715,7 @@ def build(spec, fmt, voice, speed=1.0):
                 s["chapter"] = sc["chapter"]
             continue
         inner = lay_code(sc, F, fk, say) if sc["layout"] == "code" else BUILD[sc["layout"]](sc, F, fk)
-        vid.sync += sync_errors(sc, inner, f"{fmt}/{sc['id']}")
+        vid.sync += sync_errors(sc, inner, f"{fmt}/{sc['id']}") + heading_errors(sc, inner, f"{fmt}/{sc['id']}")
         for i, l in enumerate(say):
             if l.get("think"):
                 until = f' data-until="L{i + 1}"' if i + 1 < len(say) else ""
@@ -693,6 +726,8 @@ def build(spec, fmt, voice, speed=1.0):
         top = ";justify-content:flex-start" if sc["layout"] == "viz" else ""
         html.append(f'<div class="sc" id="sc_{sc["id"]}" style="left:{x}px;top:{y}px;width:{w}px;height:{h}px;font-size:{F["body"]}px{top}">{inner}</div>')
         kw = {"holds": anim_holds(sc)}
+        if sc["layout"] == "outro":          # the ending stays quiet: no scene-change note before "Thanks for watching."
+            kw["fx_in"] = None
         if sc["layout"] == "pause":
             kw = dict(countdown=2, cd_step=1.0)
         s = vid.scene(sc["id"], say, post=sc.get("post", 0.6), **kw)
@@ -896,8 +931,9 @@ def main():
                     if c1["t0"] - c0["t0"] < 10:
                         errors.append(f"chapter {c0['chapter']!r} is under 10 s (YouTube ignores chapters that short)")
             errors += [f"{fmt} SYNC {e}" for e in vid.sync]
-            bad = stills(vid, html, out / fmt, FMT[kind(fmt)]) + vid.sync + list(E.VOICE_ERRORS)
-            errors += [f"{fmt} LAYOUT {b}" for b in bad]
+            bad = stills(vid, html, out / fmt, FMT[kind(fmt)])
+            errors += [f"{fmt} LAYOUT {b}" for b in bad]        # sync and voice faults are reported above, once
+            bad = bad + vid.sync + list(E.VOICE_ERRORS)            # any of them stops the render
             want = a.video in (fmt, "all") or (a.video == "both" and fmt in ("long", "short"))
             if want and not bad:
                 f = vid.render(html, out, draft=a.draft); vid.srt(out / f"{vid.name}.srt")

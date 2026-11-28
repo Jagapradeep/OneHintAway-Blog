@@ -65,7 +65,8 @@ for raw in sys.stdin:
                              exaggeration=float(req.get("exaggeration", 0.5)), cfg_weight=float(req.get("cfg_weight", 0.5)))
         ta.save(req["out"], wav, model.sr)
         pcm = ta.functional.resample(wav, model.sr, 16000)[0].numpy().astype("float32")
-        segs, _ = ear.transcribe(pcm, language="en", word_timestamps=True, beam_size=5, condition_on_previous_text=False)
+        segs, _ = ear.transcribe(pcm, language="en", word_timestamps=True, beam_size=5, condition_on_previous_text=False,
+                                 hotwords=req.get("hotwords") or None)
         words = [[w.word.strip(), round(w.start, 3), round(w.end, 3)] for s in segs for w in s.words]
         mos, mos_min = naturalness(pcm)
         ans = {"sr": model.sr, "words": words, "mos": round(mos, 3), "mos_min": round(mos_min, 3),

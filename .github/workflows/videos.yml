@@ -85,7 +85,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.count != '0'
     runs-on: ubuntu-24.04
-    timeout-minutes: 240
+    timeout-minutes: 330
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
@@ -101,13 +101,18 @@ jobs:
         with:
           python-version: "3.12"
 
+      # If this step fails (a download hiccup three times over), the video is still made: every line falls back to
+      # Kokoro, and the summary says so. CB_PYTHON is only set when the environment is complete.
       - name: Chatterbox environment
         if: matrix.engine == 'chatterbox'
+        continue-on-error: true
         run: |
           python -m venv "$RUNNER_TEMP/cbenv"
-          "$RUNNER_TEMP/cbenv/bin/pip" install -q torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
-          "$RUNNER_TEMP/cbenv/bin/pip" install -q "chatterbox-tts @ git+https://github.com/resemble-ai/chatterbox@ab55923c27757c90cfcc407baa57dc25a7d25217" faster-whisper==1.2.1 \
+          retry() { for i in 1 2 3; do "$@" && return 0; echo "retrying in 20 s"; sleep 20; done; return 1; }
+          retry "$RUNNER_TEMP/cbenv/bin/pip" install -q torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          retry "$RUNNER_TEMP/cbenv/bin/pip" install -q "chatterbox-tts @ git+https://github.com/resemble-ai/chatterbox@ab55923c27757c90cfcc407baa57dc25a7d25217" faster-whisper==1.2.1 \
             "speechmos @ git+https://github.com/tarepan/SpeechMOS@ed25eacbfa42b99156c36ebec67a733b5dbb9b79"
+          "$RUNNER_TEMP/cbenv/bin/python" -c "import chatterbox, faster_whisper, speechmos"
           echo "CB_PYTHON=$RUNNER_TEMP/cbenv/bin/python" >> "$GITHUB_ENV"
 
       - name: Chatterbox, Whisper and UTMOS model files (cached)
@@ -127,11 +132,12 @@ jobs:
 
       - name: Install ffmpeg, Python packages and the browser
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q ffmpeg
+          retry() { for i in 1 2 3; do "$@" && return 0; echo "retrying in 20 s"; sleep 20; done; return 1; }
+          retry sudo apt-get update -q
+          retry sudo apt-get install -y -q ffmpeg
           ffmpeg -version | head -1
-          pip install -q -r youtube/engine/requirements.txt
-          python -m playwright install --with-deps chromium
+          retry pip install -q -r youtube/engine/requirements.txt
+          retry python -m playwright install --with-deps chromium
 
       - name: Voice model (cached)
         uses: actions/cache@v6
@@ -143,7 +149,7 @@ jobs:
         run: |
           mkdir -p youtube/engine/models && cd youtube/engine/models
           for f in kokoro-v1.0.onnx voices-v1.0.bin; do
-            [ -f "$f" ] || curl -sSfLO "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/$f"
+            [ -f "$f" ] || curl -sSfLO --retry 5 --retry-all-errors "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/$f"
           done
           sha256sum kokoro-v1.0.onnx voices-v1.0.bin
 

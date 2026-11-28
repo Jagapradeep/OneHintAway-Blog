@@ -867,17 +867,18 @@ def summary(spec, vids):
 
 def listen_list(fmt, vid, n=6):
     """The lines worth one listen: any that needed a note, then the lowest-scoring, with their time in the video."""
-    log = [x for x in getattr(vid, "voice_log", []) if "mos_min" in x]
+    log = [x for x in getattr(vid, "voice_log", []) if "text" in x]
     if not log:
         return ""
     flagged = [x for x in log if x.get("note")]
-    rest = sorted([x for x in log if not x.get("note")], key=lambda x: (x["mos_min"], x["mos"]))[: max(0, n - len(flagged))]
-    rows = [f"  {mmss(x['t'])}  {x['text'][:70]!r}  (naturalness {x['mos']:.2f}, worst stretch {x['mos_min']:.2f}, "
-            f"likeness {x['likeness']:.2f})" + (f"  NOTE: {x['note']}" if x.get("note") else "")
-            for x in sorted(flagged + rest, key=lambda x: x["t"])]
-    takes = sum(x.get("takes", 1) for x in log)
+    rest = sorted([x for x in log if not x.get("note") and "mos_min" in x], key=lambda x: (x["mos_min"], x["mos"]))[: max(0, n - len(flagged))]
+    def row(x):
+        sc = (f"  (naturalness {x['mos']:.2f}, worst stretch {x['mos_min']:.2f}, likeness {x['likeness']:.2f})" if "mos" in x else "")
+        return f"  {mmss(x['t'])}  {x['text'][:70]!r}{sc}" + (f"  NOTE: {x['note']}" if x.get("note") else "")
+    rows = [row(x) for x in sorted(flagged + rest, key=lambda x: x["t"])]
+    takes = sum(x.get("takes", 1) for x in log); kok = sum(1 for x in log if x.get("fallback"))
     return (f"\n{fmt}: listen to these {len(rows)} lines ({len(log)} lines, {takes} takes made, "
-            f"{sum(1 for x in log if x.get('takes', 1) > 1)} said again):\n" + "\n".join(rows) + "\n")
+            f"{sum(1 for x in log if x.get('takes', 1) > 1)} said again, {kok} said by Kokoro):\n" + "\n".join(rows) + "\n")
 
 def voice_report(vid):
     """Every line with its scores, to tune the bar in engine.CB from real videos."""
@@ -922,14 +923,19 @@ def main():
             vid, html = build(spec, fmt, a.voice or vc.get("name", "af_heart"), vc.get("speed", 1.0)); vids[fmt] = vid
             vid.engine = eng; vid.voice_notes = list(E.VOICE_NOTES)
             errors += [f"{fmt} VOICE {e}" for e in E.VOICE_ERRORS]
+            # Length and chapter targets are checked when the script is written, with Kokoro's timing. Another voice
+            # paces differently, so there a miss is a warning; only YouTube's own limit (Shorts up to 3 minutes) fails.
+            target = errors if eng == "kokoro" else warns
             lo, hi = LIMITS[kind(fmt)]
             if not lo <= vid.t <= hi:
-                errors.append(f"{fmt}: {vid.t:.0f}s, aim for {lo} to {hi}s")
+                target.append(f"{fmt}: {vid.t:.0f}s, aim for {lo} to {hi}s")
+            if kind(fmt) == "short" and vid.t > 180:
+                errors.append(f"{fmt}: {vid.t:.0f}s is over YouTube's 3-minute limit for Shorts")
             if fmt == "long":
                 chs = [s for s in vid.scenes if s.get("chapter")]
                 for c0, c1 in zip(chs, chs[1:] + [{"t0": vid.t}]):
                     if c1["t0"] - c0["t0"] < 10:
-                        errors.append(f"chapter {c0['chapter']!r} is under 10 s (YouTube ignores chapters that short)")
+                        target.append(f"chapter {c0['chapter']!r} is under 10 s (YouTube ignores chapters that short)")
             errors += [f"{fmt} SYNC {e}" for e in vid.sync]
             bad = stills(vid, html, out / fmt, FMT[kind(fmt)])
             errors += [f"{fmt} LAYOUT {b}" for b in bad]        # sync and voice faults are reported above, once
@@ -946,6 +952,7 @@ def main():
             out.mkdir(parents=True, exist_ok=True)
             mine = {k: v for k, v in vids.items() if (out.name.endswith("-chatterbox")) == (v.engine == "chatterbox")}
             (out / "summary.txt").write_text(f"Voice: {', '.join(sorted({v.engine for v in mine.values()}))}\n"
+                                             + ("Warnings:\n" + "\n".join(f"  {w}" for w in warns) + "\n" if warns else "")
                                              + "".join(listen_list(k, v) for k, v in mine.items()) + "\n" + summary(spec, mine))
             for k, v in mine.items():
                 if getattr(v, "voice_log", None):

@@ -15,7 +15,7 @@ def take(words, text, mos=4.3, mos_min=4.1, sim=0.88, length=None, peak=0.5):
     n = int((length or words[-1][2] + 0.4) * SR); a = np.zeros(n, np.float32)
     for _, s, e in words:
         k = np.arange(int(s * SR), int(e * SR)); a[k] = peak * np.sin(2 * np.pi * 220 * k / SR)
-    heard = [(x, s, e) for w, s, e in words for x in E.norm_words(w)]
+    heard = [(x, s, e, E.written(w)) for w, s, e in words for x in E.norm_words(w)]
     t = {"a": a, "sr": SR, "heard": heard, "words": words, "junk": E._cb_junk(a, SR, words), "peak": float(np.abs(a).max()),
          "mos": mos, "mos_min": mos_min, "vsim": sim}
     return t, E.norm_words(E.spoken_text(text))
@@ -37,6 +37,20 @@ def test_sound_alike_spelling_passes():   # 28 Nov 2026: "Two Sum" heard as "two
     for said, heard in [("This Two Sum looks right.", "This twosome looks right."),
                         ("the code is on one hint away dot com", "The code is on onehintaway.com"),
                         ("everything you have seen", "everything you have scene")]:
+        hard, _ = gates(spread(heard), said)
+        assert not hard, (said, heard, hard)
+
+def test_whisper_formatting_passes():     # 28 Nov 2026: "onehintaway .com" and "C++" failed correct takes 8 times
+    for said, heard in [("Every line is on one hint away dot com.", "Every line is on onehintaway .com"),
+                        ("Every line is on one hint away dot com.", "Every line is on onehintaway.com."),
+                        ("In C plus plus, a missing key already starts at zero.", "In C++, a missing key already starts at zero."),
+                        ("In C sharp it is the same.", "In C# it is the same."),
+                        ("This runs in O of n time.", "This runs in O(n) time."),
+                        ("Half is zero point five.", "Half is 0.5."),
+                        ("That is fifty percent of the pairs.", "That is 50% of the pairs."),
+                        ("Check i plus plus here.", "Check i++ here."),
+                        ("LeetCode two hundred forty two.", "LeetCode 242."),
+                        ("When x equals three, stop.", "When x = 3, stop.")]:
         hard, _ = gates(spread(heard), said)
         assert not hard, (said, heard, hard)
 
@@ -133,6 +147,37 @@ def test_your_turn_heading_waits_for_its_section():   # 28 Nov 2026: "Your turn"
     early = inner.replace('class="mono-label section" data-at="L1"', 'class="mono-label section"')
     assert yt.heading_errors(sc, early, "end"), "a heading shown early must be caught"
     assert "Your turn" not in inner.split("SOLVED")[0], "the big title must not announce Your turn up front"
+
+def test_failed_line_falls_back_to_kokoro():   # a line that never comes out clean must not stop the render
+    import tempfile
+    calls = {"n": 0}
+    def garble(req):
+        calls["n"] += 1
+        a = (0.3 * np.sin(2 * np.pi * 200 * np.arange(int(1.2 * 24000)) / 24000)).astype(np.float32)
+        import soundfile as sf; sf.write(req["out"], a, 24000)
+        return {"sr": 24000, "words": [["Banana", 0.1, 0.5], [f"x{calls['n']}", 0.6, 1.0]], "mos": 4.3, "mos_min": 4.2, "sim": 0.9}
+    old_ask, old_cache, old_engine = E._cb_ask, E.CACHE, E.VOICE_ENGINE
+    with tempfile.TemporaryDirectory() as d:
+        try:
+            E._cb_ask, E.CACHE = garble, Path(d); E.set_voice_engine("chatterbox"); E.VOICE_ERRORS.clear(); E.VOICE_NOTES.clear()
+            ref = Path(d) / "cb-reference-af_heart.wav"; import soundfile as sf; sf.write(ref, np.zeros(2400, np.float32), E.SR)
+            a, spans = E.human("Is four on the list?")
+            assert E.LAST_META.get("fallback") == "kokoro" and len(a) > E.SR * 0.5 and not E.VOICE_ERRORS, E.LAST_META
+            assert calls["n"] == E.CB["tries"], calls
+        finally:
+            E._cb_ask, E.CACHE = old_ask, old_cache; E.set_voice_engine(old_engine)
+
+def test_missing_chatterbox_falls_back():
+    import os, tempfile
+    old_cache, old_engine, env = E.CACHE, E.VOICE_ENGINE, os.environ.pop("CB_PYTHON", None)
+    with tempfile.TemporaryDirectory() as d:
+        try:
+            E.CACHE = Path(d); E._cb = None; E._cb_restarts = 0; E.set_voice_engine("chatterbox")
+            a, _ = E.human("Remember the map.")
+            assert E.LAST_META.get("fallback") == "kokoro" and len(a) > 0
+        finally:
+            E.CACHE = old_cache; E.set_voice_engine(old_engine); E._cb = None; E._cb_restarts = 0
+            if env: os.environ["CB_PYTHON"] = env
 
 if __name__ == "__main__":
     tests = [(k, f) for k, f in sorted(globals().items()) if k.startswith("test_")]

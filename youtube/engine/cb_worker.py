@@ -4,7 +4,7 @@ one JSON object per line:
 
   request : {"text": "...", "seed": 3, "out": "/path/take.wav", "ref": "/path/reference.wav",
              "exaggeration": 0.5, "cfg_weight": 0.5}
-  answer  : {"sr": 24000, "words": [["Is", 0.12, 0.31], ...],      what Whisper heard, with start and end times
+  answer  : {"sr": 24000, "words": [["Is", 0.12, 0.31, 0.98], ...],  what Whisper heard: start, end, its confidence
              "mos": 4.3, "mos_min": 3.9, "sim": 0.86}
 
 Chatterbox (MIT) says the line copying the reference voice. Three listeners judge each take for the engine:
@@ -67,7 +67,7 @@ for raw in sys.stdin:
         pcm = ta.functional.resample(wav, model.sr, 16000)[0].numpy().astype("float32")
         segs, _ = ear.transcribe(pcm, language="en", word_timestamps=True, beam_size=5, condition_on_previous_text=False,
                                  hotwords=req.get("hotwords") or None)
-        words = [[w.word.strip(), round(w.start, 3), round(w.end, 3)] for s in segs for w in s.words]
+        words = [[w.word.strip(), round(w.start, 3), round(w.end, 3), round(w.probability, 3)] for s in segs for w in s.words]
         mos, mos_min = naturalness(pcm)
         ans = {"sr": model.sr, "words": words, "mos": round(mos, 3), "mos_min": round(mos_min, 3),
                "sim": round(likeness(pcm, req["ref"]), 3)}

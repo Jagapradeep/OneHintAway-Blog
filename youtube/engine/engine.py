@@ -124,13 +124,14 @@ VOICE_ENGINE = "kokoro"
 VOICE_ERRORS = []
 VOICE_NOTES = []       # lines accepted although Whisper heard a word differently: worth one listen
 CB = {"exaggeration": 0.5, "cfg_weight": 0.5, "chatterbox": "ab55923", "whisper": "small.en", "judge": "utmos22-strong",
-      "tries": 8,              # takes per line before the render fails (hard faults: words, noise, clipping, long gaps)
+      "tries": 8,              # takes per line before Kokoro says it (hard faults: words, clicks, stalls, noise, clipping)
       "soft_tries": 3,         # takes with the right words but below the quality bar before keeping the best of them
       "gap_max": 0.8,          # longest silence inside a sentence, seconds
       "rate": (1.6, 4.6),      # words a second for a line of four words or more
       "mos_min": 3.8,          # UTMOS of the whole take (clean Kokoro scores about 4.4; a glitch drops it by about 1)
       "mos_window_min": 3.4,   # UTMOS of the worst 2-second stretch
       "sim_min": 0.75,         # likeness to the af_heart reference (cosine of voice-encoder embeddings)
+      "clarity_min": 0.35,     # Whisper's confidence in its least clear word (a blurred "it at" scores low; tune by ear)
       "speech_rms": 0.075}     # every line is levelled to this loudness of speech
 LAST_META = {}
 CB_REF_TEXT = ("Here is the idea in one line. We keep a small notebook of the numbers we have already seen. "
@@ -282,113 +283,219 @@ def _gap_after(sentence):
     p = sentence.rstrip()[-1:] if sentence.strip() else "."
     return PAUSE.get(p, PAUSE["."])
 
-def _breathe(a, spans, sents):
-    """Rebuild a finished 48 kHz Chatterbox line from its sentences, so the breathing room is exact and clean:
-    every sentence keeps its own speech (found by loudness near its span), everything between sentences (breaths,
-    mouth noise, bits of a cut) becomes true silence of the right length, stray clicks inside a sentence are removed,
-    and the line ends with LINE_TAIL of silence. Returns (audio, exact sentence spans)."""
-    a = np.asarray(a, np.float32).copy()
-    fr = int(0.01 * SR); nf = len(a) // fr
-    if not nf or not spans:
-        return a, spans
-    lvl = np.sqrt((a[: nf * fr].reshape(nf, fr) ** 2).mean(axis=1)); loud = lvl > 0.12 * (lvl.max() + 1e-9)
-    i = 0                                       # stray sounds: under 80 ms of sound with 150 ms of quiet on each side
-    while i < nf:
-        if loud[i]:
-            j = i
-            while j < nf and loud[j]:
-                j += 1
-            quiet_before = next((d for d in range(1, 16) if i - d < 0 or loud[i - d]), 16) - 1
-            quiet_after = next((d for d in range(0, 15) if j + d >= nf or loud[j + d]), 15)
-            if j - i <= 8 and quiet_before >= 15 and quiet_after >= 15:
-                a[i * fr: j * fr] = 0.0; loud[i:j] = False
-            i = j
-        else:
-            i += 1
-    # cut between sentences at the quietest 10 ms near where the next one starts; pieces never overlap
-    cuts = [0]
-    for k in range(1, len(spans)):
-        lo = max(cuts[-1] + 1, int(max(0.0, spans[k][0] - 0.3) / 0.01)); hi = max(lo + 1, min(nf, int((spans[k][0] + 0.1) / 0.01)))
-        cuts.append(lo + int(np.argmin(lvl[lo:hi])))
-    cuts.append(nf)
-    bounds = []
-    for k in range(len(spans)):
-        idx = np.flatnonzero(loud[cuts[k]:cuts[k + 1]]) + cuts[k]
-        bounds.append((int(idx[0]), int(idx[-1]) + 1) if len(idx) else (cuts[k], cuts[k + 1]))
-    out, new, t = [np.zeros(int(0.04 * SR), np.float32)], [], 0.04
-    for k, (b0, b1) in enumerate(bounds):
-        x0 = max(cuts[k] * fr, b0 * fr - int(0.04 * SR)); x1 = min(cuts[k + 1] * fr, b1 * fr + int(0.08 * SR), len(a))
-        piece = a[x0:x1].copy(); fi, fo = min(len(piece) // 2, int(0.015 * SR)), min(len(piece) // 2, int(0.04 * SR))
-        if fi:
-            piece[:fi] *= np.linspace(0, 1, fi, dtype=np.float32)
-        if fo:
-            piece[-fo:] *= np.linspace(1, 0, fo, dtype=np.float32)
-        new.append((round(t + (b0 * fr - x0) / SR, 3), round(t + (b1 * fr - x0) / SR, 3)))
-        out.append(piece); t += len(piece) / SR
-        if k + 1 < len(bounds):
-            natural = (bounds[k + 1][0] - b1) * 0.01
-            want = _gap_after(sents[k]) if k < len(sents) else PAUSE["."]
-            kept = (x1 - b1 * fr) / SR + (bounds[k + 1][0] * fr - max(cuts[k + 1] * fr, bounds[k + 1][0] * fr - int(0.04 * SR))) / SR
-            gap = min(max(natural, want), want + 0.25) - kept              # the kept edges count as part of the silence
-            out.append(np.zeros(int(max(0.0, gap) * SR), np.float32)); t += max(0.0, gap)
-    out.append(np.zeros(int(LINE_TAIL * SR), np.float32))
-    return np.concatenate(out), new
+# ---- Shaping a Chatterbox take: silence is the only thing ever changed (root-cause fix, 28 November 2026).
+# Jaga heard "lines", "index", "needs", "times" lose their last sound, and "Re…member", "Firs…t" split by a pause.
+# Both came from the shaping, not from Chatterbox: sentence ends were found as "louder than 12% of the peak" plus 80 ms,
+# which cuts every quiet ending (s, z, ks, st), and sentences were cut at "the quietest 10 ms near Whisper's word time",
+# which lands inside a word whenever Whisper's time is off (the silent stop before the t of "first"). And the checks
+# judged the raw take, never the shaped audio that ships. Now:
+#   1. Voice is measured, not guessed: a 10 ms frame is voice if it stands out from this take's own noise floor in the
+#      whole band or above 3.5 kHz (where s, z, f, th and the burst of t live), down to 45 dB below the speech.
+#   2. Only silence is cut, lengthened or faded. A sentence pause goes into a real silence of at least 0.12 s (longer
+#      than the silent stop inside "first"), the longest one between the two sentences' edge words. If a take has no
+#      such silence there, nothing is inserted and the take counts as "sentences run together" (another take is tried).
+#   3. A sound is removed only if it cannot belong to a word: under 80 ms with 0.15 s of silence on both sides, or a
+#      quiet breath at a sentence's edge set 0.15 s apart from its words.
+#   4. Every shaped line is compared with its take: each kept stretch of voice must be there sample for sample.
+#      If not, the line is used unshaped (and noted), so a shaping mistake can never cut a word.
+#   5. Raw takes are cached, not shaped ones: changing the shaping or the checks never needs the voice made again.
+VAD = {"hop": 0.01,          # frame, seconds
+       "below_speech": 45.0,  # voice reaches down to this many dB below the take's speech level (its 95th percentile)
+       "above_floor": 10.0,  # ... and must stand this far above its noise floor (10th percentile)
+       "hf_hz": 3500,        # the band where quiet consonants live
+       "pause_min": 0.12,    # a silence that can hold a sentence pause; shorter ones can be a stop inside a word
+       "apart": 0.15,        # a sound this far from every other sound is not part of a word
+       "blip_max": 0.08,     # an isolated sound this short is a click or a fragment: removed
+       "weak": 18.0,         # an edge sound this far below speech (whole band and high band) is a breath: removed
+       "click_max": 0.06,    # a sound this short, set apart by click_gap on both sides, after a word that does not end
+       "click_gap": 0.03,    #   in a stop (p t k b d g), is a click Chatterbox added ("letter, [tick] add one")
+       "click_voicing": 10.0,  # ... if it has no voice in it: its whole band is within this many dB of its high band
+                             #   (a short word like "a" or "the" is voiced and is never a click)
+       "stall": 0.2}         # silence this long inside one word is a stall ("Rem … ember")
+_HP = None
+_STOPS = set("pbtdkɡgʔ")
 
-def _cb_shape(a, sr, heard, text, n_exp):
-    """Trim the take to its words, cut it between sentences at the quietest point, and make each pause at least
-    as long as Kokoro's (Chatterbox runs sentences together). Returns (audio at 48 kHz, sentence spans)."""
-    a = a.astype(np.float64)
-    if not heard:
-        return resample_poly(a, SR, sr).astype(np.float32), [(0.0, len(a) / sr)]
-    sents = [x for x in _SENT.split(text.strip()) if x]
-    counts = [len(norm_words(x)) for x in sents]
-    scale = len(heard) / max(1, n_exp)
-    rng, i = [], 0                                  # first and last heard word of each sentence
+def _to48(a, sr):
+    a = np.asarray(a, np.float64)
+    return (resample_poly(a, SR, sr) if sr != SR else a).astype(np.float32)
+
+def _vad(a, thr=None):
+    """Voice per 10 ms frame of a 48 kHz take: (mask, thresholds, whole-band dB, high-band dB, speech levels)."""
+    global _HP
+    from scipy.signal import butter, sosfiltfilt
+    if _HP is None:
+        _HP = butter(4, VAD["hf_hz"], "hp", fs=SR, output="sos")
+    hop = int(VAD["hop"] * SR); n = len(a) // hop
+    if n < 2:
+        return np.zeros(n, bool), thr or (0.0, 0.0), np.zeros(n), np.zeros(n), (0.0, 0.0)
+    x = np.asarray(a[: n * hop], np.float64)
+    full = 10 * np.log10((x.reshape(n, hop) ** 2).mean(axis=1) + 1e-10)
+    high = 10 * np.log10((sosfiltfilt(_HP, x).reshape(n, hop) ** 2).mean(axis=1) + 1e-10)
+    ref = (float(np.percentile(full, 95)), float(np.percentile(high, 95)))
+    if thr is None:
+        thr = tuple(max(r - VAD["below_speech"], float(np.percentile(d, 10)) + VAD["above_floor"]) for r, d in zip(ref, (full, high)))
+    return (full > thr[0]) | (high > thr[1]), thr, full, high, ref
+
+def _runs_of(mask):
+    """Stretches of True as (first frame, frame after the last)."""
+    m = np.concatenate([[False], np.asarray(mask, bool), [False]]).astype(np.int8)
+    d = np.flatnonzero(np.diff(m))
+    return [(int(s), int(e)) for s, e in zip(d[::2], d[1::2])]
+
+def _sent_ranges(heard, counts):
+    """First and last heard word of each sentence (Whisper may split or join a word: spread proportionally)."""
+    scale = len(heard) / max(1, sum(counts)); rng, i = [], 0
     for c in counts:
         j0 = min(len(heard) - 1, int(round(i * scale)))
         j1 = min(len(heard) - 1, max(j0, int(round((i + c) * scale)) - 1))
         rng.append((j0, j1)); i += c
-    # where the voice really starts and stops: Whisper's first and last word times are approximate (often early),
-    # so find the first and last loud 10 ms around them; breaths and room tone before or after are cut
-    fr = max(1, int(0.01 * sr)); nf = len(a) // fr
-    lvl = np.sqrt((a[: nf * fr].reshape(nf, fr) ** 2).mean(axis=1)) if nf else np.zeros(1)
-    loud = np.flatnonzero(lvl > 0.15 * (lvl.max() + 1e-9))
-    lo = int(max(0.0, heard[0][1] - 0.4) / 0.01); hi = int((heard[-1][2] + 0.6) / 0.01)
-    inside = loud[(loud >= lo) & (loud <= hi)]
-    if len(inside):
-        start = max(0.0, inside[0] * 0.01 - 0.05); end = min(len(a) / sr, (inside[-1] + 1) * 0.01 + 0.12)
-    else:
-        start = max(0.0, heard[0][1] - 0.12); end = min(len(a) / sr, heard[-1][2] + 0.3)
-    hop = max(1, int(0.01 * sr))
-    def quietest(lo, hi):
-        lo, hi = max(start, lo), min(end, max(lo + 0.01, hi))
-        k0, k1 = int(lo * sr), int(hi * sr)
-        if k1 - k0 < hop:
-            return (lo + hi) / 2
-        seg = a[k0:k1]; n = len(seg) // hop
-        e = (seg[: n * hop].reshape(n, hop) ** 2).mean(axis=1)
-        return (k0 + (int(np.argmin(e)) + 0.5) * hop) / sr
-    cuts = [start]
-    for (_, j1), (j0n, _) in zip(rng, rng[1:]):
-        cuts.append(quietest(heard[j1][2] - 0.05, heard[j0n][1] + 0.05))
-    cuts.append(end)
-    fade = int(0.006 * sr); out, spans, t = [], [], 0.0
-    for k, (c0, c1) in enumerate(zip(cuts, cuts[1:])):
-        piece = a[int(c0 * sr): int(c1 * sr)].copy()
-        if len(piece) > 2 * fade:
-            if k:
-                piece[:fade] *= np.linspace(0, 1, fade)
-            piece[-fade:] *= np.linspace(1, 0, fade)
-        j0, j1 = rng[k]
-        spans.append((round(t + max(0.0, heard[j0][1] - c0), 3), round(t + min(c1, heard[j1][2]) - c0, 3)))
-        out.append(piece); t += len(piece) / sr
-        if k < len(sents) - 1:                       # top the natural pause up to Kokoro's
-            natural = max(0.0, heard[rng[k + 1][0]][1] - heard[j1][2])
-            add = max(0.0, _gap_after(sents[k]) - natural)
-            out.append(np.zeros(int(add * sr))); t += add
-    a = resample_poly(np.concatenate(out), SR, sr).astype(np.float32)
-    f2 = min(len(a), int(0.03 * SR)); a[-f2:] *= np.linspace(1, 0, f2, dtype=np.float32)
-    return _level(a), spans
+    return rng
+
+def _ends_in_stop(word):
+    p = _phones(norm_words(word)); return bool(set(p[-2:]) & _STOPS)
+
+def _starts_with_stop(word):
+    p = _phones(norm_words(word)); return bool(p[:1]) and p[0] in _STOPS
+
+def _cb_plan(a, heard, text):
+    """Read a 48 kHz take: where its voice is, which sounds are not words, where each sentence pause goes, and the
+    faults only the sound shows (clicks, stalls, sentences run together). Changes nothing."""
+    sents = [x for x in _SENT.split(text.strip()) if x]
+    voiced, thr, full, high, ref = _vad(a)
+    nf, hs = len(voiced), VAD["hop"]; fr = lambda s: int(round(s / hs))
+    runs = _runs_of(voiced)
+    plan = {"thr": thr, "sents": sents, "pieces": [], "dropped": [], "joined": [], "clicks": [], "stalls": [], "bounds": []}
+    if not runs:
+        return plan
+    inf = 10 ** 9
+    gap_b = lambda rs, i: rs[i][0] - rs[i - 1][1] if i else inf
+    gap_a = lambda rs, i: rs[i + 1][0] - rs[i][1] if i + 1 < len(rs) else inf
+    keep = []
+    for i, r in enumerate(runs):                     # 3a. clicks and fragments set apart from everything
+        if r[1] - r[0] <= fr(VAD["blip_max"]) and gap_b(runs, i) >= fr(VAD["apart"]) and gap_a(runs, i) >= fr(VAD["apart"]):
+            plan["dropped"].append(r)
+        else:
+            keep.append(r)
+    if not keep:
+        return plan
+    # 2. sentence pauses: the longest real silence (>= pause_min) between a sentence's last word and the next one's first
+    counts = [len(norm_words(x)) for x in sents]
+    rng = _sent_ranges(heard, counts) if heard else []
+    gaps = [(keep[i][1], keep[i + 1][0]) for i in range(len(keep) - 1)]
+    weak = lambda r: full[r[0]:r[1]].max() < ref[0] - VAD["weak"] and high[r[0]:r[1]].max() < ref[1] - VAD["weak"]
+    words_in = lambda f0, f1: sum(min(e, f1) - max(s, f0) for s, e in keep if s < f1 and e > f0 and not weak((s, e)))
+    chosen, last = [], 0
+    for k in range(len(sents) - 1):
+        b = None
+        if rng:
+            lo, hi = heard[rng[k][1]][1] - 0.1, heard[rng[k + 1][0]][2] + 0.15
+            after = fr(heard[rng[k + 1][1]][2] + 0.3)     # a sentence (even "Yes.") must have words on both sides
+            cands = [g for g in gaps if g[1] - g[0] >= fr(VAD["pause_min"]) and g[0] * hs < hi and g[1] * hs > lo and g[0] >= last
+                     and words_in(last, g[0]) >= fr(0.12) and words_in(g[1], max(after, g[1] + 1)) >= fr(0.12)]
+            if cands:
+                mid = (lo + hi) / 2
+                b = max(cands, key=lambda g: (g[1] - g[0], -abs((g[0] + g[1]) / 2 * hs - mid)))
+                last = b[1]
+        plan["bounds"].append(b)
+        if b is None:
+            plan["joined"].append(k)
+        else:
+            chosen.append((b, k))
+    # pieces: runs between chosen pauses, each with the sentences it holds
+    starts = {b[1]: k for b, k in chosen}; pieces, cur, first = [], [], 0
+    for r in keep:
+        if r[0] in starts and cur:
+            pieces.append({"runs": cur, "sents": (first, starts[r[0]])}); first = starts[r[0]] + 1; cur = []
+        cur.append(r)
+    pieces.append({"runs": cur, "sents": (first, len(sents) - 1)})
+    for p in pieces:                                 # 3b. a quiet breath at a sentence's edge, set apart from its words
+        rs = p["runs"]
+        while len(rs) > 1 and rs[1][0] - rs[0][1] >= fr(VAD["apart"]) and weak(rs[0]):
+            plan["dropped"].append(rs.pop(0))
+        while len(rs) > 1 and rs[-1][0] - rs[-2][1] >= fr(VAD["apart"]) and weak(rs[-1]):
+            plan["dropped"].append(rs.pop())
+    plan["pieces"] = pieces
+    # faults only the sound shows (the take is judged; nothing is removed for these)
+    allk = [r for p in pieces for r in p["runs"]]
+    starts_w = [h[1] for h in heard]
+    for i, r in enumerate(allk):
+        unvoiced = float(np.max(full[r[0]:r[1]] - high[r[0]:r[1]])) < VAD["click_voicing"]
+        if (r[1] - r[0] <= fr(VAD["click_max"]) and unvoiced and gap_b(allk, i) >= fr(VAD["click_gap"])
+                and gap_a(allk, i) >= fr(VAD["click_gap"])):
+            t = r[0] * hs
+            prev = next((h[0] for h, s in zip(reversed(heard), reversed(starts_w)) if s <= t), None)
+            nxt = next((h[0] for h, s in zip(heard, starts_w) if s > t), None)
+            if prev is not None and not _ends_in_stop(prev) and not (nxt is not None and _starts_with_stop(nxt)):
+                plan["clicks"].append((round(t, 2), prev, nxt))
+    for g0, g1 in zip([r[1] for r in allk], [r[0] for r in allk[1:]]):
+        if (g1 - g0) * hs >= VAD["stall"]:
+            for w, s, e, *_ in heard:
+                if s + 0.08 <= g0 * hs and g1 * hs <= e - 0.08:
+                    plan["stalls"].append((round(g0 * hs, 2), w)); break
+    return plan
+
+def _even_spans(t0, t1, sents):
+    """Sentence times spread by word count, for a line that could not be shaped."""
+    w = np.cumsum([0] + [max(1, len(norm_words(x))) for x in sents or ["."]]) / max(1, sum(max(1, len(norm_words(x))) for x in sents or ["."]))
+    return [(round(t0 + (t1 - t0) * x, 3), round(t0 + (t1 - t0) * y, 3)) for x, y in zip(w, w[1:])]
+
+def _edge_fades(seg, lead, tail):
+    """Fade in over the first `lead` samples and out over the last `tail`: the take's own silence around a sentence."""
+    if lead > 0:
+        seg[:lead] *= np.linspace(0, 1, lead, dtype=np.float32)
+    if tail > 0:
+        seg[-tail:] *= np.linspace(1, 0, tail, dtype=np.float32)
+
+def _cb_assemble(a, sr, heard, text, level=True):
+    """The finished line from a raw take: sentences with the take's own voice untouched, exact pauses between them
+    (0.5 s after a statement, 0.65 after a question, 0.55 after '!', or the take's own if longer, up to 0.25 s more),
+    20 ms of the take's silence faded at each edge, LINE_TAIL at the end, levelled.
+    Returns (audio at 48 kHz, [(start, end) per sentence], info)."""
+    a = _to48(a, sr)
+    plan = _cb_plan(a, heard, text)
+    sents, hop = plan["sents"], int(VAD["hop"] * SR)
+    info = {"joined": plan["joined"], "dropped": round(sum(e - s for s, e in plan["dropped"]) * VAD["hop"], 2)}
+    if not plan["pieces"]:
+        return _level(a), _even_spans(0.0, len(a) / SR, sents), {**info, "unshaped": "no voice found"}
+    pad = int(0.02 * SR); out = [np.zeros(pad, np.float32)]; t = pad / SR; spans, cores = [], []
+    pieces = plan["pieces"]
+    for p, pc in enumerate(pieces):
+        s0, s1 = pc["runs"][0][0] * hop, pc["runs"][-1][1] * hop
+        x0, x1 = max(0, s0 - pad), min(len(a), s1 + pad)
+        seg = a[x0:x1].copy()
+        for d0, d1 in plan["dropped"]:                 # a removed fragment inside a sentence becomes silence
+            if s0 <= d0 * hop < s1:
+                seg[d0 * hop - x0: d1 * hop - x0] = 0.0
+        _edge_fades(seg, s0 - x0, x1 - s1)
+        base = t - x0 / SR                               # take time -> line time for this piece
+        k0, k1 = pc["sents"]
+        if k1 > k0 and heard:                            # sentences that stayed together: split at Whisper's estimate
+            rng = _sent_ranges(heard, [len(norm_words(x)) for x in sents]); edges = [s0 / SR]
+            for k in range(k0, k1):
+                edges.append(min(max((heard[rng[k][1]][2] + heard[rng[k + 1][0]][1]) / 2, edges[-1]), s1 / SR))
+            edges.append(s1 / SR)
+            spans += [(round(base + e0, 3), round(base + e1, 3)) for e0, e1 in zip(edges, edges[1:])]
+        else:
+            spans += [(round(base + s0 / SR, 3), round(base + s1 / SR, 3))] * (k1 - k0 + 1)
+        cores.append((len(out), s0 - x0, s0, s1, [(d0 * hop, d1 * hop) for d0, d1 in plan["dropped"] if s0 <= d0 * hop < s1]))
+        out.append(seg); t += len(seg) / SR
+        if p + 1 < len(pieces):
+            natural = (pieces[p + 1]["runs"][0][0] * hop - s1) / SR
+            want = _gap_after(sents[k1])
+            gap = min(max(natural, want), want + 0.25) - (x1 - s1) / SR - min(pad, pieces[p + 1]["runs"][0][0] * hop) / SR
+            out.append(np.zeros(int(max(0.0, gap) * SR), np.float32)); t += max(0.0, gap)
+    out.append(np.zeros(int(LINE_TAIL * SR), np.float32))
+    # 4. the proof: every kept stretch of voice is in the line, sample for sample
+    for i, off, s0, s1, holes in cores:
+        want = a[s0:s1].copy()
+        for h0, h1 in holes:
+            want[h0 - s0: h1 - s0] = 0.0
+        if not np.array_equal(out[i][off: off + (s1 - s0)], want):
+            v = np.flatnonzero(_vad(a)[0]); lo, hi = v[0] * hop, (v[-1] + 1) * hop
+            plain = np.concatenate([np.zeros(pad, np.float32), a[max(0, lo - pad): hi + pad], np.zeros(int(LINE_TAIL * SR), np.float32)])
+            return _level(plain), _even_spans(pad / SR, (pad + hi - lo) / SR, sents), {**info, "unshaped": "shaping check failed"}
+    a = np.concatenate(out)
+    return (_level(a) if level else a), spans, info
 
 def _cb_gates(t, exp, sents_end):
     """Judge one take. Hard faults are never shipped; soft faults send it back for another take."""
@@ -404,14 +511,24 @@ def _cb_gates(t, exp, sents_end):
         hard.append("sound before or after the words")
     if t["peak"] >= 0.999:
         hard.append("clipped")
-    for (w0, _, e0), (_, s1, _) in zip(words, words[1:]):
+    for (w0, _, e0, *_), (_, s1, *_) in zip(words, words[1:]):
         if s1 - e0 > CB["gap_max"] and not w0.rstrip().endswith(sents_end):
             hard.append(f"{s1 - e0:.1f} s silence after {w0.strip()!r}"); break
+    plan = t.get("plan") or {}
+    if plan.get("clicks"):                         # 28 Nov 2026: a tick between "letter," and "add one"
+        hard.append("a click after " + ", ".join(repr(c[1]) for c in plan["clicks"][:2]))
+    if plan.get("stalls"):                         # a word stopped and restarted ("Rem … ember")
+        hard.append("a stall inside " + ", ".join(repr(s[1]) for s in plan["stalls"][:2]))
     span = (words[-1][2] - words[0][1]) if words else 0.0     # first word to last, natural pauses included
     rate = len(exp) / max(span, 0.3)
     t["rate"] = round(rate, 2)
     if len(exp) >= 4 and not CB["rate"][0] <= rate <= CB["rate"][1]:
         soft.append(f"{rate:.1f} words a second")
+    if plan.get("joined"):                         # no real silence to hold a sentence pause: another take may pause
+        soft.append("sentences run together after " + ", ".join(repr(plan["sents"][k][-24:]) for k in plan["joined"][:2]))
+    clear = t.get("clarity", 1.0)
+    if clear < CB["clarity_min"]:                  # 28 Nov 2026: "start it at one" came out blurred
+        soft.append(f"an unclear word ({t.get('unclear', '?')!r}, {clear:.2f})")
     if t["mos"] < CB["mos_min"]:
         soft.append(f"naturalness {t['mos']:.2f}")
     if t["mos_min"] < CB["mos_window_min"]:
@@ -420,7 +537,7 @@ def _cb_gates(t, exp, sents_end):
         soft.append(f"voice likeness {t['vsim']:.2f}")
     return hard, soft
 
-def _fallback(text, why, cache):
+def _fallback(text, why):
     """Kokoro's af_heart says the line (always the right words), levelled like the rest. Listed in the listen list."""
     global LAST_META
     a, spans = _kokoro_human(text)
@@ -428,8 +545,6 @@ def _fallback(text, why, cache):
     meta = {"spans": [list(x) for x in spans], "fallback": "kokoro", "note": f"said by Kokoro: {why}", "takes": CB["tries"]}
     LAST_META = {**meta, "text": spoken_text(text)}
     VOICE_NOTES.append(f"{spoken_text(text)!r}: said by Kokoro ({why})")
-    if cache:                                     # the same seeds give the same takes: no point trying again next run
-        sf.write(cache[0], a, SR); cache[1].write_text(json.dumps(meta))
     print(f"   kokoro fallback for {spoken_text(text)[:50]!r}: {why}", flush=True)
     return a, spans
 
@@ -452,43 +567,53 @@ def _level(a):
             a = a * min(g, 0.95 / max(1e-6, float(np.abs(a).max())))
     return a.astype(np.float32)
 
-def _cb_human(text):
-    """One line from Chatterbox, judged by four checks (words, timing, naturalness, likeness to af_heart), cached.
-    Returns (audio, sentence spans). LAST_META describes the take for the video's listen list."""
-    global LAST_META
-    said = _cb_text(text); exp = norm_words(spoken_text(text)); spoken = spoken_text(text)
-    key = hashlib.sha1(f"cb|{said}|{sorted((k, str(v)) for k, v in CB.items())}|v3".encode()).hexdigest()[:16]
-    fa, fj = CACHE / f"cb-{key}.wav", CACHE / f"cb-{key}.json"
+def _cb_take(said, seed, hot):
+    """One raw take and what the three listeners made of it, cached by everything that shapes them. Shaping and the
+    checks run fresh on every use, so changing either never needs the voice made again."""
+    gen = {k: CB[k] for k in ("exaggeration", "cfg_weight", "chatterbox", "whisper", "judge")}
+    key = hashlib.sha1(f"cbtake|{said}|{seed}|{hot}|{sorted(gen.items())}|t1".encode()).hexdigest()[:16]
+    fa, fj = CACHE / f"cbt-{key}.wav", CACHE / f"cbt-{key}.json"
     if fa.exists() and fj.exists():
-        a, _ = sf.read(fa, dtype="float32"); meta = json.loads(fj.read_text())
-        LAST_META = {**meta, "text": spoken}
-        if meta.get("note"):
-            VOICE_NOTES.append(f"{spoken!r}: {meta['note']}")
-        if meta.get("fallback"):
-            return a, [tuple(x) for x in meta["spans"]]
-        return _breathe(a, [tuple(x) for x in meta["spans"]], [x for x in _SENT.split(spoken.strip()) if x])
+        a, sr = sf.read(fa, dtype="float32")
+        return a, sr, json.loads(fj.read_text())
+    tmp = CACHE / f"cbt-{key}-new.wav"
+    ans = _cb_ask({"text": said, "seed": seed, "out": str(tmp), "ref": str(_cb_ref()),
+                   "exaggeration": CB["exaggeration"], "cfg_weight": CB["cfg_weight"], "hotwords": hot})
+    if "error" in ans:
+        return None, 0, ans
+    a, sr = sf.read(tmp, dtype="float32"); tmp.unlink(missing_ok=True)
+    if a.ndim > 1:
+        a = a.mean(axis=1)
+    sf.write(fa, a, sr); fj.write_text(json.dumps(ans))
+    return a, sr, ans
+
+def _cb_human(text):
+    """One line from Chatterbox, judged by its checks (words, clicks and stalls, timing, clarity, naturalness, likeness
+    to af_heart), shaped by changing silence only. Returns (audio, sentence spans). LAST_META describes the take for
+    the video's listen list."""
+    global LAST_META
     from difflib import SequenceMatcher
-    ref, takes, pick, note = _cb_ref(), [], None, ""
+    said = _cb_text(text); exp = norm_words(spoken_text(text)); spoken = spoken_text(text); hot = _hotwords(text)
+    takes, pick, note = [], None, ""
     for seed in range(1, CB["tries"] + 1):
-        tmp = CACHE / f"cb-{key}-take{seed}.wav"
         try:
-            ans = _cb_ask({"text": said, "seed": seed, "out": str(tmp), "ref": str(ref),
-                       "exaggeration": CB["exaggeration"], "cfg_weight": CB["cfg_weight"], "hotwords": _hotwords(text)})
+            a, sr, ans = _cb_take(said, seed, hot)
         except VoiceDown as e:
-            return _fallback(text, f"Chatterbox unavailable: {e}", cache=None)
-        if "error" in ans:
+            return _fallback(text, f"Chatterbox unavailable: {e}")
+        if a is None:
             print(f"   chatterbox take {seed} failed: {ans['error']}", flush=True); continue
-        a, sr = sf.read(tmp, dtype="float32"); tmp.unlink(missing_ok=True)
-        if a.ndim > 1:
-            a = a.mean(axis=1)
         heard = []
-        for w, s0, s1 in ans["words"]:
-            heard += [(x, s0, s1, written(w)) for x in norm_words(w)]
+        for w in ans["words"]:
+            heard += [(x, w[1], w[2], written(w[0])) for x in norm_words(w[0])]
         hw = [h[0] for h in heard]
+        hotset = set(norm_words(hot))                 # a name Whisper was told to expect, or digits, is spelling doubt, not sound
+        probs = [(w[3], w[0].strip()) for w in ans["words"]
+                 if len(w) > 3 and norm_words(w[0]) and not written(w[0]) and not set(norm_words(w[0])) & hotset]
+        clear = min(probs) if probs else (1.0, "")
         t = {"seed": seed, "a": a, "sr": sr, "heard": heard, "words": ans["words"], "junk": _cb_junk(a, sr, ans["words"]),
              "peak": float(np.abs(a).max()) if len(a) else 0.0, "mos": ans.get("mos", 5.0), "mos_min": ans.get("mos_min", 5.0),
-             "vsim": ans.get("sim", 1.0), "match": SequenceMatcher(None, exp, hw).ratio(),
-             "text": " ".join(w[0] for w in ans["words"])}
+             "vsim": ans.get("sim", 1.0), "match": SequenceMatcher(None, exp, hw).ratio(), "clarity": clear[0], "unclear": clear[1],
+             "plan": _cb_plan(_to48(a, sr), heard, spoken), "text": " ".join(w[0] for w in ans["words"])}
         t["hard"], t["soft"] = _cb_gates(t, exp, (".", "?", "!", ":", ";"))
         takes.append(t)
         print(f"   take {seed}: " + ("ok" if not t["hard"] + t["soft"] else "; ".join(t["hard"] + t["soft"]))
@@ -497,23 +622,21 @@ def _cb_human(text):
             pick = t; break
         sound = [x for x in takes if not x["hard"]]
         if len(sound) >= CB["soft_tries"]:            # the words are right but it is below the bar every time: keep the best
-            pick = max(sound, key=lambda x: (x["mos_min"], x["mos"], x["vsim"]))
-            note = (note + "; " if note else "") + "below the quality bar: " + "; ".join(pick["soft"]); break
-    accepted = pick is not None
+            pick = min(sound, key=lambda x: (len(x["soft"]), -x["clarity"], -x["mos_min"], -x["mos"], -x["vsim"]))
+            note = "below the quality bar: " + "; ".join(pick["soft"]); break
     if pick is None:                              # never ship a doubtful take and never stop the render: Kokoro says it
         best = max(takes, key=lambda x: (len(x["hard"]) == 1, x["match"], x["mos_min"])) if takes else None
         why = f"no clean Chatterbox take in {len(takes)}" + (f" (closest: {'; '.join(best['hard'])}; heard {best['text']!r})" if best else "")
-        return _fallback(text, why, cache=(fa, fj))
-    a, spans = _cb_shape(pick["a"], pick["sr"], pick["heard"], spoken, len(exp))
+        return _fallback(text, why)
+    a, spans, info = _cb_assemble(pick["a"], pick["sr"], pick["heard"], spoken)
+    if info.get("unshaped"):
+        note = (note + "; " if note else "") + f"used unshaped ({info['unshaped']})"
     meta = {"spans": spans, "seed": pick["seed"], "takes": len(takes), "heard": pick["text"], "note": note,
             "mos": pick["mos"], "mos_min": pick["mos_min"], "likeness": pick["vsim"], "rate": pick.get("rate"),
-            "spelled": pick.get("spelled", "")}
+            "clarity": round(pick["clarity"], 2), "spelled": pick.get("spelled", "")}
     LAST_META = {**meta, "text": spoken}
     if note:
         VOICE_NOTES.append(f"{spoken!r}: {note}")
-    if accepted:                                  # saved as shaped; the breathing room is rebuilt on every use
-        sf.write(fa, a, SR); fj.write_text(json.dumps(meta))
-    a, spans = _breathe(a, spans, [x for x in _SENT.split(spoken.strip()) if x])
     print(f"   chatterbox: take {pick['seed']} of {len(takes)} for {spoken[:50]!r}" + (f" ({note})" if note else ""), flush=True)
     return a, spans
 

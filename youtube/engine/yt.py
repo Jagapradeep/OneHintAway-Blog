@@ -871,9 +871,11 @@ def listen_list(fmt, vid, n=6):
     if not log:
         return ""
     flagged = [x for x in log if x.get("note")]
-    rest = sorted([x for x in log if not x.get("note") and "mos_min" in x], key=lambda x: (x["mos_min"], x["mos"]))[: max(0, n - len(flagged))]
+    rest = sorted([x for x in log if not x.get("note") and "mos_min" in x],
+                  key=lambda x: (min(x["mos_min"] / 4.4, x.get("clarity", 1.0)), x["mos"]))[: max(0, n - len(flagged))]
     def row(x):
-        sc = (f"  (naturalness {x['mos']:.2f}, worst stretch {x['mos_min']:.2f}, likeness {x['likeness']:.2f})" if "mos" in x else "")
+        sc = (f"  (naturalness {x['mos']:.2f}, worst stretch {x['mos_min']:.2f}, likeness {x['likeness']:.2f}"
+              + (f", clarity {x['clarity']:.2f}" if "clarity" in x else "") + ")" if "mos" in x else "")
         return f"  {mmss(x['t'])}  {x['text'][:70]!r}{sc}" + (f"  NOTE: {x['note']}" if x.get("note") else "")
     rows = [row(x) for x in sorted(flagged + rest, key=lambda x: x["t"])]
     takes = sum(x.get("takes", 1) for x in log); kok = sum(1 for x in log if x.get("fallback"))
@@ -882,9 +884,9 @@ def listen_list(fmt, vid, n=6):
 
 def voice_report(vid):
     """Every line with its scores, to tune the bar in engine.CB from real videos."""
-    rows = ["time\ttakes\tseed\tnaturalness\tworst_stretch\tlikeness\twords_per_s\tnote\ttext"]
+    rows = ["time\ttakes\tseed\tnaturalness\tworst_stretch\tlikeness\tclarity\twords_per_s\tnote\ttext"]
     for x in getattr(vid, "voice_log", []):
-        rows.append("\t".join(str(x.get(k, "")) for k in ("t", "takes", "seed", "mos", "mos_min", "likeness", "rate", "note", "text")))
+        rows.append("\t".join(str(x.get(k, "")) for k in ("t", "takes", "seed", "mos", "mos_min", "likeness", "clarity", "rate", "note", "text")))
     return "\n".join(rows) + "\n"
 
 def engine_for(vc, fmt):

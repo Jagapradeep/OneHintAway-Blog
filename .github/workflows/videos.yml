@@ -161,7 +161,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: youtube/engine/.cache
-          key: voice-${{ matrix.engine }}-${{ matrix.post }}-${{ matrix.video }}-${{ hashFiles(format('youtube/scripts/{0}/script.json', matrix.post), 'youtube/channel.json') }}
+          # the engine's files are in the key too: after an engine change the old lines are restored (restore-keys)
+          # and the new state is saved at the end, instead of a stale cache being reused forever
+          key: voice-${{ matrix.engine }}-${{ matrix.post }}-${{ matrix.video }}-${{ hashFiles(format('youtube/scripts/{0}/script.json', matrix.post), 'youtube/channel.json', 'youtube/engine/*.py') }}
           restore-keys: |
             voice-${{ matrix.engine }}-${{ matrix.post }}-${{ matrix.video }}-
 
